@@ -27,10 +27,7 @@ export default function Sidebar() {
       name: "Users",
       href: "/user",
     },
-    {
-      name: "Admin",
-      href: "/admin",
-    },
+    
   ];
 
   return (
