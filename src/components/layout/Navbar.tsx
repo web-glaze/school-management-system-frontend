@@ -1,10 +1,54 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
-import { useState } from "react";
+import { Bell } from "lucide-react";
+import { useEffect, useState } from "react";
 
-export default function Navbar() {
-  const [search, setSearch] = useState("");
+interface NavbarProps {
+  role: "superadmin" | "admin" | "manager" | "user";
+}
+
+interface Notification {
+  title: string;
+  message: string;
+}
+
+export default function Navbar({ role }: NavbarProps) {
+  const [userName, setUserName] = useState("User");
+
+  const [mounted, setMounted] = useState(false);
+
+  const [notifications] = useState<Notification[]>([
+    {
+      title: "New Complaint Raised",
+      message: "AC Repair • Block A",
+    },
+    {
+      title: "Complaint Resolved",
+      message: "Water Leakage Fixed",
+    },
+    {
+      title: "Technician Assigned",
+      message: "WiFi Issue • Library",
+    },
+  ]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setMounted(true);
+    });
+
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+
+      queueMicrotask(() => {
+        setUserName(user.email || "User");
+      });
+    }
+  }, []);
+
+  if (!mounted) return null;
 
   return (
     <div className="h-20 bg-white border-b border-gray-200 px-8 flex items-center justify-between sticky top-0 z-30">
@@ -12,18 +56,19 @@ export default function Navbar() {
       <div>
         <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
 
-        <p className="text-sm text-gray-500 mt-1">Welcome back, Admin</p>
+        <p className="text-sm text-gray-500 mt-1">Welcome back, {userName}</p>
       </div>
 
       {/* Right */}
       <div className="flex items-center gap-5">
-        
         {/* Notification */}
         <div className="relative group">
           <button className="relative w-14 h-14 rounded-2xl bg-[#f5f7fb] flex items-center justify-center hover:bg-blue-50 transition">
             <Bell size={22} className="text-gray-600" />
 
-            <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full" />
+            {notifications.length > 0 && (
+              <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full" />
+            )}
           </button>
 
           {/* Dropdown */}
@@ -37,35 +82,20 @@ export default function Navbar() {
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl hover:bg-gray-200 transition cursor-pointer border">
-                <p className="font-semibold text-gray-800">
-                  New Complaint Raised
-                </p>
+              {notifications.map((notification, index) => (
+                <div
+                  key={index}
+                  className="p-4 rounded-2xl hover:bg-gray-200 transition cursor-pointer border"
+                >
+                  <p className="font-semibold text-gray-800">
+                    {notification.title}
+                  </p>
 
-                <p className="text-sm text-gray-500 mt-1">
-                  AC Repair • Block A
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl hover:bg-gray-200 transition cursor-pointer border">
-                <p className="font-semibold text-gray-800">
-                  Complaint Resolved
-                </p>
-
-                <p className="text-sm text-gray-500 mt-1">
-                  Water Leakage Fixed
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl hover:bg-gray-200 transition cursor-pointer border">
-                <p className="font-semibold text-gray-800">
-                  Technician Assigned
-                </p>
-
-                <p className="text-sm text-gray-500 mt-1">
-                  WiFi Issue • Library
-                </p>
-              </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {notification.message}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -73,13 +103,13 @@ export default function Navbar() {
         {/* User */}
         <div className="flex items-center gap-4 bg-[#f5f7fb] px-4 py-3 rounded-2xl">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white font-bold text-lg shadow-md">
-            A
+            {userName.charAt(0).toUpperCase()}
           </div>
 
           <div className="hidden md:block">
-            <p className="font-semibold text-gray-800">Admin</p>
+            <p className="font-semibold text-gray-800">{userName}</p>
 
-            <p className="text-sm text-gray-500">Administrator</p>
+            <p className="text-sm text-gray-500 capitalize">{role}</p>
           </div>
         </div>
       </div>

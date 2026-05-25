@@ -1,0 +1,460 @@
+"use client";
+
+import DashboardLayout from "@/components/layout/DashboardLayout";
+
+import axios from "axios";
+
+import { useRouter } from "next/navigation";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+export default function RaiseTicketPage() {
+  const router = useRouter();
+
+  const [title, setTitle] =
+    useState("");
+
+  const [locationType, setLocationType] =
+    useState("");
+
+  const [subLocation, setSubLocation] =
+    useState("");
+
+  const [priority, setPriority] =
+    useState("LOW");
+
+  const [description, setDescription] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [success, setSuccess] =
+    useState(false);
+
+  useEffect(() => {
+    const token =
+      localStorage.getItem("token");
+
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
+
+  const hostelRooms = [
+    "Room 101",
+    "Room 102",
+    "Room 103",
+    "Room 104",
+    "Room 201",
+    "Room 202",
+  ];
+
+  const classSections = [
+    "Section A",
+    "Section B",
+    "Section C",
+    "Lab 1",
+    "Lab 2",
+  ];
+
+  const officeLocations = [
+    "Admin Office",
+    "Accounts Office",
+    "Reception",
+  ];
+
+  const currentLocations =
+    locationType === "HOSTEL"
+      ? hostelRooms
+      : locationType === "CLASS"
+      ? classSections
+      : officeLocations;
+
+  const isFormValid =
+    title &&
+    locationType &&
+    subLocation &&
+    priority &&
+    description;
+
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
+    e.preventDefault();
+
+    if (!isFormValid) {
+      alert(
+        "Please fill all required fields"
+      );
+
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const token =
+        localStorage.getItem(
+          "token"
+        );
+
+      await axios.post(
+        "http://localhost:3000/complaints",
+        {
+          title,
+          locationType,
+          subLocation,
+          priority,
+          description,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setSuccess(true);
+
+      setTitle("");
+      setLocationType("");
+      setSubLocation("");
+      setPriority("LOW");
+      setDescription("");
+
+      setTimeout(() => {
+        setSuccess(false);
+      }, 3000);
+
+    } catch (error) {
+      console.log(error);
+
+      alert(
+        "Failed to register complaint"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const descriptionCount =
+    useMemo(() => {
+      return description.length;
+    }, [description]);
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-8">
+
+        {/* Hero */}
+        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
+          
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+
+          <div className="relative z-10">
+            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
+              ECOLE ERP
+            </p>
+
+            <h1 className="text-5xl font-bold mt-4">
+              Raise Ticket
+            </h1>
+
+            <p className="mt-5 text-lg text-white/90 max-w-2xl">
+              Register maintenance issues quickly and track them in real-time across the ECOLE maintenance ecosystem.
+            </p>
+          </div>
+        </div>
+
+        {/* Success */}
+        {success && (
+          <div className="bg-green-100 border border-green-300 text-green-700 rounded-2xl p-5 font-medium shadow">
+            Complaint registered successfully.
+          </div>
+        )}
+
+        {/* Main Grid */}
+        <div className="grid lg:grid-cols-3 gap-8">
+
+          {/* Form */}
+          <div className="lg:col-span-2 bg-white rounded-[2rem] shadow-lg border border-gray-100 p-8">
+
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-800">
+                Complaint Details
+              </h2>
+
+              <p className="text-gray-500 mt-2">
+                Fill in all required information carefully.
+              </p>
+            </div>
+
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-7"
+            >
+
+              {/* Title */}
+              <div>
+                <label className="block mb-3 text-sm font-semibold text-gray-700">
+                  Complaint Title
+                </label>
+
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) =>
+                    setTitle(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Example: AC not working"
+                  className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-blue-400 transition"
+                  required
+                />
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block mb-3 text-sm font-semibold text-gray-700">
+                  Location Type
+                </label>
+
+                <select
+                  value={locationType}
+                  onChange={(e) => {
+                    setLocationType(
+                      e.target.value
+                    );
+
+                    setSubLocation("");
+                  }}
+                  className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-blue-400 transition"
+                  required
+                >
+                  <option value="">
+                    Select Location
+                  </option>
+
+                  <option value="HOSTEL">
+                    Hostel
+                  </option>
+
+                  <option value="CLASS">
+                    Classroom
+                  </option>
+
+                  <option value="OFFICE">
+                    Office
+                  </option>
+                </select>
+              </div>
+
+              {/* Sub Location */}
+              {locationType && (
+                <div>
+                  <label className="block mb-3 text-sm font-semibold text-gray-700">
+                    Sub Location
+                  </label>
+
+                  <select
+                    value={subLocation}
+                    onChange={(e) =>
+                      setSubLocation(
+                        e.target.value
+                      )
+                    }
+                    className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-blue-400 transition"
+                    required
+                  >
+                    <option value="">
+                      Select Sub Location
+                    </option>
+
+                    {currentLocations.map(
+                      (
+                        location
+                      ) => (
+                        <option
+                          key={
+                            location
+                          }
+                          value={
+                            location
+                          }
+                        >
+                          {
+                            location
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              )}
+
+              {/* Priority */}
+              <div>
+                <label className="block mb-4 text-sm font-semibold text-gray-700">
+                  Priority
+                </label>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+                  {[
+                    "LOW",
+                    "MEDIUM",
+                    "HIGH",
+                    "URGENT",
+                  ].map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() =>
+                        setPriority(
+                          item
+                        )
+                      }
+                      className={`h-14 rounded-2xl border font-semibold transition ${
+                        priority ===
+                        item
+                          ? "bg-blue-600 text-white border-blue-600 shadow-lg"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-blue-400"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  
+                  <label className="text-sm font-semibold text-gray-700">
+                    Description
+                  </label>
+
+                  <span className="text-xs text-gray-400">
+                    {
+                      descriptionCount
+                    }
+                    /500
+                  </span>
+                </div>
+
+                <textarea
+                  value={description}
+                  onChange={(e) =>
+                    setDescription(
+                      e.target.value.slice(
+                        0,
+                        500
+                      )
+                    )
+                  }
+                  placeholder="Describe the issue in detail..."
+                  className="w-full min-h-[180px] rounded-2xl border border-gray-200 bg-[#f8fafc] p-5 outline-none focus:border-blue-400 transition resize-none"
+                  required
+                />
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={
+                  loading ||
+                  !isFormValid
+                }
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 text-white font-semibold text-lg shadow-lg hover:scale-[1.01] transition duration-200 disabled:opacity-50"
+              >
+                {loading
+                  ? "Submitting..."
+                  : "Register Complaint"}
+              </button>
+            </form>
+          </div>
+
+          {/* Side Info */}
+          <div className="space-y-6">
+
+            <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
+              
+              <h3 className="text-2xl font-bold text-gray-800">
+                Ticket Preview
+              </h3>
+
+              <div className="mt-6 space-y-5">
+
+                <div>
+                  <p className="text-sm text-gray-400">
+                    Title
+                  </p>
+
+                  <p className="font-semibold text-gray-800 mt-1">
+                    {title ||
+                      "Not added"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-400">
+                    Location
+                  </p>
+
+                  <p className="font-semibold text-gray-800 mt-1">
+                    {locationType
+                      ? `${locationType} • ${subLocation}`
+                      : "Not selected"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-400">
+                    Priority
+                  </p>
+
+                  <p className="font-semibold text-gray-800 mt-1">
+                    {priority}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
+              
+              <h3 className="text-2xl font-bold text-gray-800">
+                Tips
+              </h3>
+
+              <ul className="mt-5 space-y-4 text-gray-500 text-sm">
+                
+                <li>
+                  • Add clear complaint titles
+                </li>
+
+                <li>
+                  • Mention exact location
+                </li>
+
+                <li>
+                  • Explain issue properly
+                </li>
+
+                <li>
+                  • Use urgent only when necessary
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
