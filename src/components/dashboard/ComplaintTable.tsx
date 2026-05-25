@@ -47,13 +47,13 @@ export default function ComplaintsPage() {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await axios.get("http://localhost:3000/complaints", {
+      const response = await axios.get("http://localhost:3000/api/complaints", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      setComplaints(response.data);
+     setComplaints(response.data.data || []);
     } catch (error) {
       console.log(error);
     } finally {

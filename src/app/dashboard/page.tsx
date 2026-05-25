@@ -6,11 +6,7 @@ import axios from "axios";
 
 import { useRouter } from "next/navigation";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface Complaint {
   id: string;
@@ -33,43 +29,34 @@ interface Complaint {
 export default function DashboardPage() {
   const router = useRouter();
 
-  const [complaints, setComplaints] =
-    useState<Complaint[]>([]);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const fetchComplaints =
-    async () => {
-      try {
-        const token =
-          localStorage.getItem(
-            "token"
-          );
+  const fetchComplaints = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        const response =
-          await axios.get(
-            "http://localhost:3000/complaints",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+      const response = await axios.get("http://localhost:3000/api/complaints", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        setComplaints(
-          response.data
-        );
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      console.log(response.data);
+
+      setComplaints(
+        Array.isArray(response.data) ? response.data : response.data.data || [],
+      );
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       router.push("/login");
@@ -84,43 +71,25 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
     return {
-      total:
-        complaints.length,
+      total: complaints.length,
 
-      pending:
-        complaints.filter(
-          (c) =>
-            c.status ===
-            "PENDING"
-        ).length,
+      pending: complaints.filter((c) => c.status === "PENDING").length,
 
-      completed:
-        complaints.filter(
-          (c) =>
-            c.status ===
-              "RESOLVED" ||
-            c.status ===
-              "CLOSED"
-        ).length,
+      completed: complaints.filter(
+        (c) => c.status === "RESOLVED" || c.status === "CLOSED",
+      ).length,
 
-      inProgress:
-        complaints.filter(
-          (c) =>
-            c.status ===
-              "IN_PROGRESS" ||
-            c.status ===
-              "ASSIGNED"
-        ).length,
+      inProgress: complaints.filter(
+        (c) => c.status === "IN_PROGRESS" || c.status === "ASSIGNED",
+      ).length,
     };
   }, [complaints]);
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-
         {/* Hero */}
         <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
 
           <div className="relative z-10">
@@ -128,12 +97,11 @@ export default function DashboardPage() {
               ECOLE ERP
             </p>
 
-            <h1 className="text-5xl font-bold mt-4">
-              Dashboard
-            </h1>
+            <h1 className="text-5xl font-bold mt-4">Dashboard</h1>
 
             <p className="mt-5 text-lg text-white/90 max-w-2xl">
-              Manage complaints, technicians, maintenance requests and monitor the complete ECOLE maintenance ecosystem in real-time.
+              Manage complaints, technicians, maintenance requests and monitor
+              the complete ECOLE maintenance ecosystem in real-time.
             </p>
 
             <button className="mt-8 bg-white text-blue-600 px-7 py-4 rounded-2xl font-semibold hover:bg-blue-50 transition duration-200 shadow-lg">
@@ -144,11 +112,8 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="grid xl:grid-cols-4 md:grid-cols-2 gap-6">
-
           <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-            <p className="text-gray-500 font-medium">
-              Total Complaints
-            </p>
+            <p className="text-gray-500 font-medium">Total Complaints</p>
 
             <h2 className="text-5xl font-bold mt-4 text-gray-800">
               {stats.total}
@@ -156,9 +121,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-            <p className="text-gray-500 font-medium">
-              Pending
-            </p>
+            <p className="text-gray-500 font-medium">Pending</p>
 
             <h2 className="text-5xl font-bold mt-4 text-yellow-500">
               {stats.pending}
@@ -166,9 +129,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-            <p className="text-gray-500 font-medium">
-              Completed
-            </p>
+            <p className="text-gray-500 font-medium">Completed</p>
 
             <h2 className="text-5xl font-bold mt-4 text-green-500">
               {stats.completed}
@@ -176,9 +137,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-            <p className="text-gray-500 font-medium">
-              In Progress
-            </p>
+            <p className="text-gray-500 font-medium">In Progress</p>
 
             <h2 className="text-5xl font-bold mt-4 text-blue-600">
               {stats.inProgress}
@@ -188,7 +147,6 @@ export default function DashboardPage() {
 
         {/* Recent Complaints */}
         <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100">
-          
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-3xl font-bold text-gray-800">
@@ -202,58 +160,39 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-5">
-
             {loading ? (
               <p>Loading...</p>
             ) : (
-              complaints
-                .slice(0, 5)
-                .map(
-                  (
-                    complaint
-                  ) => (
-                    <div
-                      key={
-                        complaint.id
-                      }
-                      className="flex items-center justify-between p-5 rounded-2xl border hover:bg-gray-50 transition"
-                    >
-                      <div>
-                        <h3 className="font-semibold text-lg text-gray-800">
-                          {
-                            complaint.title
-                          }
-                        </h3>
+              complaints.slice(0, 5).map((complaint) => (
+                <div
+                  key={complaint.id}
+                  className="flex items-center justify-between p-5 rounded-2xl border hover:bg-gray-50 transition"
+                >
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-800">
+                      {complaint.title}
+                    </h3>
 
-                        <p className="text-gray-500 mt-1">
-                          {
-                            complaint.locationType
-                          }
-                          {" • "}
-                          {
-                            complaint.subLocation
-                          }
-                        </p>
-                      </div>
+                    <p className="text-gray-500 mt-1">
+                      {complaint.locationType}
+                      {" • "}
+                      {complaint.subLocation}
+                    </p>
+                  </div>
 
-                      <span
-                        className={`px-5 py-2 rounded-full font-medium ${
-                          complaint.status ===
-                          "PENDING"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : complaint.status ===
-                              "RESOLVED"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
-                      >
-                        {
-                          complaint.status
-                        }
-                      </span>
-                    </div>
-                  )
-                )
+                  <span
+                    className={`px-5 py-2 rounded-full font-medium ${
+                      complaint.status === "PENDING"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : complaint.status === "RESOLVED"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {complaint.status}
+                  </span>
+                </div>
+              ))
             )}
           </div>
         </div>

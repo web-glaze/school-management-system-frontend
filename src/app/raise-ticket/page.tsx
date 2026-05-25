@@ -104,7 +104,7 @@ export default function RaiseTicketPage() {
         );
 
       await axios.post(
-        "http://localhost:3000/complaints",
+        "http://localhost:3000/api/complaints",
         {
           title,
           locationType,
