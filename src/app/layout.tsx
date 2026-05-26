@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "ECOLE ERP",
@@ -12,14 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className="h-full antialiased"
-    >
-      <body
-        className="min-h-full flex flex-col font-['Plus_Jakarta_Sans']"
-      >
-        {children}
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full flex flex-col font-['Plus_Jakarta_Sans']">
+        <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
       </body>
     </html>
   );
