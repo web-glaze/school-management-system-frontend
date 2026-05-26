@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+
 import {
   ChartColumnBig,
   Hammer,
@@ -11,87 +12,314 @@ import {
   VectorSquare,
 } from "lucide-react";
 
+import { usePathname } from "next/navigation";
+
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
+
 import { NavSecondary } from "@/components/nav-secondary";
+
 import { NavUser } from "@/components/nav-user";
+
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const data = {
-  user: {
-    name: "Ecole Globale Admin",
-    email: "it@ecoleglobale.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navSingle: [
+interface AppSidebarProps
+  extends React.ComponentProps<
+    typeof Sidebar
+  > {
+  role?:
+    | "superadmin"
+    | "admin"
+    | "manager"
+    | "user";
+}
+
+export function AppSidebar({
+  role = "admin",
+  ...props
+}: AppSidebarProps) {
+
+  const pathname =
+    usePathname();
+
+  const superAdminMenu = [
     {
-      title: "Tickets",
-      url: "#",
-      icon: Ticket,
+      title: "Dashboard",
+
+      url: "/dashboard",
+
+      icon:
+        ChartColumnBig,
+
+      isActive:
+        pathname ===
+        "/dashboard",
     },
+
+    {
+      title: "Maintenance",
+
+      url: "/maintenance",
+
+      icon: Ticket,
+
+      isActive:
+        pathname.startsWith(
+          "/maintenance",
+        ),
+    },
+  ];
+
+  const adminMenu = [
+    {
+      title: "Dashboard",
+
+      url: "/dashboard",
+
+      icon:
+        ChartColumnBig,
+
+      isActive:
+        pathname ===
+        "/dashboard",
+    },
+
+    {
+      title: "Complaints",
+
+      url: "/maintenance/complaints",
+
+      icon: Ticket,
+
+      isActive:
+        pathname.startsWith(
+          "/maintenance/complaints",
+        ),
+    },
+
     {
       title: "Departments",
-      url: "#",
-      icon: VectorSquare,
+
+      url: "/maintenance/departments",
+
+      icon:
+        VectorSquare,
+
+      isActive:
+        pathname.startsWith(
+          "/maintenance/departments",
+        ),
     },
+
     {
       title: "Technicians",
-      url: "#",
+
+      url: "/maintenance/technician",
+
       icon: Hammer,
+
+      isActive:
+        pathname.startsWith(
+          "/maintenance/technician",
+        ),
     },
+
     {
       title: "Locations",
-      url: "#",
+
+      url: "/maintenance/location",
+
       icon: MapPin,
+
+      isActive:
+        pathname.startsWith(
+          "/maintenance/location",
+        ),
     },
+
     {
       title: "Reports",
-      url: "#",
-      icon: ChartColumnBig,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
-    },
-  ],
-};
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+      url: "/reports",
+
+      icon:
+        ChartColumnBig,
+
+      isActive:
+        pathname.startsWith(
+          "/reports",
+        ),
+    },
+  ];
+
+  const managerMenu = [
+    {
+      title: "Dashboard",
+
+      url: "/dashboard",
+
+      icon:
+        ChartColumnBig,
+
+      isActive:
+        pathname ===
+        "/dashboard",
+    },
+
+    {
+      title: "Complaints",
+
+      url: "/maintenance/complaints",
+
+      icon: Ticket,
+
+      isActive:
+        pathname.startsWith(
+          "/maintenance/complaints",
+        ),
+    },
+  ];
+
+  const userMenu = [
+    {
+      title: "Dashboard",
+
+      url: "/dashboard",
+
+      icon:
+        ChartColumnBig,
+
+      isActive:
+        pathname ===
+        "/dashboard",
+    },
+
+    {
+      title: "Maintenance",
+
+      url: "/maintenance",
+
+      icon: Ticket,
+
+      isActive:
+        pathname.startsWith(
+          "/maintenance",
+        ),
+    },
+  ];
+
+  let navItems =
+    userMenu;
+
+  if (
+    role ===
+    "superadmin"
+  ) {
+    navItems =
+      superAdminMenu;
+  } else if (
+    role === "admin"
+  ) {
+    navItems =
+      adminMenu;
+  } else if (
+    role ===
+    "manager"
+  ) {
+    navItems =
+      managerMenu;
+  }
+
+  const data = {
+    user: {
+      name: "Ecole ERP",
+
+      email:
+        "admin@ecole.com",
+
+      avatar:
+        "/avatars/shadcn.jpg",
+    },
+
+    navSingle:
+      navItems,
+
+    navSecondary: [
+      {
+        title:
+          "Support",
+
+        url: "#",
+
+        icon:
+          LifeBuoy,
+      },
+
+      {
+        title:
+          "Feedback",
+
+        url: "#",
+
+        icon: Send,
+      },
+    ],
+  };
+
   return (
-    <Sidebar {...props}>
+    <Sidebar
+      collapsible="icon"
+      {...props}
+    >
+
+      {/* Header */}
       <SidebarHeader className="h-20 border-b border-sidebar-border">
+
         <SidebarMenu>
+
           <SidebarMenuItem>
-            <a href="#">
-              <div className="flex">
-                <img src="/Ecole2.png" alt="" width={200} />
+
+            <a href="/dashboard">
+
+              <div className="flex items-center px-2">
+
+                <img
+                  src="/Ecole2.png"
+                  alt="Ecole"
+                  width={180}
+                  className="object-contain"
+                />
               </div>
             </a>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
+      {/* Content */}
       <SidebarContent>
-        <NavMain items={data.navSingle} />
+
+        <NavMain
+          items={
+            data.navSingle
+          }
+        />
+
+        {/* KEEP COMMENTED EXACTLY */}
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
+
+      {/* Footer */}
       <SidebarFooter>
-        <NavUser user={data.user} />
+
+        <NavUser
+          user={data.user}
+        />
       </SidebarFooter>
     </Sidebar>
   );

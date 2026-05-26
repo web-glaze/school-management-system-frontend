@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { ChevronRight, LayoutDashboard, type LucideIcon } from "lucide-react";
 
 import {
@@ -7,6 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -24,22 +27,28 @@ export function NavMain({
 }: {
   items: {
     title: string;
+
     url: string;
+
     icon: LucideIcon;
+
     isActive?: boolean;
+
     items?: {
       title: string;
+
       url: string;
     }[];
   }[];
 }) {
   return (
     <SidebarGroup className="flex flex-col gap-2">
+      {/* Dashboard */}
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
             asChild
-            className="              
+            className="
               transition-all
               duration-200
               hover:bg-sky-50
@@ -47,55 +56,65 @@ export function NavMain({
               hover:translate-x-1
             "
           >
-            <a href="#">
+            <Link href="/dashboard">
               <LayoutDashboard className="h-5 w-5" />
+
               <span className="text-base">Dashboard</span>
-            </a>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
 
+      {/* Maintenance */}
       <SidebarMenu>
         <SidebarGroupLabel className="text-black/80 mt-2">
           Maintenance
         </SidebarGroupLabel>
+
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem className="py-1">
               <SidebarMenuButton
                 asChild
                 tooltip={item.title}
-                className="   
-                  transition-all
-                  duration-200
-                  hover:bg-sky-50
-                  hover:text-sky-600                  
-                  hover:translate-x-1
-                  data-[active=true]:bg-sky-600
-                  data-[active=true]:text-white
-                "
+                isActive={item.isActive}
+                className="
+                    transition-all
+                    duration-200
+                    hover:bg-sky-50
+                    hover:text-sky-600
+                    hover:translate-x-1
+
+                    data-[active=true]:bg-sky-600
+                    data-[active=true]:text-white
+                    data-[active=true]:shadow-sm
+                  "
               >
-                <a href={item.url}>
-                  <item.icon />
+                <Link href={item.url}>
+                  <item.icon className="h-5 w-5" />
+
                   <span className="text-base">{item.title}</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
+
               {item.items?.length ? (
                 <>
                   <CollapsibleTrigger asChild>
                     <SidebarMenuAction className="data-[state=open]:rotate-90">
-                      <ChevronRight />
+                      <ChevronRight className="h-4 w-4" />
+
                       <span className="sr-only">Toggle</span>
                     </SidebarMenuAction>
                   </CollapsibleTrigger>
+
                   <CollapsibleContent>
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton asChild>
-                            <a href={subItem.url}>
+                            <Link href={subItem.url}>
                               <span>{subItem.title}</span>
-                            </a>
+                            </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

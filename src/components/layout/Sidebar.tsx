@@ -1,56 +1,120 @@
 "use client";
 
 import Link from "next/link";
+
 import { usePathname } from "next/navigation";
+
+import {
+  Building2,
+  Hammer,
+  LayoutDashboard,
+  LogOut,
+  MapPin,
+  Shield,
+  Ticket,
+  Wrench,
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 interface SidebarProps {
   role: "superadmin" | "admin" | "manager" | "user";
 }
 
-export default function Sidebar({ role }: SidebarProps) {
+export default function AppSidebar({ role }: SidebarProps) {
   const pathname = usePathname();
 
   const superAdminMenu = [
     {
-      name: "Dashboard",
-      href: "/dashboard",
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
     },
+
     {
-      name: "Maintenance",
-      href: "/maintenance",
+      title: "Maintenance",
+      url: "/maintenance",
+      icon: Wrench,
     },
   ];
 
   const adminMenu = [
     {
-      name: "Dashboard",
-      href: "/dashboard",
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
     },
+
     {
-      name: "Maintenance",
-      href: "/maintenance",
+      title: "Maintenance",
+      url: "/maintenance",
+      icon: Wrench,
+    },
+
+    {
+      title: "Complaints",
+      url: "/maintenance/complaints",
+      icon: Ticket,
+    },
+
+    {
+      title: "Departments",
+      url: "/maintenance/departments",
+      icon: Building2,
+    },
+
+    {
+      title: "Technicians",
+      url: "/maintenance/technician",
+      icon: Hammer,
+    },
+
+    {
+      title: "Locations",
+      url: "/maintenance/location",
+      icon: MapPin,
     },
   ];
 
   const managerMenu = [
     {
-      name: "Dashboard",
-      href: "/dashboard",
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
     },
+
     {
-      name: "Maintenance",
-      href: "/maintenance",
+      title: "Maintenance",
+      url: "/maintenance",
+      icon: Wrench,
+    },
+
+    {
+      title: "Complaints",
+      url: "/maintenance/complaints",
+      icon: Ticket,
     },
   ];
 
   const userMenu = [
     {
-      name: "Dashboard",
-      href: "/dashboard",
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
     },
+
     {
-      name: "Maintenance",
-      href: "/maintenance",
+      title: "Maintenance",
+      url: "/maintenance",
+      icon: Wrench,
     },
   ];
 
@@ -65,50 +129,110 @@ export default function Sidebar({ role }: SidebarProps) {
   }
 
   return (
-    <div className="w-72 min-h-screen bg-white border-r border-gray-200 flex flex-col justify-between p-6 shadow-sm">
-      {/* Top */}
-      <div>
-        {/* Logo */}
-        <div className="mb-14">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-              E
-            </div>
+    <Sidebar
+      collapsible="icon"
+      className="
+      border-r
+      bg-background
+    "
+    >
+      {/* Header */}
+      <SidebarHeader
+        className="
+        h-20
+        border-b
+        px-4
+        justify-center
+      "
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="
+            flex
+            h-10
+            w-10
+            items-center
+            justify-center
+            rounded-xl
+            bg-primary
+            text-primary-foreground
+          "
+          >
+            <Shield className="h-5 w-5" />
+          </div>
 
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">ECOLE</h1>
+          <div className="flex flex-col">
+            <span
+              className="
+              text-sm
+              font-semibold
+              tracking-tight
+            "
+            >
+              ECOLE ERP
+            </span>
 
-              <p className="text-sm text-gray-500 capitalize">{role} Panel</p>
-            </div>
+            <span
+              className="
+              text-xs
+              text-muted-foreground
+              capitalize
+            "
+            >
+              {role} panel
+            </span>
           </div>
         </div>
+      </SidebarHeader>
 
-        {/* Navigation */}
-        <div className="flex flex-col gap-3">
+      {/* Content */}
+      <SidebarContent className="px-3 py-4">
+        <SidebarMenu className="space-y-1">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.url;
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`p-4 rounded-2xl transition-all duration-200 font-medium ${
-                  isActive
-                    ? "bg-gradient-to-r from-blue-600 to-cyan-400 text-white shadow-lg"
-                    : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                }`}
-              >
-                {item.name}
-              </Link>
+              <SidebarMenuItem key={item.url}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  size="lg"
+                  tooltip={item.title}
+                  className="
+                    h-12
+                    rounded-xl
+                    text-muted-foreground
+                    transition-all
+                    duration-200
+
+                    hover:bg-accent
+                    hover:text-accent-foreground
+
+                    data-[active=true]:bg-primary
+                    data-[active=true]:text-primary-foreground
+                    data-[active=true]:shadow-sm
+                  "
+                >
+                  <Link href={item.url}>
+                    <item.icon className="h-5 w-5 shrink-0" />
+
+                    <span className="font-medium">{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             );
           })}
-        </div>
-      </div>
+        </SidebarMenu>
+      </SidebarContent>
 
-      {/* Logout */}
-      <div className="mt-10">
+      {/* Footer */}
+      <SidebarFooter
+        className="
+        border-t
+        p-3
+      "
+      >
         <button
-          className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-4 rounded-2xl font-semibold transition duration-200"
           onClick={() => {
             localStorage.removeItem("token");
 
@@ -116,10 +240,27 @@ export default function Sidebar({ role }: SidebarProps) {
 
             window.location.href = "/login";
           }}
+          className="
+          flex
+          w-full
+          items-center
+          gap-3
+          rounded-xl
+          px-3
+          py-3
+          text-sm
+          font-medium
+          text-red-500
+          transition-colors
+
+          hover:bg-red-50
+        "
         >
-          Logout
+          <LogOut className="h-5 w-5" />
+
+          <span>Logout</span>
         </button>
-      </div>
-    </div>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
