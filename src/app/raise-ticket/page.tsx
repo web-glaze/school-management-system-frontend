@@ -2,7 +2,9 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-import axios from "axios";
+import api from "@/lib/axios";
+
+import { PhotoUpload, type UploadedFile } from "@/components/PhotoUpload";
 
 import { useRouter } from "next/navigation";
 
@@ -11,6 +13,8 @@ import {
   useMemo,
   useState,
 } from "react";
+
+import toast from "react-hot-toast";
 
 export default function RaiseTicketPage() {
   const router = useRouter();
@@ -30,50 +34,71 @@ export default function RaiseTicketPage() {
   const [description, setDescription] =
     useState("");
 
+  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
+
   const [loading, setLoading] =
     useState(false);
 
   const [success, setSuccess] =
     useState(false);
 
+  // Locations loaded from /api/locations
+  interface Location {
+    id: string;
+    name: string;
+    parentId: string | null;
+  }
+  const [allLocations, setAllLocations] = useState<Location[]>([]);
+
   useEffect(() => {
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       router.push("/login");
+      return;
     }
+
+    // Fetch real locations from backend
+    api
+      .get("/api/locations")
+      .then((res) => {
+        const data = res.data?.data ?? res.data;
+        setAllLocations(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        // Locations module not seeded yet — fall back to hardcoded
+        setAllLocations([]);
+      });
   }, [router]);
 
-  const hostelRooms = [
-    "Room 101",
-    "Room 102",
-    "Room 103",
-    "Room 104",
-    "Room 201",
-    "Room 202",
-  ];
+  // Top-level locations (no parent) become "locationType" options.
+  // Their children become "subLocation" options.
+  const topLevelLocations = useMemo(
+    () => allLocations.filter((l) => !l.parentId),
+    [allLocations],
+  );
 
-  const classSections = [
-    "Section A",
-    "Section B",
-    "Section C",
-    "Lab 1",
-    "Lab 2",
-  ];
+  const childLocations = useMemo(
+    () =>
+      allLocations.filter(
+        (l) =>
+          l.parentId ===
+          allLocations.find((p) => p.name === locationType)?.id,
+      ),
+    [allLocations, locationType],
+  );
 
-  const officeLocations = [
-    "Admin Office",
-    "Accounts Office",
-    "Reception",
-  ];
-
-  const currentLocations =
-    locationType === "HOSTEL"
-      ? hostelRooms
-      : locationType === "CLASS"
-      ? classSections
-      : officeLocations;
+  // Fallback hardcoded list when no locations seeded
+  const hasRealLocations = topLevelLocations.length > 0;
+  const FALLBACK = {
+    HOSTEL: ["Room 101", "Room 102", "Room 103", "Room 104"],
+    CLASS: ["Section A", "Section B", "Lab 1"],
+    OFFICE: ["Admin Office", "Reception"],
+  } as const;
+  const fallbackSubs =
+    locationType in FALLBACK
+      ? FALLBACK[locationType as keyof typeof FALLBACK]
+      : [];
 
   const isFormValid =
     title &&
@@ -88,55 +113,40 @@ export default function RaiseTicketPage() {
     e.preventDefault();
 
     if (!isFormValid) {
-      alert(
-        "Please fill all required fields"
-      );
-
+      toast.error("Please fill all required fields");
       return;
     }
 
     try {
       setLoading(true);
 
-      const token =
-        localStorage.getItem(
-          "token"
-        );
+      await api.post("/api/complaints", {
+        title,
+        locationType,
+        subLocation,
+        priority,
+        description,
+        attachments,
+      });
 
-      await axios.post(
-        "http://localhost:3000/api/complaints",
-        {
-          title,
-          locationType,
-          subLocation,
-          priority,
-          description,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      toast.success("Complaint registered successfully");
 
       setSuccess(true);
-
       setTitle("");
       setLocationType("");
       setSubLocation("");
       setPriority("LOW");
       setDescription("");
+      setAttachments([]);
 
       setTimeout(() => {
         setSuccess(false);
       }, 3000);
-
-    } catch (error) {
-      console.log(error);
-
-      alert(
-        "Failed to register complaint"
-      );
+    } catch (error: unknown) {
+      const msg =
+        (error as { displayMessage?: string })?.displayMessage ||
+        "Failed to register complaint";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -241,18 +251,25 @@ export default function RaiseTicketPage() {
                     Select Location
                   </option>
 
-                  <option value="HOSTEL">
-                    Hostel
-                  </option>
-
-                  <option value="CLASS">
-                    Classroom
-                  </option>
-
-                  <option value="OFFICE">
-                    Office
-                  </option>
+                  {hasRealLocations ? (
+                    topLevelLocations.map((l) => (
+                      <option key={l.id} value={l.name}>
+                        {l.name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="HOSTEL">Hostel</option>
+                      <option value="CLASS">Classroom</option>
+                      <option value="OFFICE">Office</option>
+                    </>
+                  )}
                 </select>
+                {!hasRealLocations && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    💡 Admin can add custom locations in Locations page
+                  </p>
+                )}
               </div>
 
               {/* Sub Location */}
@@ -265,36 +282,31 @@ export default function RaiseTicketPage() {
                   <select
                     value={subLocation}
                     onChange={(e) =>
-                      setSubLocation(
-                        e.target.value
-                      )
+                      setSubLocation(e.target.value)
                     }
                     className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-blue-400 transition"
                     required
                   >
-                    <option value="">
-                      Select Sub Location
-                    </option>
+                    <option value="">Select Sub Location</option>
 
-                    {currentLocations.map(
-                      (
-                        location
-                      ) => (
-                        <option
-                          key={
-                            location
-                          }
-                          value={
-                            location
-                          }
-                        >
-                          {
-                            location
-                          }
-                        </option>
-                      )
-                    )}
+                    {hasRealLocations
+                      ? childLocations.map((l) => (
+                          <option key={l.id} value={l.name}>
+                            {l.name}
+                          </option>
+                        ))
+                      : fallbackSubs.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
                   </select>
+                  {hasRealLocations && childLocations.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      No sub-locations under &quot;{locationType}&quot;. Admin
+                      can add them in Locations page.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -365,6 +377,18 @@ export default function RaiseTicketPage() {
                 />
               </div>
 
+              {/* Photo attachments */}
+              <div>
+                <label className="block mb-3 text-sm font-semibold text-gray-700">
+                  Attach Photos (optional, max 5)
+                </label>
+                <PhotoUpload
+                  value={attachments}
+                  onChange={setAttachments}
+                  max={5}
+                />
+              </div>
+
               {/* Submit */}
               <button
                 type="submit"
@@ -422,6 +446,16 @@ export default function RaiseTicketPage() {
 
                   <p className="font-semibold text-gray-800 mt-1">
                     {priority}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-400">
+                    Photos attached
+                  </p>
+
+                  <p className="font-semibold text-gray-800 mt-1">
+                    {attachments.length} photo{attachments.length !== 1 ? "s" : ""}
                   </p>
                 </div>
               </div>

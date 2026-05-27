@@ -2,11 +2,13 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-import axios from "axios";
+import api from "@/lib/axios";
 
 import { useRouter } from "next/navigation";
 
 import { useEffect, useMemo, useState } from "react";
+
+import toast from "react-hot-toast";
 
 interface Complaint {
   id: string;
@@ -35,21 +37,16 @@ export default function DashboardPage() {
 
   const fetchComplaints = async () => {
     try {
-      const token = localStorage.getItem("token");
-
-      const response = await axios.get("http://localhost:3000/api/complaints", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log(response.data);
-
+      const response = await api.get("/api/complaints");
+      const data = response.data;
       setComplaints(
-        Array.isArray(response.data) ? response.data : response.data.data || [],
+        Array.isArray(data) ? data : data?.data || [],
       );
-    } catch (error) {
-      console.log(error);
+    } catch (error: unknown) {
+      const msg =
+        (error as { displayMessage?: string })?.displayMessage ||
+        "Failed to load complaints";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

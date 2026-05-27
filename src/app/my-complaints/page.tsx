@@ -2,9 +2,13 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-import axios from "axios";
+import api from "@/lib/axios";
+
+import { PhotoGallery, type UploadedFile } from "@/components/PhotoUpload";
 
 import { useRouter } from "next/navigation";
+
+import toast from "react-hot-toast";
 
 import {
   useEffect,
@@ -32,6 +36,8 @@ interface Complaint {
   managerRemark?: string;
 
   technicianRemark?: string;
+
+  attachments?: UploadedFile[];
 }
 
 export default function MyComplaintsPage() {
@@ -49,38 +55,22 @@ export default function MyComplaintsPage() {
   const [statusFilter, setStatusFilter] =
     useState("ALL");
 
-  const fetchComplaints =
-    async () => {
-      try {
-        const token =
-          localStorage.getItem(
-            "token"
-          );
-
-        const response =
-          await axios.get(
-            "http://localhost:3000/api/complaints/my",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-        setComplaints(
-          Array.isArray(
-            response.data
-          )
-            ? response.data
-            : response.data
-                .data || []
-        );
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchComplaints = async () => {
+    try {
+      const response = await api.get("/api/complaints/my");
+      const data = response.data;
+      setComplaints(
+        Array.isArray(data) ? data : data?.data || []
+      );
+    } catch (error: unknown) {
+      const msg =
+        (error as { displayMessage?: string })?.displayMessage ||
+        "Failed to load complaints";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const token =
@@ -368,6 +358,17 @@ export default function MyComplaintsPage() {
                         }
                       )}
                     </div>
+
+                    {/* Photos */}
+                    {complaint.attachments &&
+                      complaint.attachments.length > 0 && (
+                        <div className="mt-8">
+                          <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-4">
+                            📷 Attached Photos
+                          </h4>
+                          <PhotoGallery files={complaint.attachments} />
+                        </div>
+                      )}
 
                     {/* Remarks */}
                     {(complaint.managerRemark ||

@@ -7,7 +7,7 @@ import Sidebar from "./Sidebar";
 
 interface User {
   email: string;
-  role: "superadmin" | "admin" | "manager" | "user";
+  role: "superadmin" | "admin" | "manager" | "technician" | "user";
 }
 
 export default function DashboardLayout({

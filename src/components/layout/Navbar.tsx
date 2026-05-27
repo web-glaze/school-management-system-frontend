@@ -4,7 +4,7 @@ import { Bell } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface NavbarProps {
-  role: "superadmin" | "admin" | "manager" | "user";
+  role: "superadmin" | "admin" | "manager" | "technician" | "user";
 }
 
 interface Notification {
