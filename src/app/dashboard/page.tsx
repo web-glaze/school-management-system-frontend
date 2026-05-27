@@ -5,16 +5,12 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 export default function DashboardPage() {
   return (
     <DashboardLayout>
-      <div className="w-full min-h-full rounded-[2rem] bg-white border border-gray-100 shadow-sm p-10">
-        
-        <h1 className="text-5xl font-bold text-gray-800">
-          ECOLE ERP
-        </h1>
-
-        <p className="mt-4 text-lg text-gray-500">
-          Main ERP Dashboard
-        </p>
+      <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+        <div className="aspect-video rounded-xl bg-white" />
+        <div className="aspect-video rounded-xl bg-white" />
+        <div className="aspect-video rounded-xl bg-white" />
       </div>
+      <div className="min-h-[100vh] flex-1 rounded-xl bg-white md:min-h-min" />
     </DashboardLayout>
   );
 }

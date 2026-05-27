@@ -9,6 +9,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../ui/breadcrumb";
 
 interface User {
   email: string;
@@ -45,36 +53,26 @@ export default function DashboardLayout({
     <SidebarProvider>
       <AppSidebar role={user.role} />
 
-      <SidebarInset className="bg-[#f5f7fb]">
-        {/* Topbar */}
-        <div
-          className="
-          sticky
-          top-0
-          z-40
-          flex
-          h-16
-          items-center
-          gap-4
-          border-b
-          bg-white/80
-          backdrop-blur-md
-          px-6
-        "
-        >
-          <SidebarTrigger />
-
-          <div className="flex flex-col">
-            <h1 className="text-sm font-semibold text-gray-800">ECOLE ERP</h1>
-
-            <p className="text-xs text-gray-500 capitalize">
-              {user.role} panel
-            </p>
-          </div>
-        </div>
+      <SidebarInset>
+        <header className="flex h-20 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-40 bg-white">
+          <SidebarTrigger className="-ml-1" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Maintenance</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </header>
 
         {/* Main Content */}
-        <main className="p-8 min-h-screen">{children}</main>
+        <main className="flex flex-1 flex-col gap-4 p-6 bg-gray-100">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );
