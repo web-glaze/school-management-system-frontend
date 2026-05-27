@@ -1,68 +1,79 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-
-import axios from "axios";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 import {
-  useEffect,
-  useState,
-} from "react";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+
+import axios from "axios";
+import {
+  Building2,
+  Calendar,
+  Eye,
+  Inbox,
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
+
+import { useEffect, useState } from "react";
+import { Field, FieldGroup } from "@/components/ui/field";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Department {
   id: string;
-
   name: string;
-
   departmentCode?: string;
 }
 
 export default function DepartmentPage() {
-  const [departments, setDepartments] =
-    useState<Department[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
-  const [name, setName] =
-    useState("");
+  const [name, setName] = useState("");
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const [search, setSearch] =
-    useState("");
-
-  /* FETCH */
-  const fetchDepartments =
-    async () => {
-      try {
-        const token =
-          localStorage.getItem(
-            "token",
-          );
-
-        const response =
-          await axios.get(
-            `${API_URL}/api/departments`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-        setDepartments(
-          Array.isArray(
-            response.data,
-          )
-            ? response.data
-            : response.data
-                .data || [],
-        );
-      } catch (error) {
-        console.log(error);
-      }
-    };
+  const fetchDepartments = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API_URL}/api/departments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setDepartments(
+        Array.isArray(response.data) ? response.data : response.data.data || [],
+      );
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setTimeout(() => {
@@ -70,213 +81,271 @@ export default function DepartmentPage() {
     }, 0);
   }, []);
 
-  /* CREATE */
-  const createDepartment =
-    async (
-      e: React.FormEvent,
-    ) => {
-      e.preventDefault();
+  const createDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const token =
-          localStorage.getItem(
-            "token",
-          );
+      const token = localStorage.getItem("token");
 
-        await axios.post(
-          `${API_URL}/api/departments`,
-          {
-            name,
+      await axios.post(
+        `${API_URL}/api/departments`,
+        {
+          name,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
+        },
+      );
 
-        setName("");
+      setName("");
 
-        fetchDepartments();
+      await fetchDepartments();
 
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setOpen(false);
+    } catch (error) {
+      console.log(error);
 
-  /* DELETE */
-  const deleteDepartment =
-    async (id: string) => {
-      try {
-        const token =
-          localStorage.getItem(
-            "token",
-          );
+      setLoading(false);
+    }
+  };
 
-        await axios.delete(
-          `${API_URL}/api/departments/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
+  const deleteDepartment = async (id: string) => {
+    try {
+      setLoading(true);
 
-        fetchDepartments();
+      const token = localStorage.getItem("token");
 
-      } catch (error) {
-        console.log(error);
-      }
-    };
+      await axios.delete(`${API_URL}/api/departments/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      await fetchDepartments();
+    } catch (error) {
+      console.log(error);
+
+      setLoading(false);
+    }
+  };
 
   /* FILTER */
-  const filteredDepartments =
-    departments.filter(
-      (department) =>
-        department.name
-          .toLowerCase()
-          .includes(
-            search.toLowerCase(),
-          ),
-    );
+  const filteredDepartments = departments.filter((department) =>
+    department.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full lg:w-[350px] group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                type="text"
+                placeholder="Search by title, location, email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-11"
+              />
+            </div>
+            <div>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2 px-5">
+                    <Plus className="size-4" />
+                    Add Department
+                  </Button>
+                </DialogTrigger>
 
-        {/* Header */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-10">
-
-          <h1 className="text-5xl font-bold text-gray-800">
-            Department Management
-          </h1>
-
-          <p className="mt-4 text-lg text-gray-500">
-            Manage maintenance departments like electrician, carpenter, plumbing and network support.
-          </p>
-        </div>
-
-        {/* Create */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8">
-
-          <h2 className="text-3xl font-bold text-gray-800 mb-8">
-            Create Department
-          </h2>
-
-          <form
-            onSubmit={
-              createDepartment
-            }
-            className="flex flex-col md:flex-row gap-5"
-          >
-
-            <input
-              type="text"
-              placeholder="Department Name"
-              value={name}
-              onChange={(e) =>
-                setName(
-                  e.target.value,
-                )
-              }
-              required
-              className="flex-1 h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
-            />
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-14 px-8 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold shadow-lg hover:scale-[1.01] transition"
-            >
-              {loading
-                ? "Creating..."
-                : "Create"}
-            </button>
-          </form>
-        </div>
-
-        {/* Search */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
-
-          <input
-            type="text"
-            placeholder="Search departments..."
-            value={search}
-            onChange={(e) =>
-              setSearch(
-                e.target.value,
-              )
-            }
-            className="w-full h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
-          />
-        </div>
-
-        {/* Departments */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-
-          {filteredDepartments.map(
-            (
-              department,
-            ) => (
-              <div
-                key={
-                  department.id
-                }
-                className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 hover:shadow-lg transition"
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 text-white flex items-center justify-center font-bold shadow-lg text-xl">
-                    {department.name.charAt(
-                      0,
-                    )}
+                <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+                  <div className="border-b px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Building2 className="size-5 text-primary" />
+                      </div>
+                      <div>
+                        <DialogTitle className="text-lg">
+                          Create Department
+                        </DialogTitle>
+                        <DialogDescription>
+                          Add a new maintenance department
+                        </DialogDescription>
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
+                  <form onSubmit={createDepartment} className="space-y-6 p-6">
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="department-name">Department Name</Label>
+                        <Input
+                          id="department-name"
+                          placeholder="Electrical, Plumbing, IT..."
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                          className="mt-2"
+                        />
+                      </Field>
+                    </FieldGroup>
 
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {
-                        department.name
-                      }
-                    </h3>
+                    <DialogFooter className="gap-2">
+                      <DialogClose asChild>
+                        <Button variant="outline" type="button">
+                          Cancel
+                        </Button>
+                      </DialogClose>
 
-                    <p className="text-sm text-gray-500 mt-1">
-                      Maintenance Department
-                    </p>
-
-                    <p className="text-sm font-semibold text-blue-600 mt-2">
-                      {department.departmentCode}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() =>
-                    deleteDepartment(
-                      department.id,
-                    )
-                  }
-                  className="mt-6 w-full h-12 rounded-2xl bg-red-100 text-red-600 font-semibold hover:bg-red-200 transition"
-                >
-                  Delete Department
-                </button>
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="min-w-[130px]"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 size-4 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="mr-2 size-4" />
+                            Create
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+          {loading ? (
+            <div className="space-y-4">
+              <div className="flex gap-4 border-b border-border/50 pb-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-6 bg-muted rounded flex-1 animate-pulse"
+                  />
+                ))}
               </div>
-            ),
+              {[1, 2, 3, 4].map((row) => (
+                <div
+                  key={row}
+                  className="flex gap-4 py-2 border-b border-border/20"
+                >
+                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : departments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12 md:p-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
+                <Inbox className="size-6 stroke-[1.5]" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground">
+                No departments created yet.
+              </h3>
+              <p className="text-muted-foreground mt-1.5 max-w-sm">
+                No matching records were found in the database. Check search
+                queries or reset parameters.
+              </p>
+            </div>
+          ) : (
+            <div className="relative w-full overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/40 dark:bg-muted/15 border-b border-border/60">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[20px]">
+                      # ID
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[220px]">
+                      Title
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
+                      Created At
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[80px]">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-border/30">
+                  {filteredDepartments.map((department) => {
+                    return (
+                      <TableRow
+                        key={department.id}
+                        className="hover:bg-muted/20 transition-colors"
+                      >
+                        <TableCell className="py-4 pl-6 align-top">
+                          <div className="space-y-1 max-w-[20px]">
+                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              {department.departmentCode}
+                            </p>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="py-4 pl-6 align-top">
+                          <div className="space-y-1 max-w-[260px]">
+                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              {department.name}
+                            </p>
+                          </div>
+                        </TableCell>
+
+                        {/* Created At */}
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="size-5 text-muted-foreground/80" />
+                            {/* <span className="text-base">
+                              {new Date(
+                                department.createdAt,
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "2-digit",
+                              })}
+                            </span> */}
+                            May 27, 26
+                          </div>
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell className="py-4 pr-6 text-right align-top">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                            title="View Complaint"
+                          >
+                            <Eye className="size-5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteDepartment(department.id)}
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                            title="Delete Complaint"
+                          >
+                            <Trash2 className="size-5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
-
-        {/* Empty */}
-        {departments.length ===
-          0 && (
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-16 text-center text-gray-500">
-            No departments created yet.
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );
