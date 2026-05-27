@@ -1,11 +1,11 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import api from "@/lib/axios";
+import BrandHero from "@/components/BrandHero";
 import { useAuth } from "@/hooks/use-auth";
 import { PhotoGallery, type UploadedFile } from "@/components/PhotoUpload";
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { useComplaintsStore } from "@/store/complaints-store";
 
 type Status =
   | "PENDING"
@@ -53,9 +53,18 @@ export default function AdminComplaintsPage() {
     allowedRoles: ["admin", "superadmin", "manager"],
   });
 
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ── Zustand-backed data + actions ─────────────────────────
+  const complaints = useComplaintsStore((s) => s.complaints);
+  const technicians = useComplaintsStore((s) => s.technicians);
+  const loading = useComplaintsStore((s) => s.loading);
+  const fetchAll = useComplaintsStore((s) => s.fetchAll);
+  const storeUpdateStatus = useComplaintsStore((s) => s.updateStatus);
+  const storeUpdatePriority = useComplaintsStore((s) => s.updatePriority);
+  const storeAssignTechnician = useComplaintsStore((s) => s.assignTechnician);
+  const storeSaveManagerRemark = useComplaintsStore(
+    (s) => s.saveManagerRemark,
+  );
+  const storeDeleteComplaint = useComplaintsStore((s) => s.deleteComplaint);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | Status>("ALL");
@@ -65,29 +74,9 @@ export default function AdminComplaintsPage() {
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    try {
-      const [cRes, tRes] = await Promise.all([
-        api.get("/api/complaints"),
-        api.get("/api/technicians"),
-      ]);
-      const cData = cRes.data?.data ?? cRes.data;
-      const tData = tRes.data?.data ?? tRes.data;
-      setComplaints(Array.isArray(cData) ? cData : []);
-      setTechnicians(Array.isArray(tData) ? tData : []);
-    } catch (err: unknown) {
-      const msg =
-        (err as { displayMessage?: string })?.displayMessage ||
-        "Failed to load data";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (!authLoading && user) fetchData();
-  }, [authLoading, user]);
+    if (!authLoading && user) fetchAll();
+  }, [authLoading, user, fetchAll]);
 
   const filtered = useMemo(() => {
     return complaints.filter((c) => {
@@ -115,74 +104,23 @@ export default function AdminComplaintsPage() {
     };
   }, [complaints]);
 
-  const updateStatus = async (id: string, status: Status) => {
-    try {
-      await api.patch(`/api/complaints/${id}/status`, { status });
-      toast.success(`Status updated to ${status}`);
-      fetchData();
-    } catch (err: unknown) {
-      toast.error(
-        (err as { displayMessage?: string })?.displayMessage ||
-          "Failed to update status",
-      );
-    }
-  };
+  // ── Thin wrappers around store actions ──────────────────
+  const updateStatus = (id: string, status: Status) =>
+    storeUpdateStatus(id, status);
 
-  const updatePriority = async (id: string, priority: Priority) => {
-    try {
-      await api.patch(`/api/complaints/${id}/priority`, { priority });
-      toast.success(`Priority set to ${priority}`);
-      fetchData();
-    } catch (err: unknown) {
-      toast.error(
-        (err as { displayMessage?: string })?.displayMessage ||
-          "Failed to update priority",
-      );
-    }
-  };
+  const updatePriority = (id: string, priority: Priority) =>
+    storeUpdatePriority(id, priority);
 
-  const assignTech = async (id: string, technicianId: string) => {
-    if (!technicianId) return;
-    try {
-      await api.patch(`/api/complaints/${id}/assign`, { technicianId });
-      toast.success("Technician assigned");
-      fetchData();
-    } catch (err: unknown) {
-      toast.error(
-        (err as { displayMessage?: string })?.displayMessage ||
-          "Failed to assign technician",
-      );
-    }
-  };
+  const assignTech = (id: string, technicianId: string) =>
+    storeAssignTechnician(id, technicianId);
 
-  const saveManagerRemark = async (id: string, remark: string) => {
-    try {
-      await api.patch(`/api/complaints/${id}/remark`, {
-        managerRemark: remark,
-      });
-      toast.success("Remark saved");
-      fetchData();
-    } catch (err: unknown) {
-      toast.error(
-        (err as { displayMessage?: string })?.displayMessage ||
-          "Failed to save remark",
-      );
-    }
-  };
+  const saveManagerRemark = (id: string, remark: string) =>
+    storeSaveManagerRemark(id, remark);
 
   const deleteComplaint = async (id: string) => {
     if (!confirm("Soft-delete this complaint?")) return;
-    try {
-      await api.delete(`/api/complaints/${id}`);
-      toast.success("Complaint deleted");
-      setActiveId(null);
-      fetchData();
-    } catch (err: unknown) {
-      toast.error(
-        (err as { displayMessage?: string })?.displayMessage ||
-          "Failed to delete",
-      );
-    }
+    await storeDeleteComplaint(id);
+    setActiveId(null);
   };
 
   if (authLoading || !user) {
@@ -201,21 +139,12 @@ export default function AdminComplaintsPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              MAINTENANCE · COMPLAINT MANAGEMENT
-            </p>
-            <h1 className="text-5xl font-bold mt-4">
-              Complaints Control Center
-            </h1>
-            <p className="mt-4 text-lg text-white/90 max-w-2xl">
-              Assign technicians, change priority, add remarks, track status —
-              all from one console.
-            </p>
-          </div>
-        </div>
+        <BrandHero
+          kicker="Complaint Management"
+          title="Control Center"
+          subtitle="Assign technicians, change priority, add remarks, track status — all from one console."
+          accent="default"
+        />
 
         {/* Stats */}
         <div className="grid xl:grid-cols-5 md:grid-cols-2 gap-5">
@@ -239,13 +168,13 @@ export default function AdminComplaintsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-lg border border-gray-100 flex flex-col lg:flex-row gap-4 justify-between">
+        <div className="card-premium p-6 flex flex-col lg:flex-row gap-4 justify-between">
           <input
             type="text"
             placeholder="Search title, description, location..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-blue-400 w-full lg:w-96"
+            className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-indigo-400 w-full lg:w-96"
           />
           <div className="flex gap-3 flex-wrap">
             <select
@@ -253,7 +182,7 @@ export default function AdminComplaintsPage() {
               onChange={(e) =>
                 setStatusFilter(e.target.value as "ALL" | Status)
               }
-              className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-blue-400"
+              className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-indigo-400"
             >
               <option value="ALL">All Status</option>
               {STATUSES.map((s) => (
@@ -267,7 +196,7 @@ export default function AdminComplaintsPage() {
               onChange={(e) =>
                 setPriorityFilter(e.target.value as "ALL" | Priority)
               }
-              className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-blue-400"
+              className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-indigo-400"
             >
               <option value="ALL">All Priority</option>
               {PRIORITIES.map((p) => (
@@ -280,7 +209,7 @@ export default function AdminComplaintsPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
+        <div className="card-premium overflow-hidden">
           <div className="p-6 border-b border-gray-100">
             <h2 className="text-2xl font-bold text-gray-800">
               All Complaints{" "}
@@ -365,7 +294,7 @@ export default function AdminComplaintsPage() {
                       >
                         <button
                           onClick={() => setActiveId(c.id)}
-                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                         >
                           Manage
                         </button>
@@ -406,40 +335,45 @@ function Stat({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+    <div className="card-premium p-6">
       <p className="text-gray-500 text-sm font-medium">{label}</p>
-      <h2 className={`text-4xl font-bold mt-3 ${color}`}>{value}</h2>
+      <h2 className={`text-4xl font-extrabold mt-2 tracking-tight ${color}`}>
+        {value}
+      </h2>
     </div>
   );
 }
 
 function PriorityBadge({ priority }: { priority: Priority }) {
-  const map: Record<Priority, string> = {
-    LOW: "bg-green-100 text-green-700",
-    MEDIUM: "bg-yellow-100 text-yellow-700",
-    HIGH: "bg-red-100 text-red-700",
-    URGENT: "bg-purple-100 text-purple-700",
+  const map: Record<Priority, { bg: string; text: string; dot: string }> = {
+    LOW: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
+    MEDIUM: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+    HIGH: { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-500" },
+    URGENT: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500 dot-glow" },
   };
+  const s = map[priority];
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${map[priority]}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${s.bg} ${s.text}`}
     >
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot} ${priority === "URGENT" ? "text-red-500" : ""}`} />
       {priority}
     </span>
   );
 }
 
 function StatusBadge({ status }: { status: Status }) {
-  const map: Record<Status, string> = {
-    PENDING: "bg-yellow-100 text-yellow-700",
-    ASSIGNED: "bg-cyan-100 text-cyan-700",
-    IN_PROGRESS: "bg-blue-100 text-blue-700",
-    RESOLVED: "bg-green-100 text-green-700",
-    CLOSED: "bg-gray-200 text-gray-700",
+  const map: Record<Status, { bg: string; text: string }> = {
+    PENDING: { bg: "bg-amber-50", text: "text-amber-700" },
+    ASSIGNED: { bg: "bg-cyan-50", text: "text-cyan-700" },
+    IN_PROGRESS: { bg: "bg-blue-50", text: "text-blue-700" },
+    RESOLVED: { bg: "bg-emerald-50", text: "text-emerald-700" },
+    CLOSED: { bg: "bg-gray-100", text: "text-gray-700" },
   };
+  const s = map[status];
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${map[status]}`}
+      className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${s.bg} ${s.text}`}
     >
       {status.replace("_", " ")}
     </span>
@@ -472,11 +406,11 @@ function DetailPanel({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex justify-end"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end animate-fade-up"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-2xl h-full overflow-y-auto shadow-2xl"
+        className="bg-white w-full max-w-2xl h-full overflow-y-auto shadow-2xl animate-slide-in-right"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex justify-between items-center">
@@ -529,8 +463,8 @@ function DetailPanel({
                   onClick={() => onStatus(s)}
                   className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
                     complaint.status === s
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white border-gray-200 hover:border-blue-400"
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white border-gray-200 hover:border-indigo-400"
                   }`}
                 >
                   {s.replace("_", " ")}
@@ -550,8 +484,8 @@ function DetailPanel({
                   onClick={() => onPriority(p)}
                   className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
                     complaint.priority === p
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white border-gray-200 hover:border-blue-400"
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white border-gray-200 hover:border-indigo-400"
                   }`}
                 >
                   {p}
@@ -568,7 +502,7 @@ function DetailPanel({
               <select
                 value={selectedTech}
                 onChange={(e) => setSelectedTech(e.target.value)}
-                className="flex-1 h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-blue-400"
+                className="flex-1 h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-indigo-400"
               >
                 <option value="">— Select technician —</option>
                 {technicians.map((t) => (
@@ -581,7 +515,7 @@ function DetailPanel({
               <button
                 onClick={() => onAssign(selectedTech)}
                 disabled={!selectedTech}
-                className="px-6 h-14 rounded-2xl bg-blue-600 text-white font-semibold disabled:opacity-50"
+                className="px-6 h-14 rounded-2xl bg-indigo-600 text-white font-semibold disabled:opacity-50"
               >
                 Assign
               </button>
@@ -602,11 +536,11 @@ function DetailPanel({
               onChange={(e) => setRemark(e.target.value)}
               placeholder="Add notes / instructions..."
               rows={4}
-              className="w-full rounded-2xl border border-gray-200 bg-[#f8fafc] p-5 outline-none focus:border-blue-400 resize-none"
+              className="w-full rounded-2xl border border-gray-200 bg-[#f8fafc] p-5 outline-none focus:border-indigo-400 resize-none"
             />
             <button
               onClick={() => onSaveRemark(remark)}
-              className="mt-3 px-6 py-3 rounded-2xl bg-blue-600 text-white font-semibold"
+              className="mt-3 px-6 py-3 rounded-2xl bg-indigo-600 text-white font-semibold"
             >
               Save Remark
             </button>

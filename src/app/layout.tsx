@@ -4,8 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
-  title: "ECOLE ERP",
-  description: "School Maintenance ERP",
+  title: "Ecole Globale — School ERP",
+  description:
+    "Boarding school management platform: gate pass, maintenance, academics & tuck shop.",
+  icons: {
+    icon: "/Ecole3.png",
+    apple: "/Ecole3.png",
+  },
 };
 
 export default function RootLayout({

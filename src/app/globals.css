@@ -119,10 +119,287 @@
   body {
     @apply bg-background text-foreground;
     font-family: "Plus Jakarta Sans", sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
+  /* Premium scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.08);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.18);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+  }
+
+  /* Selection color — brand indigo */
+  ::selection {
+    background: rgba(79, 70, 229, 0.18);
+    color: #1e1b4b;
+  }
+}
+
+/* ============================================================ */
+/* ECOLE brand palette — SINGLE source of truth                  */
+/* Change values here once → all pages update automatically.     */
+/* ============================================================ */
+:root {
+  /* ── Primary brand (from logo navy text "Ecole Globale") ─── */
+  --brand-50:  #eef2ff;
+  --brand-100: #e0e7ff;
+  --brand-200: #c7d2fe;
+  --brand-300: #a5b4fc;
+  --brand-400: #818cf8;
+  --brand-500: #6366f1;
+  --brand-600: #4f46e5;
+  --brand-700: #4338ca;
+  --brand-800: #3730a3;
+  --brand-900: #312e81;
+  --brand-950: #1e1b4b;
+
+  /* ── Logo accent colors (5 figures in the logo) ─────────── */
+  /* Green — leaf / growth (left figure) */
+  --accent-green: #16a34a;
+  --accent-green-soft: #dcfce7;
+
+  /* Cyan — sky / trust (top blue figure) */
+  --accent-cyan: #06b6d4;
+  --accent-cyan-soft: #cffafe;
+
+  /* Gold — sun / excellence (yellow figure) */
+  --accent-gold: #f59e0b;
+  --accent-gold-soft: #fef3c7;
+
+  /* Orange — warmth / energy (right figure) */
+  --accent-orange: #ea580c;
+  --accent-orange-soft: #ffedd5;
+
+  /* Rose — care / love (bottom red figure) */
+  --accent-rose: #e11d48;
+  --accent-rose-soft: #ffe4e6;
+
+  /* ── Deep navy for headers / heroes ─────────────────────── */
+  --ink-navy: #0f172a;
+  --ink-navy-soft: #1e293b;
+
+  /* ── Semantic mappings (use these in pages!) ─────────────── */
+  --color-primary:   var(--brand-700);
+  --color-success:   var(--accent-green);
+  --color-info:      var(--accent-cyan);
+  --color-warning:   var(--accent-gold);
+  --color-action:    var(--accent-orange);
+  --color-danger:    var(--accent-rose);
+
+}
+
+/* ── Reusable text helpers (use anywhere) ───────────────────── */
+.text-accent-green   { color: var(--color-success); }
+.text-accent-cyan    { color: var(--color-info); }
+.text-accent-gold    { color: var(--color-warning); }
+.text-accent-orange  { color: var(--color-action); }
+.text-accent-rose    { color: var(--color-danger); }
+
+/* Hero gradients are now applied via Tailwind utility classes directly
+   inside BrandHero.tsx — keeps them dark & high-contrast (white text
+   always readable). To retheme, edit the `gradients` object in
+   src/components/BrandHero.tsx. */
+
+/* ============================================================ */
+/* Premium animations + utility classes                          */
+/* ============================================================ */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.95); }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-glow {
+  0%, 100% { transform: translateY(0px); opacity: 0.5; }
+  50% { transform: translateY(-12px); opacity: 0.7; }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(241, 245, 249, 1) 0%,
+    rgba(226, 232, 240, 0.6) 50%,
+    rgba(241, 245, 249, 1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-modal-pop {
+  animation: modal-pop 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Premium card with subtle gradient border on hover */
+.card-premium {
+  position: relative;
+  background: white;
+  border: 1px solid rgba(226, 232, 240, 1);
+  border-radius: 24px;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-premium:hover {
+  border-color: rgba(79, 70, 229, 0.25); /* brand indigo */
+  box-shadow:
+    0 4px 24px -8px rgba(79, 70, 229, 0.10),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  transform: translateY(-1px);
+}
+
+/* Glow indicator (for live status dots) */
+.dot-glow {
+  position: relative;
+}
+.dot-glow::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  background: currentColor;
+  border-radius: 999px;
+  opacity: 0.25;
+  animation: pulse-soft 1.8s ease-in-out infinite;
+}
+
+/* Soft mesh background — uses ECOLE brand accent tints */
+.bg-mesh {
+  background-color: #f6f8fb;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.07) 0%, transparent 50%),    /* indigo */
+    radial-gradient(at 100% 0%, rgba(234, 88, 12, 0.04) 0%, transparent 50%),  /* orange */
+    radial-gradient(at 50% 100%, rgba(22, 163, 74, 0.05) 0%, transparent 50%); /* green */
+}
+
+/* Brand hero gradient (used on heroes and key buttons) */
+.bg-brand-hero {
+  background-image: linear-gradient(135deg, #312e81 0%, #4338ca 45%, #4f46e5 100%);
+}
+
+/* Gold-orange accent gradient — for highlights matching logo */
+.bg-brand-warm {
+  background-image: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+}
+
+/* Green accent gradient — for success / resolved */
+.bg-brand-cool {
+  background-image: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+}
+
+/* Text gradient using brand colors */
+.text-brand-gradient {
+  background: linear-gradient(135deg, #4338ca 0%, #ea580c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Glass morph card */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Premium gradient text */
+.text-gradient-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Soft elevation shadows */
+.shadow-soft {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.04);
+}
+.shadow-soft-lg {
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.04),
+    0 12px 32px -8px rgba(15, 23, 42, 0.10);
+}
+
+/* Skeleton helper */
+.skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    rgba(241, 245, 249, 1) 0%,
+    rgba(226, 232, 240, 0.6) 50%,
+    rgba(241, 245, 249, 1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
 }

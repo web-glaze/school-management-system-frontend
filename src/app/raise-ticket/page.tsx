@@ -1,10 +1,12 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import BrandHero from "@/components/BrandHero";
 
 import api from "@/lib/axios";
 
 import { PhotoUpload, type UploadedFile } from "@/components/PhotoUpload";
+import { useComplaintsStore } from "@/store/complaints-store";
 
 import { useRouter } from "next/navigation";
 
@@ -18,6 +20,7 @@ import toast from "react-hot-toast";
 
 export default function RaiseTicketPage() {
   const router = useRouter();
+  const createComplaint = useComplaintsStore((s) => s.createComplaint);
 
   const [title, setTitle] =
     useState("");
@@ -50,15 +53,8 @@ export default function RaiseTicketPage() {
   }
   const [allLocations, setAllLocations] = useState<Location[]>([]);
 
+  // Auth handled by DashboardLayout — just fetch locations
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    // Fetch real locations from backend
     api
       .get("/api/locations")
       .then((res) => {
@@ -66,10 +62,9 @@ export default function RaiseTicketPage() {
         setAllLocations(Array.isArray(data) ? data : []);
       })
       .catch(() => {
-        // Locations module not seeded yet — fall back to hardcoded
         setAllLocations([]);
       });
-  }, [router]);
+  }, []);
 
   // Top-level locations (no parent) become "locationType" options.
   // Their children become "subLocation" options.
@@ -117,20 +112,18 @@ export default function RaiseTicketPage() {
       return;
     }
 
-    try {
-      setLoading(true);
+    setLoading(true);
+    const created = await createComplaint({
+      title,
+      locationType,
+      subLocation,
+      priority: priority as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
+      description,
+      attachments,
+    });
+    setLoading(false);
 
-      await api.post("/api/complaints", {
-        title,
-        locationType,
-        subLocation,
-        priority,
-        description,
-        attachments,
-      });
-
-      toast.success("Complaint registered successfully");
-
+    if (created) {
       setSuccess(true);
       setTitle("");
       setLocationType("");
@@ -142,13 +135,6 @@ export default function RaiseTicketPage() {
       setTimeout(() => {
         setSuccess(false);
       }, 3000);
-    } catch (error: unknown) {
-      const msg =
-        (error as { displayMessage?: string })?.displayMessage ||
-        "Failed to register complaint";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -162,24 +148,12 @@ export default function RaiseTicketPage() {
       <div className="space-y-8">
 
         {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              ECOLE ERP
-            </p>
-
-            <h1 className="text-5xl font-bold mt-4">
-              Raise Ticket
-            </h1>
-
-            <p className="mt-5 text-lg text-white/90 max-w-2xl">
-              Register maintenance issues quickly and track them in real-time across the ECOLE maintenance ecosystem.
-            </p>
-          </div>
-        </div>
+        <BrandHero
+          kicker="Ecole ERP"
+          title="Raise Ticket"
+          subtitle="Register maintenance issues quickly and track them in real-time."
+          accent="action"
+        />
 
         {/* Success */}
         {success && (
@@ -396,7 +370,7 @@ export default function RaiseTicketPage() {
                   loading ||
                   !isFormValid
                 }
-                className="w-full h-14 rounded-2xl bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 text-white font-semibold text-lg shadow-lg hover:scale-[1.01] transition duration-200 disabled:opacity-50"
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-indigo-700 via-violet-600 to-indigo-500 text-white font-semibold text-lg shadow-lg shadow-indigo-500/25 hover:scale-[1.01] transition duration-200 disabled:opacity-50"
               >
                 {loading
                   ? "Submitting..."

@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import BrandHero from "@/components/BrandHero";
 
 import api from "@/lib/axios";
 
@@ -72,22 +73,11 @@ export default function MyComplaintsPage() {
     }
   };
 
+  // Auth handled by DashboardLayout — just fetch
   useEffect(() => {
-    const token =
-      localStorage.getItem(
-        "token"
-      );
-
-    if (!token) {
-      router.push("/login");
-
-      return;
-    }
-
-    setTimeout(() => {
-      fetchComplaints();
-    }, 0);
-  }, [router]);
+    fetchComplaints();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredComplaints =
     useMemo(() => {
@@ -128,24 +118,12 @@ export default function MyComplaintsPage() {
       <div className="space-y-8">
 
         {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              ECOLE ERP
-            </p>
-
-            <h1 className="text-5xl font-bold mt-4">
-              My Complaints
-            </h1>
-
-            <p className="mt-5 text-lg text-white/90 max-w-2xl">
-              Track all complaints you have registered and monitor their progress in real-time.
-            </p>
-          </div>
-        </div>
+        <BrandHero
+          kicker="Ecole ERP"
+          title="My Complaints"
+          subtitle="Track all complaints you have registered and monitor their progress in real-time."
+          accent="gold"
+        />
 
         {/* Filters */}
         <div className="bg-white rounded-[2rem] p-6 shadow-lg border border-gray-100 flex flex-col lg:flex-row gap-4 justify-between">

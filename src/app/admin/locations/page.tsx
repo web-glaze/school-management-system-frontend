@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import BrandHero from "@/components/BrandHero";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useMemo, useState } from "react";
@@ -131,19 +132,12 @@ export default function LocationsPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-amber-600 via-orange-500 to-rose-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              ADMIN · LOCATIONS
-            </p>
-            <h1 className="text-5xl font-bold mt-4">Location Hierarchy</h1>
-            <p className="mt-4 text-lg text-white/90 max-w-2xl">
-              Set up Buildings → Floors → Rooms etc. Used by Raise Ticket form
-              so users pick from real locations.
-            </p>
-          </div>
-        </div>
+        <BrandHero
+          kicker="Admin · Locations"
+          title="Location Hierarchy"
+          subtitle="Set up Buildings → Floors → Rooms etc. Used by Raise Ticket form so users pick from real locations."
+          accent="gold"
+        />
 
         {/* Form */}
         <form

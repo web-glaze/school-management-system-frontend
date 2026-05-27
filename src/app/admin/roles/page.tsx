@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import BrandHero from "@/components/BrandHero";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useMemo, useState } from "react";
@@ -177,27 +178,20 @@ export default function RolesPermissionsPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-500 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-          <div className="relative z-10 flex flex-wrap items-end justify-between gap-6">
-            <div>
-              <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-                ADMIN · ROLES & PERMISSIONS
-              </p>
-              <h1 className="text-5xl font-bold mt-4">Roles & Permissions</h1>
-              <p className="mt-4 text-lg text-white/90 max-w-2xl">
-                Create custom roles and toggle permissions module-by-module.
-                Phase 1/2/3/4 permissions are auto-discovered.
-              </p>
-            </div>
+        <BrandHero
+          kicker="Admin · Roles & Permissions"
+          title="Roles & Permissions"
+          subtitle="Create custom roles and toggle permissions module-by-module. Phase 1/2/3/4 permissions are auto-discovered."
+          accent="default"
+          action={
             <button
               onClick={() => setShowForm((s) => !s)}
-              className="bg-white text-indigo-600 px-6 py-4 rounded-2xl font-semibold hover:bg-indigo-50 transition shadow-lg"
+              className="bg-white text-indigo-900 px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
             >
               {showForm ? "✕ Close" : "+ Create Role"}
             </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Create form */}
         {showForm && (

@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
+import { useAuthStore, type AppRole } from "@/store/auth-store";
 
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +24,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"form">) {
   const router = useRouter();
+  const login = useAuthStore((s) => s.login);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,28 +51,25 @@ export function LoginForm({
         return;
       }
 
-      let role = "user";
+      // Derive primary role label for routing
+      let role: AppRole = "user";
       if (roles.includes("SUPER_ADMIN")) role = "superadmin";
       else if (roles.includes("ADMIN")) role = "admin";
       else if (roles.includes("MANAGER")) role = "manager";
       else if (roles.includes("TECHNICIAN")) role = "technician";
 
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: user.id,
-          email: user.email,
-          role,
-          roles,
-          permissions,
-        })
-      );
+      // Save to Zustand store (auto-persists to localStorage)
+      login(accessToken, {
+        id: user.id,
+        email: user.email,
+        role,
+        roles,
+        permissions,
+      });
 
       toast.success(`Welcome back, ${user.email}`);
 
-      // Role-based redirect (still everyone to dashboard for now,
-      // but admin can go straight to /admin)
+      // Role-based redirect
       if (role === "superadmin" || role === "admin") {
         router.push("/admin");
       } else if (role === "manager") {
@@ -97,7 +96,6 @@ export function LoginForm({
       {...props}
     >
       <FieldGroup>
-        {/* Email */}
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
           <Input
@@ -112,7 +110,6 @@ export function LoginForm({
           />
         </Field>
 
-        {/* Password */}
         <Field>
           <FieldLabel htmlFor="password">Password</FieldLabel>
           <Input
@@ -127,7 +124,6 @@ export function LoginForm({
           />
         </Field>
 
-        {/* Button */}
         <Field>
           <Button type="submit" disabled={loading}>
             {loading ? "Signing In..." : "Login"}

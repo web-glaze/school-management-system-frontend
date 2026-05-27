@@ -1,11 +1,11 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import api from "@/lib/axios";
+import BrandHero from "@/components/BrandHero";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { useEffect, useMemo } from "react";
+import { useComplaintsStore } from "@/store/complaints-store";
 
 interface Complaint {
   id: string;
@@ -30,27 +30,14 @@ export default function ManagerDashboardPage() {
     allowedRoles: ["manager", "admin", "superadmin"],
   });
 
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    try {
-      const res = await api.get("/api/complaints");
-      const data = res.data?.data ?? res.data;
-      setComplaints(Array.isArray(data) ? data : []);
-    } catch (err: unknown) {
-      const msg =
-        (err as { displayMessage?: string })?.displayMessage ||
-        "Failed to load complaints";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ── Zustand store ──────────────────────────────────────
+  const complaints = useComplaintsStore((s) => s.complaints) as Complaint[];
+  const loading = useComplaintsStore((s) => s.loading);
+  const fetchComplaints = useComplaintsStore((s) => s.fetchComplaints);
 
   useEffect(() => {
-    if (!authLoading && user) fetchData();
-  }, [authLoading, user]);
+    if (!authLoading && user) fetchComplaints();
+  }, [authLoading, user, fetchComplaints]);
 
   const stats = useMemo(() => {
     return {
@@ -82,33 +69,28 @@ export default function ManagerDashboardPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              ECOLE MAINTENANCE PORTAL
-            </p>
-            <h1 className="text-5xl font-bold mt-4">Manager Dashboard</h1>
-            <p className="mt-4 text-lg text-white/90 max-w-2xl">
-              Triage complaints, assign technicians, monitor progress in real
-              time.
-            </p>
-            <div className="flex flex-wrap gap-3 mt-8">
+        <BrandHero
+          kicker="Ecole Maintenance Portal"
+          title="Manager Dashboard"
+          subtitle="Triage complaints, assign technicians, monitor progress in real time."
+          accent="action"
+          action={
+            <>
               <Link
                 href="/admin/complaints"
-                className="bg-white text-violet-600 px-6 py-3 rounded-2xl font-semibold hover:bg-violet-50 transition shadow-lg"
+                className="bg-white text-indigo-900 px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
               >
                 Manage All Complaints
               </Link>
               <Link
                 href="/admin/technicians"
-                className="bg-white/15 backdrop-blur text-white border border-white/30 px-6 py-3 rounded-2xl font-semibold hover:bg-white/25 transition"
+                className="bg-white/10 backdrop-blur text-white border border-white/20 px-6 py-3 rounded-2xl font-semibold hover:bg-white/20 transition-all"
               >
                 View Technicians
               </Link>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* Stats */}
         <div className="grid xl:grid-cols-5 md:grid-cols-2 gap-5">

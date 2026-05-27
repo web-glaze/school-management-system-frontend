@@ -12,6 +12,7 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             {/* Logo */}
             <Link href="/" className="mb-10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/Ecole2.png"
                 alt="Logo"
@@ -38,6 +39,7 @@ export default function LoginPage() {
         <div className="hidden lg:flex p-5">
           <div className="relative flex h-full p-5 w-full flex-col items-center justify-center rounded-[28px] bg-[#e8f8fe] overflow-hidden">
             {/* Illustration */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/login-hero.svg"
               alt="Dashboard Preview"

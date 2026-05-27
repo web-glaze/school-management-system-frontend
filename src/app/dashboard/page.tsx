@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import BrandHero from "@/components/BrandHero";
 
 import api from "@/lib/axios";
 
@@ -52,19 +53,11 @@ export default function DashboardPage() {
     }
   };
 
+  // Auth guard handled by DashboardLayout — just fetch on mount
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/login");
-
-      return;
-    }
-
-    setTimeout(() => {
-      fetchComplaints();
-    }, 0);
-  }, [router]);
+    fetchComplaints();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stats = useMemo(() => {
     return {
@@ -86,26 +79,12 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              ECOLE ERP
-            </p>
-
-            <h1 className="text-5xl font-bold mt-4">Dashboard</h1>
-
-            <p className="mt-5 text-lg text-white/90 max-w-2xl">
-              Manage complaints, technicians, maintenance requests and monitor
-              the complete ECOLE maintenance ecosystem in real-time.
-            </p>
-
-            <button className="mt-8 bg-white text-blue-600 px-7 py-4 rounded-2xl font-semibold hover:bg-blue-50 transition duration-200 shadow-lg">
-              View Reports
-            </button>
-          </div>
-        </div>
+        <BrandHero
+          kicker="Ecole ERP"
+          title="Dashboard"
+          subtitle="Manage complaints, technicians, maintenance requests and monitor the complete ECOLE ecosystem in real-time."
+          accent="default"
+        />
 
         {/* Stats */}
         <div className="grid xl:grid-cols-4 md:grid-cols-2 gap-6">

@@ -1,11 +1,11 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import api from "@/lib/axios";
+import BrandHero from "@/components/BrandHero";
 import { useAuth } from "@/hooks/use-auth";
 import { PhotoGallery, type UploadedFile } from "@/components/PhotoUpload";
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { useComplaintsStore } from "@/store/complaints-store";
 
 type Status =
   | "PENDING"
@@ -36,36 +36,21 @@ export default function TechnicianPortalPage() {
     allowedRoles: ["technician", "admin", "superadmin"],
   });
 
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ── Zustand-backed ─────────────────────────────────────
+  const complaints = useComplaintsStore((s) => s.complaints);
+  const loading = useComplaintsStore((s) => s.loading);
+  const fetchAssigned = useComplaintsStore((s) => s.fetchAssignedToMe);
+  const storeUpdateStatus = useComplaintsStore((s) => s.updateStatus);
+  const storeSaveTechRemark = useComplaintsStore(
+    (s) => s.saveTechnicianRemark,
+  );
+
   const [statusFilter, setStatusFilter] = useState<"ALL" | Status>("ALL");
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    try {
-      // Get all complaints (filtered backend-side later if we improve);
-      // for now we filter client-side by assignedTechnicianId === user.id
-      // OR we fetch all and show what the technician should see.
-      // Backend endpoint /complaints/assigned/me uses user.id.
-      const res = await api.get("/api/complaints/assigned/me").catch(() =>
-        // Fallback: list all and filter
-        api.get("/api/complaints"),
-      );
-      const data = res.data?.data ?? res.data;
-      setComplaints(Array.isArray(data) ? data : []);
-    } catch (err: unknown) {
-      const msg =
-        (err as { displayMessage?: string })?.displayMessage ||
-        "Failed to load tasks";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (!authLoading && user) fetchData();
-  }, [authLoading, user]);
+    if (!authLoading && user) fetchAssigned();
+  }, [authLoading, user, fetchAssigned]);
 
   const filtered = useMemo(() => {
     if (statusFilter === "ALL") return complaints;
@@ -81,33 +66,11 @@ export default function TechnicianPortalPage() {
     };
   }, [complaints]);
 
-  const updateStatus = async (id: string, status: Status) => {
-    try {
-      await api.patch(`/api/complaints/${id}/status`, { status });
-      toast.success(`Marked as ${status.replace("_", " ")}`);
-      fetchData();
-    } catch (err: unknown) {
-      toast.error(
-        (err as { displayMessage?: string })?.displayMessage ||
-          "Failed to update status",
-      );
-    }
-  };
+  const updateStatus = (id: string, status: Status) =>
+    storeUpdateStatus(id, status);
 
-  const saveRemark = async (id: string, remark: string) => {
-    try {
-      await api.patch(`/api/complaints/${id}/tech-remark`, {
-        technicianRemark: remark,
-      });
-      toast.success("Remark saved");
-      fetchData();
-    } catch (err: unknown) {
-      toast.error(
-        (err as { displayMessage?: string })?.displayMessage ||
-          "Failed to save remark",
-      );
-    }
-  };
+  const saveRemark = (id: string, remark: string) =>
+    storeSaveTechRemark(id, remark);
 
   if (authLoading || !user) {
     return (
@@ -125,18 +88,12 @@ export default function TechnicianPortalPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-emerald-600 via-green-500 to-lime-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              MAINTENANCE · TECHNICIAN PORTAL
-            </p>
-            <h1 className="text-5xl font-bold mt-4">My Tasks</h1>
-            <p className="mt-4 text-lg text-white/90 max-w-2xl">
-              {user.email} — update status, log remarks, mark complete.
-            </p>
-          </div>
-        </div>
+        <BrandHero
+          kicker="Maintenance · Technician Portal"
+          title="My Tasks"
+          subtitle={`${user.email} — update status, log remarks, mark complete.`}
+          accent="green"
+        />
 
         {/* Stats */}
         <div className="grid xl:grid-cols-4 md:grid-cols-2 gap-5">

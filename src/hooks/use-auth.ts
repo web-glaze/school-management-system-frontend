@@ -2,24 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuthStore, type AppRole } from "@/store/auth-store";
 
-export type AppRole =
-  | "superadmin"
-  | "admin"
-  | "manager"
-  | "technician"
-  | "user";
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  /** Derived "primary" role label for routing/branding. */
-  role: AppRole;
-  /** Raw role names from backend (e.g. SUPER_ADMIN, ADMIN). */
-  roles: string[];
-  /** Permission codes from backend (e.g. ticket.create, user.read). */
-  permissions: string[];
-}
+export type { AppRole, AuthUser } from "@/store/auth-store";
 
 interface UseAuthOptions {
   /** Roles allowed on this page. If empty, any logged-in user passes. */
@@ -33,9 +18,9 @@ interface UseAuthOptions {
 }
 
 /**
- * Client-side auth guard hook.
+ * Client-side auth guard hook — backed by Zustand auth store.
  *
- * - Reads token + user from localStorage.
+ * - Waits for Zustand hydration before checking (no flash of unauthenticated).
  * - Redirects to /login if no token.
  * - If allowedRoles is set, requires user's role to be in the list.
  * - If requiredPermissions is set, requires user to have ALL of them.
@@ -51,76 +36,66 @@ export function useAuth(options: UseAuthOptions = {}) {
   } = options;
 
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const user = useAuthStore((s) => s.user);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  const storeLogout = useAuthStore((s) => s.logout);
+  const hasPermissionStore = useAuthStore((s) => s.hasPermission);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const raw =
-      typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    // Wait for Zustand persistence to hydrate from localStorage
+    if (!hydrated) return;
 
-    if (!token || !raw) {
+    if (!user) {
       router.push(redirectTo);
       return;
     }
 
-    try {
-      const parsed = JSON.parse(raw) as AuthUser;
-
-      // Defensive defaults for older user objects without these fields.
-      const safe: AuthUser = {
-        ...parsed,
-        roles: parsed.roles ?? [],
-        permissions: parsed.permissions ?? [],
-      };
-
-      // Role gate
-      if (allowedRoles.length > 0 && !allowedRoles.includes(safe.role)) {
-        router.push(unauthorizedTo);
-        return;
-      }
-
-      // Permission gate
-      if (
-        requiredPermissions.length > 0 &&
-        !requiredPermissions.every((p) => safe.permissions.includes(p))
-      ) {
-        router.push(unauthorizedTo);
-        return;
-      }
-
-      setUser(safe);
-    } catch {
-      router.push(redirectTo);
+    // Role gate
+    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+      router.push(unauthorizedTo);
       return;
-    } finally {
-      setLoading(false);
     }
+
+    // Permission gate
+    if (
+      requiredPermissions.length > 0 &&
+      !requiredPermissions.every((p) =>
+        (user.permissions ?? []).includes(p),
+      )
+    ) {
+      router.push(unauthorizedTo);
+      return;
+    }
+
+    setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hydrated, user]);
 
+  const logout = () => {
+    storeLogout();
+    router.push(redirectTo);
+  };
+
+  /** Reactive permission helper (re-runs on user change). */
   const hasPermission = (code: string): boolean =>
     user?.permissions?.includes(code) ?? false;
 
   const hasAnyPermission = (...codes: string[]): boolean =>
-    codes.some((c) => user?.permissions?.includes(c)) ?? false;
+    codes.some((c) => user?.permissions?.includes(c));
 
   const hasAllPermissions = (...codes: string[]): boolean =>
-    codes.every((c) => user?.permissions?.includes(c)) ?? false;
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push(redirectTo);
-  };
+    codes.every((c) => user?.permissions?.includes(c));
 
   return {
     user,
-    loading,
+    loading: !hydrated || loading,
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
     logout,
+    // Also expose store-level checker for convenience
+    _checkPermission: hasPermissionStore,
   };
 }

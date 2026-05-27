@@ -1,5 +1,6 @@
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useAuthStore } from "@/store/auth-store";
 
 const baseURL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
@@ -12,21 +13,21 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-// Attach JWT from localStorage on every request
+// Attach JWT on every request — read from Zustand store (single source of truth)
 axiosInstance.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
+      const token = useAuthStore.getState().token;
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// Global error handling — 401 redirect to login, show toast otherwise
+// Global error handling
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -38,9 +39,8 @@ axiosInstance.interceptors.response.use(
         "Something went wrong";
 
       if (status === 401) {
-        // Token invalid / expired — clear & redirect
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        // Token invalid / expired — clear store & redirect
+        useAuthStore.getState().logout();
         if (!window.location.pathname.startsWith("/login")) {
           toast.error("Session expired. Please login again.");
           window.location.href = "/login";
@@ -50,14 +50,11 @@ axiosInstance.interceptors.response.use(
       } else if (status >= 500) {
         toast.error("Server error. Please try again later.");
       }
-      // 4xx other than 401/403: let caller decide whether to toast
-      // (so create/update forms can show field-level errors)
 
-      // Attach a normalized message to the error
       (error as { displayMessage?: string }).displayMessage = message;
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;
