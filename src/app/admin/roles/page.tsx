@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BrandHero from "@/components/BrandHero";
+import PageHeader from "@/components/PageHeader";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useMemo, useState } from "react";
@@ -177,16 +177,15 @@ export default function RolesPermissionsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Hero */}
-        <BrandHero
-          kicker="Admin · Roles & Permissions"
+        <PageHeader
+          kicker="Access Control"
           title="Roles & Permissions"
-          subtitle="Create custom roles and toggle permissions module-by-module. Phase 1/2/3/4 permissions are auto-discovered."
-          accent="default"
+          subtitle="Create custom roles and toggle permissions module-by-module."
+          accent="indigo"
           action={
             <button
               onClick={() => setShowForm((s) => !s)}
-              className="bg-white text-indigo-900 px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
+              className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-md"
             >
               {showForm ? "✕ Close" : "+ Create Role"}
             </button>

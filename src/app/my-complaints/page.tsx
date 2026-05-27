@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BrandHero from "@/components/BrandHero";
+import PageHeader from "@/components/PageHeader";
 
 import api from "@/lib/axios";
 
@@ -117,11 +117,10 @@ export default function MyComplaintsPage() {
     <DashboardLayout>
       <div className="space-y-8">
 
-        {/* Hero */}
-        <BrandHero
-          kicker="Ecole ERP"
+        <PageHeader
+          kicker="Maintenance"
           title="My Complaints"
-          subtitle="Track all complaints you have registered and monitor their progress in real-time."
+          subtitle="Track all complaints you have registered."
           accent="gold"
         />
 

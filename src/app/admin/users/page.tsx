@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BrandHero from "@/components/BrandHero";
+import PageHeader from "@/components/PageHeader";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useMemo, useState } from "react";
@@ -175,20 +175,19 @@ export default function UsersManagementPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Hero */}
-        <BrandHero
-          kicker="Admin · User Management"
+        {/* Header */}
+        <PageHeader
+          kicker="User Management"
           title="Users & Roles"
-          subtitle="Create accounts and assign dynamic roles. Powered by foundation RBAC — roles defined in Roles & Permissions."
+          subtitle="Create accounts and assign dynamic roles."
           accent="rose"
-          // People → rose accent (logo's red figure represents people)
           action={
             canCreate && (
               <button
                 onClick={() => setShowForm((s) => !s)}
-                className="bg-white text-indigo-900 px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-md"
               >
-                {showForm ? "✕ Close Form" : "+ Add New User"}
+                {showForm ? "✕ Close" : "+ Add New User"}
               </button>
             )
           }

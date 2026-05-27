@@ -14,22 +14,26 @@ interface BrandHeroProps {
   /**
    * Accent variant — picks which logo color blends into the dark indigo base.
    * Each variant is DARK (high contrast white text) but ends with a different
-   * logo color so each page has its own identity while staying brand-consistent.
+   * logo color so each page has its own identity.
    */
   accent?:
-    | "default" // indigo → violet (primary)
-    | "action" // indigo → orange (action / urgency)
-    | "green" // indigo → emerald (growth / technicians)
-    | "gold" // indigo → amber (locations / waiting)
-    | "rose" // indigo → rose (users / people)
-    | "cyan"; // indigo → cyan (departments / orgs)
+    | "default"
+    | "action"
+    | "green"
+    | "gold"
+    | "rose"
+    | "cyan";
 }
 
 /**
- * BrandHero — unified hero banner across all pages.
+ * BrandHero — unified RESPONSIVE hero banner across all pages.
  *
- * Dark navy/indigo base with per-page accent color blended in.
- * White text on dark background = guaranteed high contrast.
+ * Mobile-first design:
+ * - sm  : 640px (small tablets)
+ * - md  : 768px
+ * - lg  : 1024px (desktop)
+ *
+ * Text + padding scale up with screen size for optimal readability.
  */
 export default function BrandHero({
   kicker,
@@ -38,7 +42,6 @@ export default function BrandHero({
   action,
   accent = "default",
 }: BrandHeroProps) {
-  // Each accent: DARK gradient ending in a logo color. White text stays readable.
   const gradients: Record<string, string> = {
     default:
       "bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700",
@@ -54,7 +57,6 @@ export default function BrandHero({
       "bg-gradient-to-br from-indigo-950 via-violet-800 to-cyan-700",
   };
 
-  // Decorative blob colors per accent — 2 logo colors blend in subtly
   const blobs: Record<string, { primary: string; secondary: string }> = {
     default: { primary: "bg-orange-400/25", secondary: "bg-emerald-400/20" },
     action: { primary: "bg-orange-400/35", secondary: "bg-amber-400/25" },
@@ -69,43 +71,60 @@ export default function BrandHero({
 
   return (
     <section
-      className={`relative overflow-hidden rounded-3xl ${heroClass} p-10 text-white shadow-2xl`}
+      className={`
+        relative overflow-hidden rounded-2xl
+        ${heroClass}
+        p-4 sm:p-5 lg:p-6
+        text-white shadow-lg
+      `}
     >
-      {/* Decorative blobs in logo accent colors */}
+      {/* Decorative blobs — smaller on mobile */}
       <div
-        className={`absolute -top-32 -right-32 w-96 h-96 ${blob.primary} rounded-full blur-3xl`}
+        className={`
+          absolute -top-20 sm:-top-32 -right-20 sm:-right-32
+          w-56 sm:w-80 lg:w-96 h-56 sm:h-80 lg:h-96
+          ${blob.primary} rounded-full blur-3xl pointer-events-none
+        `}
       />
       <div
-        className={`absolute -bottom-32 -left-32 w-96 h-96 ${blob.secondary} rounded-full blur-3xl`}
+        className={`
+          absolute -bottom-20 sm:-bottom-32 -left-20 sm:-left-32
+          w-56 sm:w-80 lg:w-96 h-56 sm:h-80 lg:h-96
+          ${blob.secondary} rounded-full blur-3xl pointer-events-none
+        `}
       />
 
       {/* Subtle grid pattern */}
       <div
-        className="absolute inset-0 opacity-[0.04]"
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
           backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
-          backgroundSize: "48px 48px",
+          backgroundSize: "32px 32px",
         }}
       />
 
-      <div className="relative z-10 flex flex-wrap items-end justify-between gap-6">
-        <div>
+      <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 lg:gap-6">
+        <div className="min-w-0">
           {kicker && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur border border-white/25 text-xs font-semibold uppercase tracking-wider text-white">
+            <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/15 backdrop-blur border border-white/25 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 dot-glow text-emerald-300" />
-              {kicker}
+              <span className="truncate max-w-[200px] sm:max-w-none">
+                {kicker}
+              </span>
             </span>
           )}
-          <h1 className="text-5xl font-extrabold tracking-tight mt-4 text-white drop-shadow-sm">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight mt-2 text-white leading-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-3 text-lg text-white/85 max-w-2xl">
+            <p className="mt-1 sm:mt-1.5 text-xs text-white/80 max-w-2xl leading-relaxed">
               {subtitle}
             </p>
           )}
         </div>
-        {action && <div className="flex gap-3 flex-wrap">{action}</div>}
+        {action && (
+          <div className="flex gap-2 sm:gap-3 flex-wrap">{action}</div>
+        )}
       </div>
     </section>
   );

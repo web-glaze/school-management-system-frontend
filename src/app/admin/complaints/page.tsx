@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BrandHero from "@/components/BrandHero";
+import PageHeader from "@/components/PageHeader";
 import { useAuth } from "@/hooks/use-auth";
 import { PhotoGallery, type UploadedFile } from "@/components/PhotoUpload";
 import { useEffect, useMemo, useState } from "react";
@@ -137,17 +137,16 @@ export default function AdminComplaintsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Hero */}
-        <BrandHero
-          kicker="Complaint Management"
-          title="Control Center"
-          subtitle="Assign technicians, change priority, add remarks, track status — all from one console."
-          accent="default"
+      <div className="space-y-5 sm:space-y-6 lg:space-y-8">
+        <PageHeader
+          kicker="Maintenance"
+          title="Complaint Control Center"
+          subtitle="Assign technicians, change priority, add remarks, track status."
+          accent="indigo"
         />
 
-        {/* Stats */}
-        <div className="grid xl:grid-cols-5 md:grid-cols-2 gap-5">
+        {/* Stats — responsive grid (2 mobile / 3 tablet / 5 desktop) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-5">
           <Stat label="Total" value={stats.total} color="text-gray-800" />
           <Stat
             label="Pending"
@@ -167,22 +166,22 @@ export default function AdminComplaintsPage() {
           />
         </div>
 
-        {/* Filters */}
-        <div className="card-premium p-6 flex flex-col lg:flex-row gap-4 justify-between">
+        {/* Filters — stack on mobile */}
+        <div className="card-premium p-4 sm:p-5 lg:p-6 flex flex-col lg:flex-row gap-3 sm:gap-4 justify-between">
           <input
             type="text"
-            placeholder="Search title, description, location..."
+            placeholder="Search complaints..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-indigo-400 w-full lg:w-96"
+            className="border border-gray-200 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-indigo-400 w-full lg:w-96"
           />
-          <div className="flex gap-3 flex-wrap">
+          <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
             <select
               value={statusFilter}
               onChange={(e) =>
                 setStatusFilter(e.target.value as "ALL" | Status)
               }
-              className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-indigo-400"
+              className="border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-indigo-400"
             >
               <option value="ALL">All Status</option>
               {STATUSES.map((s) => (
@@ -196,7 +195,7 @@ export default function AdminComplaintsPage() {
               onChange={(e) =>
                 setPriorityFilter(e.target.value as "ALL" | Priority)
               }
-              className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-indigo-400"
+              className="border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-indigo-400"
             >
               <option value="ALL">All Priority</option>
               {PRIORITIES.map((p) => (
@@ -210,25 +209,25 @@ export default function AdminComplaintsPage() {
 
         {/* Table */}
         <div className="card-premium overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-800">
+          <div className="p-3 sm:p-4 lg:p-5 border-b border-gray-100">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800">
               All Complaints{" "}
-              <span className="text-base font-normal text-gray-500">
+              <span className="text-xs sm:text-sm font-normal text-gray-500">
                 ({filtered.length})
               </span>
             </h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-[#f5f7fb]">
-                <tr className="text-left text-sm">
-                  <th className="p-5">Complaint</th>
-                  <th className="p-5">By</th>
-                  <th className="p-5">Location</th>
-                  <th className="p-5">Priority</th>
-                  <th className="p-5">Status</th>
-                  <th className="p-5">Assigned</th>
-                  <th className="p-5">Action</th>
+                <tr className="text-left text-xs sm:text-sm">
+                  <th className="p-3 sm:p-5">Complaint</th>
+                  <th className="p-3 sm:p-5 hidden md:table-cell">By</th>
+                  <th className="p-3 sm:p-5 hidden lg:table-cell">Location</th>
+                  <th className="p-3 sm:p-5">Priority</th>
+                  <th className="p-3 sm:p-5">Status</th>
+                  <th className="p-3 sm:p-5 hidden lg:table-cell">Assigned</th>
+                  <th className="p-3 sm:p-5">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,35 +250,37 @@ export default function AdminComplaintsPage() {
                       className="border-t hover:bg-gray-50 transition cursor-pointer"
                       onClick={() => setActiveId(c.id)}
                     >
-                      <td className="p-5">
-                        <p className="font-semibold text-gray-800 flex items-center gap-2">
-                          {c.title}
+                      <td className="p-3 sm:p-5">
+                        <p className="font-semibold text-sm sm:text-base text-gray-800 flex items-center gap-2">
+                          <span className="truncate max-w-[180px] sm:max-w-none">
+                            {c.title}
+                          </span>
                           {c.attachments && c.attachments.length > 0 && (
                             <span
-                              className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium"
+                              className="text-[10px] sm:text-xs bg-indigo-50 text-indigo-700 px-1.5 sm:px-2 py-0.5 rounded-full font-medium flex-shrink-0"
                               title={`${c.attachments.length} photo(s)`}
                             >
                               📷 {c.attachments.length}
                             </span>
                           )}
                         </p>
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-1">
                           {c.description}
                         </p>
                       </td>
-                      <td className="p-5 text-gray-600 text-sm">
+                      <td className="p-3 sm:p-5 text-gray-600 text-xs sm:text-sm hidden md:table-cell">
                         {c.user?.email || "—"}
                       </td>
-                      <td className="p-5 text-gray-500 text-sm">
+                      <td className="p-3 sm:p-5 text-gray-500 text-xs sm:text-sm hidden lg:table-cell">
                         {c.locationType} • {c.subLocation}
                       </td>
-                      <td className="p-5">
+                      <td className="p-3 sm:p-5">
                         <PriorityBadge priority={c.priority} />
                       </td>
-                      <td className="p-5">
+                      <td className="p-3 sm:p-5">
                         <StatusBadge status={c.status} />
                       </td>
-                      <td className="p-5 text-sm">
+                      <td className="p-3 sm:p-5 text-xs sm:text-sm hidden lg:table-cell">
                         {c.assignedTechnician ? (
                           <span className="text-gray-700 font-medium">
                             {c.assignedTechnician.name}
@@ -289,12 +290,12 @@ export default function AdminComplaintsPage() {
                         )}
                       </td>
                       <td
-                        className="p-5"
+                        className="p-3 sm:p-5"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => setActiveId(c.id)}
-                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                          className="px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                         >
                           Manage
                         </button>
@@ -335,9 +336,13 @@ function Stat({
   color: string;
 }) {
   return (
-    <div className="card-premium p-6">
-      <p className="text-gray-500 text-sm font-medium">{label}</p>
-      <h2 className={`text-4xl font-extrabold mt-2 tracking-tight ${color}`}>
+    <div className="card-premium p-3 sm:p-4 lg:p-5">
+      <p className="text-gray-500 text-[11px] sm:text-xs font-medium truncate">
+        {label}
+      </p>
+      <h2
+        className={`text-xl sm:text-2xl lg:text-3xl font-extrabold mt-1 tracking-tight ${color}`}
+      >
         {value}
       </h2>
     </div>
@@ -406,37 +411,42 @@ function DetailPanel({
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end animate-fade-up"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex sm:justify-end animate-fade-up"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-2xl h-full overflow-y-auto shadow-2xl animate-slide-in-right"
+        className="bg-white w-full sm:max-w-xl lg:max-w-2xl h-full overflow-y-auto shadow-2xl animate-slide-in-right"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800">Manage Complaint</h2>
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-4 sm:p-6 flex justify-between items-center z-10">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+            Manage Complaint
+          </h2>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-sm"
+            aria-label="Close"
           >
             ✕
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
           <div>
-            <h3 className="text-2xl font-bold text-gray-800">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-800">
               {complaint.title}
             </h3>
-            <p className="text-gray-600 mt-2">{complaint.description}</p>
-            <div className="flex gap-3 mt-4 flex-wrap">
-              <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">
+            <p className="text-sm sm:text-base text-gray-600 mt-2">
+              {complaint.description}
+            </p>
+            <div className="flex gap-2 mt-3 sm:mt-4 flex-wrap">
+              <span className="px-2.5 sm:px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs sm:text-sm">
                 {complaint.locationType} • {complaint.subLocation}
               </span>
               <PriorityBadge priority={complaint.priority} />
               <StatusBadge status={complaint.status} />
             </div>
-            <p className="text-xs text-gray-400 mt-3">
+            <p className="text-[10px] sm:text-xs text-gray-400 mt-3">
               Raised by {complaint.user?.email} ·{" "}
               {new Date(complaint.createdAt).toLocaleString()}
             </p>
@@ -445,7 +455,7 @@ function DetailPanel({
           {/* Photos */}
           {complaint.attachments && complaint.attachments.length > 0 && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                 Attached Photos ({complaint.attachments.length})
               </label>
               <PhotoGallery files={complaint.attachments} />
@@ -453,7 +463,7 @@ function DetailPanel({
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
               Change Status
             </label>
             <div className="flex flex-wrap gap-2">
@@ -461,7 +471,7 @@ function DetailPanel({
                 <button
                   key={s}
                   onClick={() => onStatus(s)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold border transition ${
                     complaint.status === s
                       ? "bg-indigo-600 text-white border-indigo-600"
                       : "bg-white border-gray-200 hover:border-indigo-400"
@@ -474,7 +484,7 @@ function DetailPanel({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
               Change Priority
             </label>
             <div className="flex flex-wrap gap-2">
@@ -482,7 +492,7 @@ function DetailPanel({
                 <button
                   key={p}
                   onClick={() => onPriority(p)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold border transition ${
                     complaint.priority === p
                       ? "bg-indigo-600 text-white border-indigo-600"
                       : "bg-white border-gray-200 hover:border-indigo-400"
@@ -495,7 +505,7 @@ function DetailPanel({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
               Assign Technician
             </label>
             <div className="flex gap-3">
@@ -528,7 +538,7 @@ function DetailPanel({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
               Manager Remark
             </label>
             <textarea

@@ -66,7 +66,7 @@ export default function DashboardLayout({
         {/* Mobile menu button */}
         <button
           onClick={openSidebar}
-          className="lg:hidden fixed top-4 left-4 z-30 w-11 h-11 rounded-2xl bg-white shadow-soft-lg flex items-center justify-center text-gray-700 hover:bg-gray-50"
+          className="lg:hidden fixed top-3 left-3 z-40 w-10 h-10 rounded-xl bg-white shadow-soft-lg flex items-center justify-center text-gray-700 hover:bg-gray-50"
           aria-label="Open menu"
         >
           <svg
@@ -86,7 +86,7 @@ export default function DashboardLayout({
           </svg>
         </button>
 
-        <main className="p-6 lg:p-10 min-h-screen">
+        <main className="p-4 sm:p-6 lg:p-10 min-h-screen">
           <div className="max-w-[1600px] mx-auto animate-fade-up">
             {children}
           </div>

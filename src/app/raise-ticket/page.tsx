@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BrandHero from "@/components/BrandHero";
+import PageHeader from "@/components/PageHeader";
 
 import api from "@/lib/axios";
 
@@ -145,47 +145,46 @@ export default function RaiseTicketPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-5">
 
-        {/* Hero */}
-        <BrandHero
-          kicker="Ecole ERP"
+        <PageHeader
+          kicker="Maintenance"
           title="Raise Ticket"
           subtitle="Register maintenance issues quickly and track them in real-time."
-          accent="action"
+          accent="orange"
         />
 
         {/* Success */}
         {success && (
-          <div className="bg-green-100 border border-green-300 text-green-700 rounded-2xl p-5 font-medium shadow">
-            Complaint registered successfully.
+          <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl p-3 text-sm font-medium">
+            ✓ Complaint registered successfully.
           </div>
         )}
 
         {/* Main Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-5">
 
           {/* Form */}
-          <div className="lg:col-span-2 bg-white rounded-[2rem] shadow-lg border border-gray-100 p-8">
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-soft border border-gray-100 p-5 sm:p-6">
 
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-800">
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-gray-800">
                 Complaint Details
               </h2>
 
-              <p className="text-gray-500 mt-2">
+              <p className="text-xs text-gray-500 mt-1">
                 Fill in all required information carefully.
               </p>
             </div>
 
             <form
               onSubmit={handleSubmit}
-              className="space-y-7"
+              className="space-y-4"
             >
 
               {/* Title */}
               <div>
-                <label className="block mb-3 text-sm font-semibold text-gray-700">
+                <label className="block mb-1.5 text-xs font-semibold text-gray-700">
                   Complaint Title
                 </label>
 
@@ -198,14 +197,14 @@ export default function RaiseTicketPage() {
                     )
                   }
                   placeholder="Example: AC not working"
-                  className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-blue-400 transition"
+                  className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-indigo-400 transition"
                   required
                 />
               </div>
 
               {/* Location */}
               <div>
-                <label className="block mb-3 text-sm font-semibold text-gray-700">
+                <label className="block mb-1.5 text-xs font-semibold text-gray-700">
                   Location Type
                 </label>
 
@@ -218,7 +217,7 @@ export default function RaiseTicketPage() {
 
                     setSubLocation("");
                   }}
-                  className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-blue-400 transition"
+                  className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-indigo-400 transition"
                   required
                 >
                   <option value="">
@@ -249,7 +248,7 @@ export default function RaiseTicketPage() {
               {/* Sub Location */}
               {locationType && (
                 <div>
-                  <label className="block mb-3 text-sm font-semibold text-gray-700">
+                  <label className="block mb-1.5 text-xs font-semibold text-gray-700">
                     Sub Location
                   </label>
 
@@ -258,7 +257,7 @@ export default function RaiseTicketPage() {
                     onChange={(e) =>
                       setSubLocation(e.target.value)
                     }
-                    className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-blue-400 transition"
+                    className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-indigo-400 transition"
                     required
                   >
                     <option value="">Select Sub Location</option>
@@ -286,31 +285,20 @@ export default function RaiseTicketPage() {
 
               {/* Priority */}
               <div>
-                <label className="block mb-4 text-sm font-semibold text-gray-700">
+                <label className="block mb-1.5 text-xs font-semibold text-gray-700">
                   Priority
                 </label>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-                  {[
-                    "LOW",
-                    "MEDIUM",
-                    "HIGH",
-                    "URGENT",
-                  ].map((item) => (
+                <div className="grid grid-cols-4 gap-2">
+                  {["LOW", "MEDIUM", "HIGH", "URGENT"].map((item) => (
                     <button
                       key={item}
                       type="button"
-                      onClick={() =>
-                        setPriority(
-                          item
-                        )
-                      }
-                      className={`h-14 rounded-2xl border font-semibold transition ${
-                        priority ===
-                        item
-                          ? "bg-blue-600 text-white border-blue-600 shadow-lg"
-                          : "bg-white text-gray-700 border-gray-200 hover:border-blue-400"
+                      onClick={() => setPriority(item)}
+                      className={`h-10 sm:h-11 rounded-xl border text-xs font-semibold transition ${
+                        priority === item
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-indigo-400"
                       }`}
                     >
                       {item}
@@ -321,39 +309,29 @@ export default function RaiseTicketPage() {
 
               {/* Description */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  
-                  <label className="text-sm font-semibold text-gray-700">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-gray-700">
                     Description
                   </label>
-
-                  <span className="text-xs text-gray-400">
-                    {
-                      descriptionCount
-                    }
-                    /500
+                  <span className="text-[10px] text-gray-400">
+                    {descriptionCount}/500
                   </span>
                 </div>
 
                 <textarea
                   value={description}
                   onChange={(e) =>
-                    setDescription(
-                      e.target.value.slice(
-                        0,
-                        500
-                      )
-                    )
+                    setDescription(e.target.value.slice(0, 500))
                   }
                   placeholder="Describe the issue in detail..."
-                  className="w-full min-h-[180px] rounded-2xl border border-gray-200 bg-[#f8fafc] p-5 outline-none focus:border-blue-400 transition resize-none"
+                  className="w-full min-h-[110px] rounded-xl border border-gray-200 bg-[#f8fafc] p-3 text-sm outline-none focus:border-indigo-400 transition resize-none"
                   required
                 />
               </div>
 
               {/* Photo attachments */}
               <div>
-                <label className="block mb-3 text-sm font-semibold text-gray-700">
+                <label className="block mb-1.5 text-xs font-semibold text-gray-700">
                   Attach Photos (optional, max 5)
                 </label>
                 <PhotoUpload
@@ -366,15 +344,10 @@ export default function RaiseTicketPage() {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={
-                  loading ||
-                  !isFormValid
-                }
-                className="w-full h-14 rounded-2xl bg-gradient-to-r from-indigo-700 via-violet-600 to-indigo-500 text-white font-semibold text-lg shadow-lg shadow-indigo-500/25 hover:scale-[1.01] transition duration-200 disabled:opacity-50"
+                disabled={loading || !isFormValid}
+                className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-700 via-violet-600 to-indigo-500 text-white font-semibold text-sm shadow-md shadow-indigo-500/25 hover:shadow-indigo-500/30 transition duration-200 disabled:opacity-50"
               >
-                {loading
-                  ? "Submitting..."
-                  : "Register Complaint"}
+                {loading ? "Submitting..." : "Register Complaint"}
               </button>
             </form>
           </div>
@@ -382,31 +355,26 @@ export default function RaiseTicketPage() {
           {/* Side Info */}
           <div className="space-y-6">
 
-            <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-              
-              <h3 className="text-2xl font-bold text-gray-800">
+            <div className="bg-white rounded-2xl p-5 shadow-soft border border-gray-100">
+              <h3 className="text-base font-bold text-gray-800">
                 Ticket Preview
               </h3>
 
-              <div className="mt-6 space-y-5">
-
+              <div className="mt-4 space-y-3">
                 <div>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
                     Title
                   </p>
-
-                  <p className="font-semibold text-gray-800 mt-1">
-                    {title ||
-                      "Not added"}
+                  <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                    {title || "Not added"}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
                     Location
                   </p>
-
-                  <p className="font-semibold text-gray-800 mt-1">
+                  <p className="text-sm font-semibold text-gray-800 mt-0.5">
                     {locationType
                       ? `${locationType} • ${subLocation}`
                       : "Not selected"}
@@ -414,50 +382,34 @@ export default function RaiseTicketPage() {
                 </div>
 
                 <div>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
                     Priority
                   </p>
-
-                  <p className="font-semibold text-gray-800 mt-1">
+                  <p className="text-sm font-semibold text-gray-800 mt-0.5">
                     {priority}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
                     Photos attached
                   </p>
-
-                  <p className="font-semibold text-gray-800 mt-1">
-                    {attachments.length} photo{attachments.length !== 1 ? "s" : ""}
+                  <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                    {attachments.length} photo
+                    {attachments.length !== 1 ? "s" : ""}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-              
-              <h3 className="text-2xl font-bold text-gray-800">
-                Tips
-              </h3>
+            <div className="bg-white rounded-2xl p-5 shadow-soft border border-gray-100">
+              <h3 className="text-base font-bold text-gray-800">Tips</h3>
 
-              <ul className="mt-5 space-y-4 text-gray-500 text-sm">
-                
-                <li>
-                  • Add clear complaint titles
-                </li>
-
-                <li>
-                  • Mention exact location
-                </li>
-
-                <li>
-                  • Explain issue properly
-                </li>
-
-                <li>
-                  • Use urgent only when necessary
-                </li>
+              <ul className="mt-3 space-y-2 text-gray-500 text-xs">
+                <li>• Add clear complaint titles</li>
+                <li>• Mention exact location</li>
+                <li>• Explain issue properly</li>
+                <li>• Use urgent only when necessary</li>
               </ul>
             </div>
           </div>

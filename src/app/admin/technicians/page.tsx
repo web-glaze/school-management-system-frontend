@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BrandHero from "@/components/BrandHero";
+import PageHeader from "@/components/PageHeader";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
@@ -119,8 +119,8 @@ export default function TechniciansPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <BrandHero
-          kicker="Maintenance · Technicians"
+        <PageHeader
+          kicker="Maintenance"
           title="Technicians"
           subtitle="Manage your maintenance staff and link them to departments."
           accent="green"
@@ -128,7 +128,7 @@ export default function TechniciansPage() {
             canManage && (
               <button
                 onClick={() => setShowForm((s) => !s)}
-                className="bg-white text-indigo-900 px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-md"
               >
                 {showForm ? "✕ Close" : "+ Add Technician"}
               </button>

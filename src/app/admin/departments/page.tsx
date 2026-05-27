@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BrandHero from "@/components/BrandHero";
+import PageHeader from "@/components/PageHeader";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
@@ -100,16 +100,15 @@ export default function DepartmentsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Hero */}
-        <BrandHero
-          kicker="Admin · Departments"
+        <PageHeader
+          kicker="Departments"
           title="Maintenance Departments"
-          subtitle="Organize technicians into specialized teams — Electrical, Plumbing, Carpentry, IT, etc."
+          subtitle="Organize technicians into specialized teams."
           accent="cyan"
           action={
             <button
               onClick={() => setShowForm((s) => !s)}
-              className="bg-white text-indigo-900 px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
+              className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-md"
             >
               {showForm ? "✕ Close" : "+ Add Department"}
             </button>

@@ -1,8 +1,7 @@
 "use client";
 
 import { Bell, Search } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
 
 interface NavbarProps {
@@ -14,25 +13,7 @@ interface Notification {
   message: string;
 }
 
-/** Page title derived from URL path. */
-const PAGE_TITLES: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/admin": "Admin Home",
-  "/admin/complaints": "Complaints",
-  "/admin/users": "Users & Roles",
-  "/admin/roles": "Roles & Permissions",
-  "/admin/departments": "Departments",
-  "/admin/technicians": "Technicians",
-  "/admin/locations": "Locations",
-  "/manager": "Manager Home",
-  "/technician": "My Tasks",
-  "/raise-ticket": "Raise Ticket",
-  "/my-complaints": "My Complaints",
-};
-
 export default function Navbar({ role }: NavbarProps) {
-  const pathname = usePathname();
-  // Source of truth: Zustand store
   const user = useAuthStore((s) => s.user);
   const userName = user?.email ?? "User";
 
@@ -42,30 +23,21 @@ export default function Navbar({ role }: NavbarProps) {
     { title: "Technician Assigned", message: "WiFi Issue · Library" },
   ]);
 
-  const title = useMemo(() => {
-    if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
-    // Try base path match
-    const base = "/" + (pathname.split("/")[1] ?? "");
-    return PAGE_TITLES[base] ?? "Dashboard";
-  }, [pathname]);
-
   if (!user) return null;
 
   return (
-    <div className="h-20 bg-white/70 backdrop-blur-md border-b border-gray-100 px-6 lg:px-10 flex items-center justify-between sticky top-0 z-30">
-      {/* Left — page title */}
-      <div className="min-w-0">
-        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 truncate">
-          {title}
-        </h1>
-        <p className="text-sm text-gray-500 mt-0.5 truncate">
-          Welcome back, {userName}
+    <div className="h-14 sm:h-16 bg-white/70 backdrop-blur-md border-b border-gray-100 px-4 sm:px-6 lg:px-10 flex items-center justify-between sticky top-0 z-30">
+      {/* Left — just welcome message; each page has its own header */}
+      <div className="min-w-0 ml-14 lg:ml-0 flex-1">
+        <p className="text-xs sm:text-sm text-gray-500 truncate">
+          Welcome back,{" "}
+          <span className="font-semibold text-gray-800">{userName}</span>
         </p>
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-3">
-        {/* Search (decorative for now) */}
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+        {/* Search — hidden on mobile */}
         <button
           className="hidden md:flex w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 items-center justify-center text-gray-500 transition"
           aria-label="Search"
@@ -76,22 +48,22 @@ export default function Navbar({ role }: NavbarProps) {
         {/* Notification */}
         <div className="relative group">
           <button
-            className="relative w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-600 transition"
+            className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-600 transition"
             aria-label="Notifications"
           >
             <Bell className="w-4 h-4" />
             {notifications.length > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
+              <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
             )}
           </button>
 
           {/* Dropdown */}
-          <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-soft-lg border border-gray-100 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200 z-50 origin-top-right">
+          <div className="absolute right-0 top-11 sm:top-12 w-72 sm:w-80 bg-white rounded-2xl shadow-soft-lg border border-gray-100 p-3 sm:p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200 z-50 origin-top-right">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-gray-900">
                 Notifications
               </h2>
-              <span className="text-xs text-blue-600 font-semibold cursor-pointer hover:text-blue-700">
+              <span className="text-xs text-indigo-600 font-semibold cursor-pointer hover:text-indigo-700">
                 Mark all read
               </span>
             </div>
@@ -99,24 +71,26 @@ export default function Navbar({ role }: NavbarProps) {
               {notifications.map((n, i) => (
                 <div
                   key={i}
-                  className="p-3 rounded-xl hover:bg-gray-50 transition cursor-pointer"
+                  className="p-2.5 sm:p-3 rounded-xl hover:bg-gray-50 transition cursor-pointer"
                 >
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900">
                     {n.title}
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
+                    {n.message}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* User chip */}
-        <div className="flex items-center gap-3 bg-gray-50 pl-1 pr-4 py-1 rounded-2xl">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow">
+        {/* User chip — avatar only on mobile */}
+        <div className="flex items-center gap-2 sm:gap-3 bg-gray-50 pl-1 pr-1 sm:pr-4 py-1 rounded-xl sm:rounded-2xl">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow">
             {userName.charAt(0).toUpperCase()}
           </div>
-          <div className="hidden md:block min-w-0">
+          <div className="hidden lg:block min-w-0">
             <p className="text-sm font-semibold text-gray-900 truncate max-w-[160px]">
               {userName}
             </p>

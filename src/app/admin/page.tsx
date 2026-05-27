@@ -101,51 +101,49 @@ export default function AdminHomePage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* ── Hero — ECOLE brand multicolor gradient ────────── */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700 p-10 text-white shadow-2xl">
+        {/* ── Hero — ECOLE brand multicolor gradient (responsive) ─ */}
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700 p-4 sm:p-5 lg:p-6 text-white shadow-lg">
           {/* Decorative blobs in ECOLE logo accent colors */}
-          <div className="absolute -top-32 -right-32 w-96 h-96 bg-orange-400/30 rounded-full blur-3xl" />
-          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-400/25 rounded-full blur-3xl" />
-          <div className="absolute top-10 right-1/4 w-48 h-48 bg-rose-400/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-1/3 w-56 h-56 bg-cyan-400/20 rounded-full blur-3xl" />
+          <div className="absolute -top-20 sm:-top-32 -right-20 sm:-right-32 w-56 sm:w-80 lg:w-96 h-56 sm:h-80 lg:h-96 bg-orange-400/30 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 sm:-bottom-32 -left-20 sm:-left-32 w-56 sm:w-80 lg:w-96 h-56 sm:h-80 lg:h-96 bg-emerald-400/25 rounded-full blur-3xl pointer-events-none" />
+          <div className="hidden sm:block absolute top-10 right-1/4 w-48 h-48 bg-rose-400/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="hidden sm:block absolute bottom-10 right-1/3 w-56 h-56 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none" />
 
           {/* Grid pattern overlay */}
           <div
-            className="absolute inset-0 opacity-[0.04]"
+            className="absolute inset-0 opacity-[0.04] pointer-events-none"
             style={{
               backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
-              backgroundSize: "48px 48px",
+              backgroundSize: "32px 32px",
             }}
           />
 
-          <div className="relative z-10 flex flex-wrap items-end justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-xs font-semibold uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 dot-glow text-emerald-400" />
-                  Live · {user.role === "superadmin" ? "Super Admin" : "Admin Panel"}
-                </span>
-              </div>
-              <h1 className="text-5xl font-extrabold tracking-tight">
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-[10px] sm:text-xs font-semibold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 dot-glow text-emerald-400" />
+                Live · {user.role === "superadmin" ? "Super Admin" : "Admin Panel"}
+              </span>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight mt-2 leading-tight">
                 Good {greeting()}, Admin
               </h1>
-              <p className="mt-3 text-lg text-white/70 max-w-xl">
-                Here&apos;s what&apos;s happening across your school maintenance
-                today.
+              <p className="mt-1 text-xs text-white/75 max-w-xl">
+                Here&apos;s what&apos;s happening across your school
+                maintenance today.
               </p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3 flex-wrap">
               <Link
                 href="/admin/complaints"
-                className="group inline-flex items-center gap-2 bg-white text-indigo-900 px-5 py-3 rounded-2xl font-semibold hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
+                className="group inline-flex items-center gap-2 bg-white text-indigo-900 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-semibold text-sm hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
               >
-                Manage Complaints
+                <span className="hidden sm:inline">Manage</span> Complaints
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
                 href="/raise-ticket"
-                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-white/15 transition-all"
+                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-semibold text-sm hover:bg-white/15 transition-all"
               >
                 <Sparkles className="w-4 h-4" />
                 New Ticket
@@ -154,8 +152,8 @@ export default function AdminHomePage() {
           </div>
         </section>
 
-        {/* ── KPI cards — ECOLE accent palette ─────────────── */}
-        <section className="grid xl:grid-cols-4 md:grid-cols-2 gap-5">
+        {/* ── KPI cards — responsive grid ───────────────────── */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
           <KpiCard
             label="Total Complaints"
             value={stats.total}
@@ -194,10 +192,10 @@ export default function AdminHomePage() {
 
         {/* ── Quick actions row ─────────────────────────── */}
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
+          <h2 className="text-sm sm:text-base font-bold text-gray-900 mb-2 sm:mb-3">
             Quick Actions
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <QuickLink
               href="/admin/users"
               title="Users"
@@ -233,25 +231,25 @@ export default function AdminHomePage() {
           </div>
         </section>
 
-        {/* ── Activity + completion ─────────────────────── */}
-        <section className="grid lg:grid-cols-3 gap-6">
+        {/* ── Activity + completion (responsive) ──────────── */}
+        <section className="grid lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
           {/* Recent activity */}
-          <div className="lg:col-span-2 card-premium p-7">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
+          <div className="lg:col-span-2 card-premium p-4 sm:p-5 lg:p-7">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">
                   Recent Complaints
                 </h2>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Latest 5 tickets across all locations
+                <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                  Latest 5 tickets
                 </p>
               </div>
               <Link
                 href="/admin/complaints"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+                className="inline-flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition flex-shrink-0"
               >
                 View all
-                <ArrowUpRight className="w-4 h-4" />
+                <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Link>
             </div>
 
@@ -275,12 +273,12 @@ export default function AdminHomePage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 {recent.map((c) => (
                   <Link
                     key={c.id}
                     href="/admin/complaints"
-                    className="group flex items-center gap-4 p-3.5 rounded-2xl hover:bg-gray-50 transition-all"
+                    className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl hover:bg-gray-50 transition-all"
                   >
                     <div
                       className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -294,16 +292,15 @@ export default function AdminHomePage() {
                       }`}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 truncate">
+                      <p className="font-semibold text-sm sm:text-base text-gray-900 truncate">
                         {c.title}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">
                         {c.locationType} · {c.subLocation}
-                        {c.user?.email && ` · ${c.user.email}`}
                       </p>
                     </div>
                     <StatusPill status={c.status} />
-                    <ArrowUpRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition" />
+                    <ArrowUpRight className="hidden sm:block w-4 h-4 text-gray-300 group-hover:text-indigo-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition" />
                   </Link>
                 ))}
               </div>
@@ -311,9 +308,9 @@ export default function AdminHomePage() {
           </div>
 
           {/* Right side: chart + summary */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-5 lg:space-y-6">
             {/* 7-day activity chart */}
-            <div className="card-premium p-7">
+            <div className="card-premium p-4 sm:p-5 lg:p-7">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="font-bold text-gray-900">Last 7 Days</h3>
                 <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -354,7 +351,7 @@ export default function AdminHomePage() {
             </div>
 
             {/* Completion rate */}
-            <div className="card-premium p-7">
+            <div className="card-premium p-4 sm:p-5 lg:p-7">
               <h3 className="font-bold text-gray-900 mb-1">
                 Completion Rate
               </h3>
@@ -387,7 +384,7 @@ export default function AdminHomePage() {
 
             {/* Alert card if urgent exists */}
             {stats.urgent > 0 && (
-              <div className="rounded-3xl p-6 bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25">
+              <div className="rounded-2xl sm:rounded-3xl p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
                     <AlertCircle className="w-5 h-5" />
@@ -475,42 +472,44 @@ function KpiCard({
   const max = Math.max(1, ...(sparkline ?? [1]));
 
   return (
-    <div className="card-premium p-6 relative overflow-hidden">
+    <div className="card-premium p-4 sm:p-5 lg:p-6 relative overflow-hidden">
       <div
         className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r ${styles.ring}`}
       />
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
         <div
-          className={`w-10 h-10 rounded-xl ${styles.iconBg} flex items-center justify-center`}
+          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl ${styles.iconBg} flex items-center justify-center`}
         >
           {icon}
         </div>
         {urgent !== undefined && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
             {urgent} urgent
           </span>
         )}
         {trend !== undefined && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+          <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] sm:text-[10px] font-bold">
             {trend}%
           </span>
         )}
       </div>
-      <p className="text-sm text-gray-500 font-medium">{label}</p>
-      <div className="flex items-end justify-between mt-1">
+      <p className="text-[11px] sm:text-xs text-gray-500 font-medium truncate">
+        {label}
+      </p>
+      <div className="flex items-end justify-between mt-1 gap-2">
         {loading ? (
-          <div className="h-9 w-16 skeleton bg-gray-100" />
+          <div className="h-7 sm:h-8 w-12 sm:w-14 skeleton bg-gray-100" />
         ) : (
-          <h3 className="text-4xl font-extrabold text-gray-900 tracking-tight">
+          <h3 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">
             {value}
           </h3>
         )}
         {sparkline && sparkline.length > 0 && (
-          <div className="flex items-end gap-0.5 h-10">
+          <div className="hidden sm:flex items-end gap-0.5 h-8 lg:h-10">
             {sparkline.map((v, i) => (
               <div
                 key={i}
-                className={`w-1.5 rounded-sm bg-gradient-to-t ${styles.spark}`}
+                className={`w-1 sm:w-1.5 rounded-sm bg-gradient-to-t ${styles.spark}`}
                 style={{
                   height: `${Math.max((v / max) * 100, 8)}%`,
                   opacity: v > 0 ? 0.85 : 0.2,
@@ -543,18 +542,20 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className={`group card-premium p-6 bg-gradient-to-br ${tint} hover:scale-[1.01] transition-transform`}
+      className={`group card-premium p-4 sm:p-5 lg:p-6 bg-gradient-to-br ${tint} hover:scale-[1.01] transition-transform`}
     >
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
         <div
-          className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${iconBg} text-white flex items-center justify-center shadow-md`}
+          className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br ${iconBg} text-white flex items-center justify-center shadow-md`}
         >
-          <Icon className="w-5 h-5" />
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         <ArrowUpRight className="w-4 h-4 text-gray-300 group-hover:text-gray-700 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition" />
       </div>
-      <h4 className="font-bold text-gray-900">{title}</h4>
-      <p className="text-sm text-gray-500 mt-0.5">{desc}</p>
+      <h4 className="font-bold text-gray-900 text-sm sm:text-base">{title}</h4>
+      <p className="text-xs sm:text-sm text-gray-500 mt-0.5 line-clamp-1">
+        {desc}
+      </p>
     </Link>
   );
 }

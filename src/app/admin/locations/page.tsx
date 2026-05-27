@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BrandHero from "@/components/BrandHero";
+import PageHeader from "@/components/PageHeader";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useMemo, useState } from "react";
@@ -131,11 +131,10 @@ export default function LocationsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Hero */}
-        <BrandHero
-          kicker="Admin · Locations"
+        <PageHeader
+          kicker="Locations"
           title="Location Hierarchy"
-          subtitle="Set up Buildings → Floors → Rooms etc. Used by Raise Ticket form so users pick from real locations."
+          subtitle="Set up Buildings → Floors → Rooms. Used by Raise Ticket form."
           accent="gold"
         />
 
