@@ -12,6 +12,8 @@ import {
   useState,
 } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface Complaint {
   id: string;
 
@@ -59,7 +61,7 @@ export default function MyComplaintsPage() {
 
         const response =
           await axios.get(
-            "http://localhost:3000/api/complaints/my",
+            `${API_URL}/api/complaints/my`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,

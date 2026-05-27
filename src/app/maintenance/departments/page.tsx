@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface Department {
   id: string;
 
@@ -41,7 +43,7 @@ export default function DepartmentPage() {
 
         const response =
           await axios.get(
-            "http://localhost:3000/api/departments",
+            `${API_URL}/api/departments`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -84,7 +86,7 @@ export default function DepartmentPage() {
           );
 
         await axios.post(
-          "http://localhost:3000/api/departments",
+          `${API_URL}/api/departments`,
           {
             name,
           },
@@ -116,7 +118,7 @@ export default function DepartmentPage() {
           );
 
         await axios.delete(
-          `http://localhost:3000/api/departments/${id}`,
+          `${API_URL}/api/departments/${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

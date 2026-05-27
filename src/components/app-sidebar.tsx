@@ -48,6 +48,7 @@ export function AppSidebar({
   const pathname =
     usePathname();
 
+  /* SUPER ADMIN */
   const superAdminMenu = [
     {
       title: "Dashboard",
@@ -70,24 +71,28 @@ export function AppSidebar({
       icon: Ticket,
 
       isActive:
+        pathname ===
+          "/maintenance" ||
         pathname.startsWith(
-          "/maintenance",
+          "/maintenance/",
         ),
     },
   ];
 
+  /* ADMIN */
   const adminMenu = [
     {
       title: "Dashboard",
 
-      url: "/dashboard",
+      url: "/maintenance",
 
-      icon:
-        ChartColumnBig,
+      icon: Ticket,
 
       isActive:
         pathname ===
-        "/dashboard",
+          "/maintenance" ||
+        pathname ===
+          "/maintenance/",
     },
 
     {
@@ -98,9 +103,8 @@ export function AppSidebar({
       icon: Ticket,
 
       isActive:
-        pathname.startsWith(
-          "/maintenance/complaints",
-        ),
+        pathname ===
+        "/maintenance/complaints",
     },
 
     {
@@ -112,9 +116,8 @@ export function AppSidebar({
         VectorSquare,
 
       isActive:
-        pathname.startsWith(
-          "/maintenance/departments",
-        ),
+        pathname ===
+        "/maintenance/departments",
     },
 
     {
@@ -125,9 +128,8 @@ export function AppSidebar({
       icon: Hammer,
 
       isActive:
-        pathname.startsWith(
-          "/maintenance/technician",
-        ),
+        pathname ===
+        "/maintenance/technician",
     },
 
     {
@@ -138,38 +140,25 @@ export function AppSidebar({
       icon: MapPin,
 
       isActive:
-        pathname.startsWith(
-          "/maintenance/location",
-        ),
-    },
-
-    {
-      title: "Reports",
-
-      url: "/reports",
-
-      icon:
-        ChartColumnBig,
-
-      isActive:
-        pathname.startsWith(
-          "/reports",
-        ),
+        pathname ===
+        "/maintenance/location",
     },
   ];
 
+  /* MANAGER */
   const managerMenu = [
     {
-      title: "Dashboard",
+      title: "Maintenance",
 
-      url: "/dashboard",
+      url: "/maintenance",
 
-      icon:
-        ChartColumnBig,
+      icon: Ticket,
 
       isActive:
         pathname ===
-        "/dashboard",
+          "/maintenance" ||
+        pathname ===
+          "/maintenance/",
     },
 
     {
@@ -180,26 +169,13 @@ export function AppSidebar({
       icon: Ticket,
 
       isActive:
-        pathname.startsWith(
-          "/maintenance/complaints",
-        ),
+        pathname ===
+        "/maintenance/complaints",
     },
   ];
 
+  /* USER */
   const userMenu = [
-    {
-      title: "Dashboard",
-
-      url: "/dashboard",
-
-      icon:
-        ChartColumnBig,
-
-      isActive:
-        pathname ===
-        "/dashboard",
-    },
-
     {
       title: "Maintenance",
 
@@ -208,9 +184,10 @@ export function AppSidebar({
       icon: Ticket,
 
       isActive:
-        pathname.startsWith(
-          "/maintenance",
-        ),
+        pathname ===
+          "/maintenance" ||
+        pathname ===
+          "/maintenance/",
     },
   ];
 
@@ -221,17 +198,22 @@ export function AppSidebar({
     role ===
     "superadmin"
   ) {
+
     navItems =
       superAdminMenu;
+
   } else if (
     role === "admin"
   ) {
+
     navItems =
       adminMenu;
+
   } else if (
     role ===
     "manager"
   ) {
+
     navItems =
       managerMenu;
   }
@@ -244,7 +226,7 @@ export function AppSidebar({
         "admin@ecole.com",
 
       avatar:
-        "/avatars/shadcn.jpg",
+        "/ui/shadcn.jpg",
     },
 
     navSingle:
@@ -310,7 +292,6 @@ export function AppSidebar({
           }
         />
 
-        {/* KEEP COMMENTED EXACTLY */}
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
 

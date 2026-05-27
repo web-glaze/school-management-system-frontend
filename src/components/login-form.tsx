@@ -17,6 +17,8 @@ import {
 
 import { Input } from "@/components/ui/input";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export function LoginForm({
   className,
   ...props
@@ -35,13 +37,10 @@ export function LoginForm({
     try {
       setLoading(true);
 
-      const response = await axios.post(
-        "http://localhost:3000/api/auth/login",
-        {
-          identifier: email,
-          password,
-        },
-      );
+      const response = await axios.post(`${API_URL}/api/auth/login`, {
+        identifier: email,
+        password,
+      });
 
       const user = response.data.data.user;
 
@@ -76,10 +75,28 @@ export function LoginForm({
 
       // EVERYONE GOES HERE
       router.push("/dashboard");
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(error);
 
-      alert("Login Failed");
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message
+        : null;
+
+      if (typeof message === "string") {
+        if (message.toLowerCase().includes("password")) {
+          alert("Invalid Password");
+        } else if (
+          message.toLowerCase().includes("credential") ||
+          message.toLowerCase().includes("user") ||
+          message.toLowerCase().includes("email")
+        ) {
+          alert("Invalid Credentials");
+        } else {
+          alert(message);
+        }
+      } else {
+        alert("Login Failed");
+      }
     } finally {
       setLoading(false);
     }

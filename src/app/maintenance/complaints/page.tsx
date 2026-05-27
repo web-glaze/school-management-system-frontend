@@ -6,6 +6,8 @@ import axios from "axios";
 
 import { useEffect, useMemo, useState } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface Complaint {
   id: string;
 
@@ -58,13 +60,13 @@ export default function ComplaintsPage() {
       const token = localStorage.getItem("token");
 
       const [complaintsRes, techniciansRes] = await Promise.all([
-        axios.get("http://localhost:3000/api/complaints", {
+        axios.get(`${API_URL}/api/complaints`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }),
 
-        axios.get("http://localhost:3000/api/technicians", {
+        axios.get(`${API_URL}/api/technicians`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -113,7 +115,7 @@ export default function ComplaintsPage() {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `http://localhost:3000/api/complaints/${complaintId}/status`,
+        `${API_URL}/api/complaints/${complaintId}/status`,
         {
           status,
         },
@@ -135,7 +137,7 @@ export default function ComplaintsPage() {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `http://localhost:3000/api/complaints/${complaintId}/priority`,
+        `${API_URL}/api/complaints/${complaintId}/priority`,
         {
           priority,
         },
@@ -160,7 +162,7 @@ export default function ComplaintsPage() {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `http://localhost:3000/api/complaints/${complaintId}/assign`,
+        `${API_URL}/api/complaints/${complaintId}/assign`,
         {
           technicianId,
         },
@@ -182,7 +184,7 @@ export default function ComplaintsPage() {
       const token = localStorage.getItem("token");
 
       await axios.delete(
-        `http://localhost:3000/api/complaints/${complaintId}`,
+        `${API_URL}/api/complaints/${complaintId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -195,7 +197,6 @@ export default function ComplaintsPage() {
       console.log(error);
     }
   };
-
   return (
     <DashboardLayout>
       <div className="space-y-8">

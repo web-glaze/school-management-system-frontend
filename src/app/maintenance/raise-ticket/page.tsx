@@ -10,6 +10,8 @@ import {
   useState,
 } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface Location {
   id: string;
 
@@ -48,7 +50,7 @@ export default function RaiseTicketPage() {
 
         const response =
           await axios.get(
-            "http://localhost:3000/api/locations",
+            `${API_URL}/api/locations`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -139,7 +141,7 @@ export default function RaiseTicketPage() {
           );
 
         await axios.post(
-          "http://localhost:3000/api/complaints",
+          `${API_URL}/api/complaints`,
           {
             title,
 

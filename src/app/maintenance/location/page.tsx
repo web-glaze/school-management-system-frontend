@@ -6,6 +6,8 @@ import axios from "axios";
 
 import { useEffect, useState } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface Location {
   id: string;
 
@@ -32,7 +34,7 @@ export default function LocationPage() {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await axios.get("http://localhost:3000/api/locations", {
+      const response = await axios.get(`${API_URL}/api/locations`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -60,7 +62,7 @@ export default function LocationPage() {
       const token = localStorage.getItem("token");
 
       await axios.post(
-        "http://localhost:3000/api/locations",
+        `${API_URL}/api/locations`,
         {
           name,
 
@@ -84,7 +86,7 @@ export default function LocationPage() {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.delete(`http://localhost:3000/api/locations/${id}`, {
+      await axios.delete(`${API_URL}/api/locations/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -6,6 +6,8 @@ import axios from "axios";
 
 import { useEffect, useState } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface Department {
   id: string;
 
@@ -51,7 +53,7 @@ export default function TechnicianPage() {
       const token = localStorage.getItem("token");
 
       const response = await axios.get(
-        "http://localhost:3000/api/technicians",
+        `${API_URL}/api/technicians`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -73,7 +75,7 @@ export default function TechnicianPage() {
       const token = localStorage.getItem("token");
 
       const response = await axios.get(
-        "http://localhost:3000/api/departments",
+        `${API_URL}/api/departments`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -107,7 +109,7 @@ export default function TechnicianPage() {
       const token = localStorage.getItem("token");
 
       await axios.post(
-        "http://localhost:3000/api/technicians",
+        `${API_URL}/api/technicians`,
         {
           name,
 
@@ -141,7 +143,7 @@ export default function TechnicianPage() {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.delete(`http://localhost:3000/api/technicians/${id}`, {
+      await axios.delete(`${API_URL}/api/technicians/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

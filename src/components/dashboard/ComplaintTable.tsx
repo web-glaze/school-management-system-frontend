@@ -43,11 +43,13 @@ export default function ComplaintsPage() {
 
   const [priorityFilter, setPriorityFilter] = useState("ALL");
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   const fetchComplaints = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await axios.get("http://localhost:3000/api/complaints", {
+      const response = await axios.get(`${API_URL}/api/complaints`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

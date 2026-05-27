@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface User {
   id: string;
 
@@ -58,7 +60,7 @@ export default function UserPage() {
 
         const response =
           await axios.get(
-            "http://localhost:3000/api/user-management",
+            `${API_URL}/api/user-management`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -100,7 +102,7 @@ export default function UserPage() {
           );
 
         await axios.post(
-          "http://localhost:3000/api/user-management",
+          `${API_URL}/api/user-management`,
           {
             name,
             email,
@@ -153,7 +155,7 @@ export default function UserPage() {
           );
 
         await axios.patch(
-          `http://localhost:3000/api/user-management/${userId}/password`,
+          `${API_URL}/api/user-management/${userId}/password`,
           {
             newPassword,
           },
@@ -189,7 +191,7 @@ export default function UserPage() {
           );
 
         await axios.delete(
-          `http://localhost:3000/api/user-management/${id}`,
+          `${API_URL}/api/user-management/${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
