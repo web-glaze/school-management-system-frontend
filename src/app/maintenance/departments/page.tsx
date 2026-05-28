@@ -44,6 +44,7 @@ import {
   Eye,
   Inbox,
   Loader2,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -69,6 +70,11 @@ export default function DepartmentPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState<Department | null>(
+    null,
+  );
+  const [editName, setEditName] = useState("");
 
   const fetchDepartments = async () => {
     try {
@@ -123,6 +129,46 @@ export default function DepartmentPage() {
     } catch (error) {
       console.log(error);
 
+      setLoading(false);
+    }
+  };
+
+  const openEditDialog = (department: Department) => {
+    setEditingDepartment(department);
+    setEditName(department.name);
+    setEditOpen(true);
+  };
+
+  const updateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingDepartment) return;
+
+    try {
+      setLoading(true);
+
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${API_URL}/api/departments/${editingDepartment.id}`,
+        {
+          name: editName,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      await fetchDepartments();
+
+      setEditOpen(false);
+      setEditingDepartment(null);
+      setEditName("");
+    } catch (error) {
+      console.log(error);
+    } finally {
       setLoading(false);
     }
   };
@@ -263,7 +309,7 @@ export default function DepartmentPage() {
                 </div>
               ))}
             </div>
-          ) : departments.length === 0 ? (
+          ) : filteredDepartments.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 md:p-16 text-center">
               <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
                 <Inbox className="size-6 stroke-[1.5]" />
@@ -336,21 +382,94 @@ export default function DepartmentPage() {
 
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                            title="View Complaint"
-                          >
-                            <Eye className="size-5" />
-                          </Button>
+                          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(department)}
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              title="Edit Department"
+                            >
+                              <Pencil className="size-5" />
+                            </Button>
+
+                            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+                              <div className="border-b px-6 py-5">
+                                <div className="flex items-center gap-3">
+                                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Pencil className="size-5 text-primary" />
+                                  </div>
+
+                                  <div>
+                                    <DialogTitle className="text-lg">
+                                      Edit Department
+                                    </DialogTitle>
+
+                                    <DialogDescription>
+                                      Update department details
+                                    </DialogDescription>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <form
+                                onSubmit={updateDepartment}
+                                className="space-y-6 p-6"
+                              >
+                                <FieldGroup>
+                                  <Field>
+                                    <Label htmlFor="edit-department-name">
+                                      Department Name
+                                    </Label>
+
+                                    <Input
+                                      id="edit-department-name"
+                                      placeholder="Electrical, Plumbing, IT..."
+                                      value={editName}
+                                      onChange={(e) =>
+                                        setEditName(e.target.value)
+                                      }
+                                      required
+                                      className="mt-2"
+                                    />
+                                  </Field>
+                                </FieldGroup>
+
+                                <DialogFooter className="gap-2">
+                                  <DialogClose asChild>
+                                    <Button variant="outline" type="button">
+                                      Cancel
+                                    </Button>
+                                  </DialogClose>
+
+                                  <Button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="min-w-[130px] gap-2 px-5"
+                                  >
+                                    {loading ? (
+                                      <>
+                                        <Loader2 className="size-4 animate-spin" />
+                                        Updating...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Pencil className="size-4" />
+                                        Update
+                                      </>
+                                    )}
+                                  </Button>
+                                </DialogFooter>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                                title="Delete Technician"
+                                title="Delete Department"
                               >
                                 <Trash2 className="size-5" />
                               </Button>
