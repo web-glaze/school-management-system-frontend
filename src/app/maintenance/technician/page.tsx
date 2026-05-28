@@ -99,6 +99,15 @@ export default function TechnicianPage() {
     [],
   );
 
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingTechnician, setEditingTechnician] = useState<Technician | null>(
+    null,
+  );
+
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editDepartmentId, setEditDepartmentId] = useState("");
+
   /* FETCH TECHNICIANS */
   const fetchTechnicians = async () => {
     try {
@@ -192,11 +201,61 @@ export default function TechnicianPage() {
       setDepartmentId("");
       setOpen(false);
 
-      fetchTechnicians();
+      await fetchTechnicians();
+      setLoading(false);
     } catch (error) {
       console.log(error);
 
       alert("Failed to add technician");
+    }
+  };
+
+  const openEditDialog = (technician: Technician) => {
+    setEditingTechnician(technician);
+
+    setEditName(technician.name || "");
+    setEditPhone(technician.phone || "");
+    setEditDepartmentId(technician.department?.id || "");
+
+    setEditOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingTechnician) return;
+
+    try {
+      setLoading(true);
+
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${API_URL}/api/technicians/${editingTechnician.id}`,
+        {
+          name: editName,
+          phone: editPhone,
+          departmentId: editDepartmentId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      await fetchTechnicians();
+
+      setEditOpen(false);
+      setEditingTechnician(null);
+
+      setEditName("");
+      setEditPhone("");
+      setEditDepartmentId("");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -482,14 +541,134 @@ export default function TechnicianPage() {
 
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                            title="Edit"
-                          >
-                            <Pencil className="size-5" />
-                          </Button>
+                          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(technician)}
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              title="Edit Technician"
+                            >
+                              <Pencil className="size-5" />
+                            </Button>
+
+                            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+                              <div className="border-b px-6 py-5">
+                                <div className="flex items-center gap-3">
+                                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Pencil className="size-5 text-primary" />
+                                  </div>
+
+                                  <div>
+                                    <DialogTitle className="text-lg">
+                                      Edit Technician
+                                    </DialogTitle>
+
+                                    <DialogDescription>
+                                      Update technician details
+                                    </DialogDescription>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <form
+                                onSubmit={handleUpdate}
+                                className="space-y-4 p-6"
+                              >
+                                <FieldGroup>
+                                  <Field>
+                                    <Label htmlFor="edit-technician-name">
+                                      Name
+                                    </Label>
+
+                                    <Input
+                                      id="edit-technician-name"
+                                      type="text"
+                                      placeholder="Technician Name"
+                                      value={editName}
+                                      onChange={(e) =>
+                                        setEditName(e.target.value)
+                                      }
+                                      required
+                                    />
+                                  </Field>
+                                </FieldGroup>
+
+                                <FieldGroup>
+                                  <Field>
+                                    <Label htmlFor="edit-technician-phone">
+                                      Phone
+                                    </Label>
+
+                                    <Input
+                                      id="edit-technician-phone"
+                                      type="tel"
+                                      placeholder="Phone Number"
+                                      value={editPhone}
+                                      onChange={(e) =>
+                                        setEditPhone(
+                                          e.target.value.replace(/\D/g, ""),
+                                        )
+                                      }
+                                      maxLength={10}
+                                    />
+                                  </Field>
+                                </FieldGroup>
+
+                                <FieldGroup>
+                                  <Field>
+                                    <Label>Department</Label>
+
+                                    <Select
+                                      onValueChange={setEditDepartmentId}
+                                      value={editDepartmentId}
+                                    >
+                                      <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select department..." />
+                                      </SelectTrigger>
+
+                                      <SelectContent position="popper">
+                                        {departments.map((dept) => (
+                                          <SelectItem
+                                            key={dept.id}
+                                            value={dept.id}
+                                          >
+                                            {dept.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </Field>
+                                </FieldGroup>
+
+                                <DialogFooter className="gap-2">
+                                  <DialogClose asChild>
+                                    <Button variant="outline" type="button">
+                                      Cancel
+                                    </Button>
+                                  </DialogClose>
+
+                                  <Button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="min-w-[130px] gap-2 px-5"
+                                  >
+                                    {loading ? (
+                                      <>
+                                        <Loader2 className="size-4 animate-spin" />
+                                        Updating...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Pencil className="size-4" />
+                                        Update
+                                      </>
+                                    )}
+                                  </Button>
+                                </DialogFooter>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
