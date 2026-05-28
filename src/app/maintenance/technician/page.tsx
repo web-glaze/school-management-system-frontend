@@ -73,6 +73,7 @@ interface Department {
 
 interface Technician {
   id: string;
+  code: string;
   name: string;
   phone?: string;
   isActive: boolean;
@@ -91,23 +92,34 @@ export default function TechnicianPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>(
+    [],
+  );
 
   /* FETCH TECHNICIANS */
   const fetchTechnicians = async () => {
     try {
       const token = localStorage.getItem("token");
+
       const response = await axios.get(`${API_URL}/api/technicians`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      setTechnicians(
-        Array.isArray(response.data) ? response.data : response.data.data || [],
-      );
+
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data.data || [];
+
+      setTechnicians(data);
+      setFilteredTechnicians(data);
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -130,12 +142,29 @@ export default function TechnicianPage() {
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      fetchTechnicians();
-
-      fetchDepartments();
-    }, 0);
+    fetchTechnicians();
+    fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    if (!search.trim()) {
+      setFilteredTechnicians(technicians);
+      return;
+    }
+
+    const filtered = technicians.filter((technician) =>
+      [
+        technician.name,
+        technician.code,
+        technician.phone,
+        technician.department?.name,
+      ]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(search.toLowerCase())),
+    );
+
+    setFilteredTechnicians(filtered);
+  }, [search, technicians]);
 
   /* CREATE */
   const handleCreate = async (e: React.FormEvent) => {
@@ -168,8 +197,6 @@ export default function TechnicianPage() {
       console.log(error);
 
       alert("Failed to add technician");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -203,9 +230,9 @@ export default function TechnicianPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 type="text"
-                placeholder="Search by title, location, email..."
-                // value={search}
-                // onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search technicians..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-11"
               />
             </div>
@@ -352,17 +379,17 @@ export default function TechnicianPage() {
                 </div>
               ))}
             </div>
-          ) : departments.length === 0 ? (
+          ) : filteredTechnicians.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 md:p-16 text-center">
               <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
                 <User className="size-6 stroke-[1.5]" />
               </div>
               <h3 className="text-lg font-bold text-foreground">
-                No technicians created yet.
+                No technicians found.
               </h3>
               <p className="text-muted-foreground mt-1.5 max-w-sm">
-                No matching records were found in the database. Check search
-                queries or reset parameters.
+                No matching technicians were found. Try adjusting your search or
+                filters.
               </p>
             </div>
           ) : (
@@ -394,7 +421,7 @@ export default function TechnicianPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/30">
-                  {technicians.map((technician) => {
+                  {filteredTechnicians.map((technician) => {
                     return (
                       <TableRow
                         key={technician.id}
