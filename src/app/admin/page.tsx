@@ -102,7 +102,7 @@ export default function AdminHomePage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* ── Hero — ECOLE brand multicolor gradient (responsive) ─ */}
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700 p-4 sm:p-5 lg:p-6 text-white shadow-lg">
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-950 via-teal-800 to-violet-700 p-4 sm:p-5 lg:p-6 text-white shadow-lg">
           {/* Decorative blobs in ECOLE logo accent colors */}
           <div className="absolute -top-20 sm:-top-32 -right-20 sm:-right-32 w-56 sm:w-80 lg:w-96 h-56 sm:h-80 lg:h-96 bg-orange-400/30 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-20 sm:-bottom-32 -left-20 sm:-left-32 w-56 sm:w-80 lg:w-96 h-56 sm:h-80 lg:h-96 bg-emerald-400/25 rounded-full blur-3xl pointer-events-none" />
@@ -136,7 +136,7 @@ export default function AdminHomePage() {
             <div className="flex gap-2 sm:gap-3 flex-wrap">
               <Link
                 href="/admin/complaints"
-                className="group inline-flex items-center gap-2 bg-white text-indigo-900 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-semibold text-sm hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
+                className="group inline-flex items-center gap-2 bg-white text-teal-900 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-semibold text-sm hover:bg-teal-50 transition-all shadow-lg shadow-black/10"
               >
                 <span className="hidden sm:inline">Manage</span> Complaints
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -246,7 +246,7 @@ export default function AdminHomePage() {
               </div>
               <Link
                 href="/admin/complaints"
-                className="inline-flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition flex-shrink-0"
+                className="inline-flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 transition flex-shrink-0"
               >
                 View all
                 <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -300,7 +300,7 @@ export default function AdminHomePage() {
                       </p>
                     </div>
                     <StatusPill status={c.status} />
-                    <ArrowUpRight className="hidden sm:block w-4 h-4 text-gray-300 group-hover:text-indigo-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition" />
+                    <ArrowUpRight className="hidden sm:block w-4 h-4 text-gray-300 group-hover:text-teal-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition" />
                   </Link>
                 ))}
               </div>
@@ -332,7 +332,7 @@ export default function AdminHomePage() {
                       >
                         <div className="w-full flex-1 flex items-end">
                           <div
-                            className="w-full rounded-t-md bg-gradient-to-t from-indigo-600 to-violet-400 transition-all duration-700 ease-out hover:from-indigo-700 hover:to-violet-500"
+                            className="w-full rounded-t-md bg-gradient-to-t from-teal-600 to-violet-400 transition-all duration-700 ease-out hover:from-teal-700 hover:to-violet-500"
                             style={{
                               height: `${Math.max(heightPct, 3)}%`,
                               opacity: d.count > 0 ? 1 : 0.15,
@@ -369,7 +369,7 @@ export default function AdminHomePage() {
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-orange-400 rounded-full transition-all duration-1000 ease-out"
+                    className="h-full bg-gradient-to-r from-teal-500 via-violet-500 to-orange-400 rounded-full transition-all duration-1000 ease-out"
                     style={{ width: `${completionRate}%` }}
                   />
                 </div>
@@ -443,9 +443,9 @@ function KpiCard({
   // ECOLE brand palette — matches logo colors
   const styles = {
     indigo: {
-      iconBg: "bg-indigo-50 text-indigo-600",
-      ring: "from-indigo-500/40 to-indigo-500/0",
-      spark: "from-indigo-600 to-indigo-400",
+      iconBg: "bg-teal-50 text-teal-600",
+      ring: "from-teal-500/40 to-teal-500/0",
+      spark: "from-teal-600 to-teal-400",
     },
     gold: {
       iconBg: "bg-amber-50 text-amber-600",

@@ -185,7 +185,7 @@ export default function RolesPermissionsPage() {
           action={
             <button
               onClick={() => setShowForm((s) => !s)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-md"
+              className="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-teal-700 transition shadow-md"
             >
               {showForm ? "✕ Close" : "+ Create Role"}
             </button>
@@ -211,7 +211,7 @@ export default function RolesPermissionsPage() {
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
                   placeholder="e.g. SECURITY_GUARD"
-                  className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-indigo-400 uppercase"
+                  className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-teal-400 uppercase"
                   required
                 />
               </div>
@@ -226,7 +226,7 @@ export default function RolesPermissionsPage() {
                     setForm((f) => ({ ...f, description: e.target.value }))
                   }
                   placeholder="Gate security personnel"
-                  className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-indigo-400"
+                  className="w-full h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-teal-400"
                 />
               </div>
             </div>
@@ -237,7 +237,7 @@ export default function RolesPermissionsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-gradient-to-r from-indigo-600 to-purple-500 text-white px-8 py-4 rounded-2xl font-semibold disabled:opacity-50 shadow-lg"
+                className="bg-gradient-to-r from-teal-600 to-purple-500 text-white px-8 py-4 rounded-2xl font-semibold disabled:opacity-50 shadow-lg"
               >
                 {submitting ? "Creating..." : "Create Role"}
               </button>
@@ -270,7 +270,7 @@ export default function RolesPermissionsPage() {
               {roles.map((r) => (
                 <div
                   key={r.id}
-                  className="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition bg-gradient-to-br from-indigo-50/30 to-purple-50/30"
+                  className="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition bg-gradient-to-br from-teal-50/30 to-purple-50/30"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -278,7 +278,7 @@ export default function RolesPermissionsPage() {
                         {r.name}
                       </h3>
                       {r.isSystem && (
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md text-xs font-bold">
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-teal-100 text-teal-700 rounded-md text-xs font-bold">
                           SYSTEM
                         </span>
                       )}
@@ -303,7 +303,7 @@ export default function RolesPermissionsPage() {
                   </p>
                   <button
                     onClick={() => openEdit(r)}
-                    className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition"
+                    className="w-full py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition"
                   >
                     Manage Permissions
                   </button>
@@ -364,9 +364,9 @@ export default function RolesPermissionsPage() {
                       <div
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
                           allSelected
-                            ? "bg-indigo-600 border-indigo-600"
+                            ? "bg-teal-600 border-teal-600"
                             : someSelected
-                              ? "bg-indigo-200 border-indigo-400"
+                              ? "bg-teal-200 border-teal-400"
                               : "bg-white border-gray-300"
                         }`}
                       >
@@ -374,7 +374,7 @@ export default function RolesPermissionsPage() {
                           <span className="text-white text-xs">✓</span>
                         )}
                         {!allSelected && someSelected && (
-                          <span className="text-indigo-700 text-xs">–</span>
+                          <span className="text-teal-700 text-xs">–</span>
                         )}
                       </div>
                       <h4 className="font-bold text-gray-800 uppercase text-sm tracking-wide">
@@ -393,18 +393,18 @@ export default function RolesPermissionsPage() {
                             key={p.id}
                             className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition ${
                               checked
-                                ? "bg-indigo-50 border border-indigo-200"
-                                : "bg-white border border-gray-100 hover:border-indigo-300"
+                                ? "bg-teal-50 border border-teal-200"
+                                : "bg-white border border-gray-100 hover:border-teal-300"
                             }`}
                           >
                             <input
                               type="checkbox"
                               checked={checked}
                               onChange={() => togglePerm(p.id)}
-                              className="mt-0.5 accent-indigo-600"
+                              className="mt-0.5 accent-teal-600"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="font-mono text-xs text-indigo-700 font-semibold">
+                              <p className="font-mono text-xs text-teal-700 font-semibold">
                                 {p.code}
                               </p>
                               <p className="text-sm text-gray-600 mt-0.5">
@@ -434,7 +434,7 @@ export default function RolesPermissionsPage() {
                 </button>
                 <button
                   onClick={savePermissions}
-                  className="px-8 h-12 rounded-2xl bg-indigo-600 text-white font-semibold shadow-lg"
+                  className="px-8 h-12 rounded-2xl bg-teal-600 text-white font-semibold shadow-lg"
                 >
                   Save Permissions
                 </button>

@@ -78,7 +78,7 @@ export default function ManagerDashboardPage() {
             <>
               <Link
                 href="/admin/complaints"
-                className="bg-white text-indigo-900 px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-50 transition-all shadow-lg shadow-black/10"
+                className="bg-white text-teal-900 px-6 py-3 rounded-2xl font-semibold hover:bg-teal-50 transition-all shadow-lg shadow-black/10"
               >
                 Manage All Complaints
               </Link>

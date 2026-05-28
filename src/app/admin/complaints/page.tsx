@@ -173,7 +173,7 @@ export default function AdminComplaintsPage() {
             placeholder="Search complaints..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-200 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-indigo-400 w-full lg:w-96"
+            className="border border-gray-200 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-teal-400 w-full lg:w-96"
           />
           <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
             <select
@@ -181,7 +181,7 @@ export default function AdminComplaintsPage() {
               onChange={(e) =>
                 setStatusFilter(e.target.value as "ALL" | Status)
               }
-              className="border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-indigo-400"
+              className="border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-teal-400"
             >
               <option value="ALL">All Status</option>
               {STATUSES.map((s) => (
@@ -195,7 +195,7 @@ export default function AdminComplaintsPage() {
               onChange={(e) =>
                 setPriorityFilter(e.target.value as "ALL" | Priority)
               }
-              className="border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-indigo-400"
+              className="border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-3 sm:py-4 text-sm outline-none focus:border-teal-400"
             >
               <option value="ALL">All Priority</option>
               {PRIORITIES.map((p) => (
@@ -257,7 +257,7 @@ export default function AdminComplaintsPage() {
                           </span>
                           {c.attachments && c.attachments.length > 0 && (
                             <span
-                              className="text-[10px] sm:text-xs bg-indigo-50 text-indigo-700 px-1.5 sm:px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                              className="text-[10px] sm:text-xs bg-teal-50 text-teal-700 px-1.5 sm:px-2 py-0.5 rounded-full font-medium flex-shrink-0"
                               title={`${c.attachments.length} photo(s)`}
                             >
                               📷 {c.attachments.length}
@@ -295,7 +295,7 @@ export default function AdminComplaintsPage() {
                       >
                         <button
                           onClick={() => setActiveId(c.id)}
-                          className="px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                          className="px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100"
                         >
                           Manage
                         </button>
@@ -473,8 +473,8 @@ function DetailPanel({
                   onClick={() => onStatus(s)}
                   className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold border transition ${
                     complaint.status === s
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "bg-white border-gray-200 hover:border-indigo-400"
+                      ? "bg-teal-600 text-white border-teal-600"
+                      : "bg-white border-gray-200 hover:border-teal-400"
                   }`}
                 >
                   {s.replace("_", " ")}
@@ -494,8 +494,8 @@ function DetailPanel({
                   onClick={() => onPriority(p)}
                   className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold border transition ${
                     complaint.priority === p
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "bg-white border-gray-200 hover:border-indigo-400"
+                      ? "bg-teal-600 text-white border-teal-600"
+                      : "bg-white border-gray-200 hover:border-teal-400"
                   }`}
                 >
                   {p}
@@ -512,7 +512,7 @@ function DetailPanel({
               <select
                 value={selectedTech}
                 onChange={(e) => setSelectedTech(e.target.value)}
-                className="flex-1 h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-indigo-400"
+                className="flex-1 h-14 rounded-2xl border border-gray-200 bg-[#f8fafc] px-5 outline-none focus:border-teal-400"
               >
                 <option value="">— Select technician —</option>
                 {technicians.map((t) => (
@@ -525,7 +525,7 @@ function DetailPanel({
               <button
                 onClick={() => onAssign(selectedTech)}
                 disabled={!selectedTech}
-                className="px-6 h-14 rounded-2xl bg-indigo-600 text-white font-semibold disabled:opacity-50"
+                className="px-6 h-14 rounded-2xl bg-teal-600 text-white font-semibold disabled:opacity-50"
               >
                 Assign
               </button>
@@ -546,11 +546,11 @@ function DetailPanel({
               onChange={(e) => setRemark(e.target.value)}
               placeholder="Add notes / instructions..."
               rows={4}
-              className="w-full rounded-2xl border border-gray-200 bg-[#f8fafc] p-5 outline-none focus:border-indigo-400 resize-none"
+              className="w-full rounded-2xl border border-gray-200 bg-[#f8fafc] p-5 outline-none focus:border-teal-400 resize-none"
             />
             <button
               onClick={() => onSaveRemark(remark)}
-              className="mt-3 px-6 py-3 rounded-2xl bg-indigo-600 text-white font-semibold"
+              className="mt-3 px-6 py-3 rounded-2xl bg-teal-600 text-white font-semibold"
             >
               Save Remark
             </button>

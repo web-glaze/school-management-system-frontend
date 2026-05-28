@@ -128,7 +128,7 @@ export default function TechniciansPage() {
             canManage && (
               <button
                 onClick={() => setShowForm((s) => !s)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-md"
+                className="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-teal-700 transition shadow-md"
               >
                 {showForm ? "✕ Close" : "+ Add Technician"}
               </button>

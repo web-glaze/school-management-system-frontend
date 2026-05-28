@@ -44,17 +44,17 @@ export default function BrandHero({
 }: BrandHeroProps) {
   const gradients: Record<string, string> = {
     default:
-      "bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700",
+      "bg-gradient-to-br from-teal-950 via-teal-800 to-violet-700",
     action:
-      "bg-gradient-to-br from-indigo-950 via-violet-800 to-orange-700",
+      "bg-gradient-to-br from-teal-950 via-violet-800 to-orange-700",
     green:
-      "bg-gradient-to-br from-indigo-950 via-emerald-800 to-emerald-600",
+      "bg-gradient-to-br from-teal-950 via-emerald-800 to-emerald-600",
     gold:
-      "bg-gradient-to-br from-indigo-950 via-violet-800 to-amber-700",
+      "bg-gradient-to-br from-teal-950 via-violet-800 to-amber-700",
     rose:
-      "bg-gradient-to-br from-indigo-950 via-violet-800 to-rose-700",
+      "bg-gradient-to-br from-teal-950 via-violet-800 to-rose-700",
     cyan:
-      "bg-gradient-to-br from-indigo-950 via-violet-800 to-cyan-700",
+      "bg-gradient-to-br from-teal-950 via-violet-800 to-cyan-700",
   };
 
   const blobs: Record<string, { primary: string; secondary: string }> = {
@@ -63,7 +63,7 @@ export default function BrandHero({
     green: { primary: "bg-emerald-400/35", secondary: "bg-cyan-400/20" },
     gold: { primary: "bg-amber-400/35", secondary: "bg-orange-400/25" },
     rose: { primary: "bg-rose-400/30", secondary: "bg-orange-400/20" },
-    cyan: { primary: "bg-cyan-400/30", secondary: "bg-indigo-400/25" },
+    cyan: { primary: "bg-cyan-400/30", secondary: "bg-teal-400/25" },
   };
 
   const heroClass = gradients[accent] ?? gradients.default;

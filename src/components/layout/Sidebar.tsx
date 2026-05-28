@@ -218,24 +218,24 @@ export default function Sidebar({ role }: SidebarProps) {
                     href={item.href}
                     className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                       isActive
-                        ? "bg-gradient-to-r from-indigo-50 to-violet-50/40 text-indigo-700"
+                        ? "bg-gradient-to-r from-teal-50 to-violet-50/40 text-teal-700"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                   >
                     {isActive && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-gradient-to-b from-indigo-500 to-violet-600 rounded-r-full shadow-lg shadow-indigo-500/40" />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-gradient-to-b from-teal-500 to-violet-600 rounded-r-full shadow-lg shadow-teal-500/40" />
                     )}
                     <item.Icon
                       className={`w-4 h-4 flex-shrink-0 transition-colors ${
                         isActive
-                          ? "text-indigo-600"
+                          ? "text-teal-600"
                           : "text-gray-400 group-hover:text-gray-700"
                       }`}
                       strokeWidth={2}
                     />
                     <span className="flex-1">{item.name}</span>
                     {isActive && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dot-glow text-indigo-500" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-500 dot-glow text-teal-500" />
                     )}
                   </Link>
                 );

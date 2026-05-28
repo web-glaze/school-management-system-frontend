@@ -32,7 +32,7 @@ export default function PageHeader({
   accent = "indigo",
 }: PageHeaderProps) {
   const dotColor: Record<string, string> = {
-    indigo: "bg-indigo-500",
+    indigo: "bg-teal-500",
     orange: "bg-orange-500",
     green: "bg-emerald-500",
     gold: "bg-amber-500",

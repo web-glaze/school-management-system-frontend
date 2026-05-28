@@ -197,7 +197,7 @@ export default function RaiseTicketPage() {
                     )
                   }
                   placeholder="Example: AC not working"
-                  className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-indigo-400 transition"
+                  className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-teal-400 transition"
                   required
                 />
               </div>
@@ -217,7 +217,7 @@ export default function RaiseTicketPage() {
 
                     setSubLocation("");
                   }}
-                  className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-indigo-400 transition"
+                  className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-teal-400 transition"
                   required
                 >
                   <option value="">
@@ -257,7 +257,7 @@ export default function RaiseTicketPage() {
                     onChange={(e) =>
                       setSubLocation(e.target.value)
                     }
-                    className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-indigo-400 transition"
+                    className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 sm:px-4 text-sm outline-none focus:border-teal-400 transition"
                     required
                   >
                     <option value="">Select Sub Location</option>
@@ -297,8 +297,8 @@ export default function RaiseTicketPage() {
                       onClick={() => setPriority(item)}
                       className={`h-10 sm:h-11 rounded-xl border text-xs font-semibold transition ${
                         priority === item
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
-                          : "bg-white text-gray-700 border-gray-200 hover:border-indigo-400"
+                          ? "bg-teal-600 text-white border-teal-600 shadow-md"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-teal-400"
                       }`}
                     >
                       {item}
@@ -324,7 +324,7 @@ export default function RaiseTicketPage() {
                     setDescription(e.target.value.slice(0, 500))
                   }
                   placeholder="Describe the issue in detail..."
-                  className="w-full min-h-[110px] rounded-xl border border-gray-200 bg-[#f8fafc] p-3 text-sm outline-none focus:border-indigo-400 transition resize-none"
+                  className="w-full min-h-[110px] rounded-xl border border-gray-200 bg-[#f8fafc] p-3 text-sm outline-none focus:border-teal-400 transition resize-none"
                   required
                 />
               </div>
@@ -345,7 +345,7 @@ export default function RaiseTicketPage() {
               <button
                 type="submit"
                 disabled={loading || !isFormValid}
-                className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-700 via-violet-600 to-indigo-500 text-white font-semibold text-sm shadow-md shadow-indigo-500/25 hover:shadow-indigo-500/30 transition duration-200 disabled:opacity-50"
+                className="w-full h-11 rounded-xl bg-gradient-to-r from-teal-700 via-violet-600 to-teal-500 text-white font-semibold text-sm shadow-md shadow-teal-500/25 hover:shadow-teal-500/30 transition duration-200 disabled:opacity-50"
               >
                 {loading ? "Submitting..." : "Register Complaint"}
               </button>

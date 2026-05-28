@@ -63,7 +63,7 @@ export default function Navbar({ role }: NavbarProps) {
               <h2 className="text-sm font-bold text-gray-900">
                 Notifications
               </h2>
-              <span className="text-xs text-indigo-600 font-semibold cursor-pointer hover:text-indigo-700">
+              <span className="text-xs text-teal-600 font-semibold cursor-pointer hover:text-teal-700">
                 Mark all read
               </span>
             </div>
@@ -87,7 +87,7 @@ export default function Navbar({ role }: NavbarProps) {
 
         {/* User chip — avatar only on mobile */}
         <div className="flex items-center gap-2 sm:gap-3 bg-gray-50 pl-1 pr-1 sm:pr-4 py-1 rounded-xl sm:rounded-2xl">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-teal-600 to-violet-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow">
             {userName.charAt(0).toUpperCase()}
           </div>
           <div className="hidden lg:block min-w-0">
