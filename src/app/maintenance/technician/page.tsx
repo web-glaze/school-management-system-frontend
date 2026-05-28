@@ -1,66 +1,108 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+import {
+  Building2,
+  Calendar,
+  Eye,
+  Inbox,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  User,
+} from "lucide-react";
+
+import { Field, FieldGroup } from "@/components/ui/field";
 
 import axios from "axios";
 
 import { useEffect, useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Department {
   id: string;
-
   name: string;
-
   departmentCode?: string;
 }
 
 interface Technician {
   id: string;
-
   name: string;
-
   phone?: string;
-
   isActive: boolean;
-
+  createdAt: string;
   department?: {
     id: string;
-
     name: string;
-
     departmentCode?: string;
   };
 }
 
 export default function TechnicianPage() {
   const [technicians, setTechnicians] = useState<Technician[]>([]);
-
   const [departments, setDepartments] = useState<Department[]>([]);
-
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-
   const [phone, setPhone] = useState("");
-
   const [departmentId, setDepartmentId] = useState("");
-
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   /* FETCH TECHNICIANS */
   const fetchTechnicians = async () => {
     try {
       const token = localStorage.getItem("token");
-
-      const response = await axios.get(
-        `${API_URL}/api/technicians`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await axios.get(`${API_URL}/api/technicians`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
-
+      });
       setTechnicians(
         Array.isArray(response.data) ? response.data : response.data.data || [],
       );
@@ -73,15 +115,11 @@ export default function TechnicianPage() {
   const fetchDepartments = async () => {
     try {
       const token = localStorage.getItem("token");
-
-      const response = await axios.get(
-        `${API_URL}/api/departments`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await axios.get(`${API_URL}/api/departments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       setDepartments(
         Array.isArray(response.data) ? response.data : response.data.data || [],
@@ -105,16 +143,12 @@ export default function TechnicianPage() {
 
     try {
       setLoading(true);
-
       const token = localStorage.getItem("token");
-
       await axios.post(
         `${API_URL}/api/technicians`,
         {
           name,
-
           phone,
-
           departmentId,
         },
         {
@@ -127,6 +161,7 @@ export default function TechnicianPage() {
       setName("");
       setPhone("");
       setDepartmentId("");
+      setOpen(false);
 
       fetchTechnicians();
     } catch (error) {
@@ -141,6 +176,8 @@ export default function TechnicianPage() {
   /* DELETE */
   const handleDelete = async (id: string) => {
     try {
+      setDeletingId(id);
+
       const token = localStorage.getItem("token");
 
       await axios.delete(`${API_URL}/api/technicians/${id}`, {
@@ -152,150 +189,346 @@ export default function TechnicianPage() {
       fetchTechnicians();
     } catch (error) {
       console.log(error);
+    } finally {
+      setDeletingId(null);
     }
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full lg:w-[350px] group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                type="text"
+                placeholder="Search by title, location, email..."
+                // value={search}
+                // onChange={(e) => setSearch(e.target.value)}
+                className="pl-11"
+              />
+            </div>
+            <div>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2 px-5">
+                    <Plus className="size-4" />
+                    Add Technician
+                  </Button>
+                </DialogTrigger>
 
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              ECOLE ERP
-            </p>
+                <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+                  <div className="border-b px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <User className="size-5 text-primary" />
+                      </div>
+                      <div>
+                        <DialogTitle className="text-lg">
+                          Create Technician
+                        </DialogTitle>
+                        <DialogDescription>
+                          Add a new maintenance technician
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </div>
 
-            <h1 className="text-5xl font-bold mt-4">Technician Management</h1>
+                  <form onSubmit={handleCreate} className="space-y-4 p-6">
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="technician-name">Name</Label>
+                        <Input
+                          id="technician-name"
+                          type="text"
+                          placeholder="Technician Name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                        />
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="technician-phone">Phone</Label>
+                        <Input
+                          id="technician-phone"
+                          type="tel"
+                          placeholder="Phone Number"
+                          value={phone}
+                          onChange={(e) =>
+                            setPhone(e.target.value.replace(/\D/g, ""))
+                          }
+                          maxLength={10}
+                        />
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="technician-email">Email</Label>
+                        <Input
+                          id="technician-email"
+                          type="email"
+                          placeholder="Enter Your Email"
+                          // value={email}
+                          // onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </Field>
+                    </FieldGroup>
 
-            <p className="mt-5 text-lg text-white/90 max-w-2xl">
-              Manage maintenance technicians and assign departments for
-              complaint workflows.
-            </p>
-          </div>
-        </div>
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="department-id">Department</Label>
+                        <Select
+                          onValueChange={setDepartmentId}
+                          value={departmentId}
+                          required
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select department..." />
+                          </SelectTrigger>
+                          <SelectContent position={"popper"}>
+                            {departments.map((dept) => (
+                              <SelectItem key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
 
-        {/* Add Technician */}
-        <div className="bg-white rounded-[2rem] shadow-lg border border-gray-100 p-8">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">Add Technician</h2>
+                    <DialogFooter className="gap-2">
+                      <DialogClose asChild>
+                        <Button variant="outline" type="button">
+                          Cancel
+                        </Button>
+                      </DialogClose>
 
-            <p className="text-gray-500 mt-2">
-              Create technician profiles and connect them to maintenance
-              departments.
-            </p>
-          </div>
-
-          <form onSubmit={handleCreate} className="grid md:grid-cols-4 gap-5">
-            <input
-              type="text"
-              placeholder="Technician Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
-            />
-
-            <input
-              type="tel"
-              placeholder="Phone Number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              maxLength={10}
-              className="h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
-            />
-
-            <select
-              value={departmentId}
-              onChange={(e) => setDepartmentId(e.target.value)}
-              required
-              className="h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
-            >
-              <option value="">Select Department</option>
-
-              {departments.map((department) => (
-                <option key={department.id} value={department.id}>
-                  {department.name} ({department.departmentCode})
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-14 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold shadow-lg hover:scale-[1.01] transition"
-            >
-              {loading ? "Adding..." : "Add Technician"}
-            </button>
-          </form>
-        </div>
-
-        {/* Technician List */}
-        <div className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
-          <div className="p-8 border-b border-gray-100">
-            <h2 className="text-3xl font-bold text-gray-800">
-              Technician List
-            </h2>
-
-            <p className="text-gray-500 mt-2">
-              Active technicians available for complaint assignments.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[#f5f7fb]">
-                <tr>
-                  <th className="p-6 text-left">Name</th>
-
-                  <th className="p-6 text-left">Phone</th>
-
-                  <th className="p-6 text-left">Department</th>
-
-                  <th className="p-6 text-left">Department ID</th>
-
-                  <th className="p-6 text-left">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {technicians.map((technician) => (
-                  <tr
-                    key={technician.id}
-                    className="border-t hover:bg-gray-50 transition"
-                  >
-                    <td className="p-6 font-semibold text-gray-800">
-                      {technician.name}
-                    </td>
-
-                    <td className="p-6 text-gray-600">
-                      {technician.phone || "-"}
-                    </td>
-
-                    <td className="p-6">
-                      <span className="px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
-                        {technician.department?.name || "No Department"}
-                      </span>
-                    </td>
-
-                    <td className="p-6 text-gray-600 font-medium">
-                      {technician.department?.departmentCode || "-"}
-                    </td>
-
-                    <td className="p-6">
-                      <button
-                        onClick={() => handleDelete(technician.id)}
-                        className="px-5 py-2 rounded-xl bg-red-100 text-red-600 font-medium hover:bg-red-200 transition"
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="min-w-[130px] gap-2 px-5"
                       >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {loading ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="size-4" />
+                            Create
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
+          {loading ? (
+            <div className="space-y-4">
+              <div className="flex gap-4 border-b border-border/50 pb-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-6 bg-muted rounded flex-1 animate-pulse"
+                  />
+                ))}
+              </div>
+              {[1, 2, 3, 4].map((row) => (
+                <div
+                  key={row}
+                  className="flex gap-4 py-2 border-b border-border/20"
+                >
+                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : departments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12 md:p-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
+                <User className="size-6 stroke-[1.5]" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground">
+                No technicians created yet.
+              </h3>
+              <p className="text-muted-foreground mt-1.5 max-w-sm">
+                No matching records were found in the database. Check search
+                queries or reset parameters.
+              </p>
+            </div>
+          ) : (
+            <div className="relative w-full overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/40 dark:bg-muted/15 border-b border-border/60">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[100px]">
+                      # ID
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[180px]">
+                      Name
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
+                      Phone Number
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
+                      Email
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
+                      Department
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
+                      Created At
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[80px]">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-border/30">
+                  {technicians.map((technician) => {
+                    return (
+                      <TableRow
+                        key={technician.id}
+                        className="hover:bg-muted/20 transition-colors"
+                      >
+                        <TableCell className="py-4 pl-6 align-top">
+                          <div className="space-y-1 max-w-[100px]">
+                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              {technician.code || "-"}
+                            </p>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="py-4 pl-6 align-top">
+                          <div className="space-y-1 max-w-[180px]">
+                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              {technician.name}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 align-top">
+                          <div className="space-y-1 max-w-[120px]">
+                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              {technician.phone || "-"}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 align-top">
+                          <div className="space-y-1 max-w-[120px]">
+                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              {/* {technician.email || "-"} */} info@example.com
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 align-top">
+                          <div className="space-y-1 max-w-[120px]">
+                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              {technician.department?.name || "NA"}
+                            </p>
+                          </div>
+                        </TableCell>
+
+                        {/* Created At */}
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="size-5 text-muted-foreground/80" />
+                            <span className="text-base">
+                              {new Date(
+                                technician.createdAt,
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell className="py-4 pr-6 text-right align-top">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                            title="Edit"
+                          >
+                            <Pencil className="size-5" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                title="Delete Technician"
+                              >
+                                <Trash2 className="size-5" />
+                              </Button>
+                            </AlertDialogTrigger>
+
+                            <AlertDialogContent className="sm:max-w-[420px]">
+                              <AlertDialogHeader>
+                                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+                                  <Trash2 className="size-6 text-destructive" />
+                                </div>
+
+                                <AlertDialogTitle className="w-full text-center text-xl">
+                                  Delete Technician?
+                                </AlertDialogTitle>
+
+                                <AlertDialogDescription className="text-center">
+                                  This action cannot be undone. This will
+                                  permanently remove
+                                  <span className="font-semibold text-foreground">
+                                    {" "}
+                                    {technician.name}
+                                  </span>
+                                  .
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+
+                              <AlertDialogFooter className="mt-4">
+                                <AlertDialogCancel className="h-11">
+                                  Cancel
+                                </AlertDialogCancel>
+
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(technician.id)}
+                                  disabled={deletingId === technician.id}
+                                  className="h-11 bg-destructive text-white hover:bg-destructive/90"
+                                >
+                                  {deletingId === technician.id ? (
+                                    <>
+                                      <Loader2 className="mr-2 size-4 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="mr-2 size-4" />
+                                      Delete Technician
+                                    </>
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

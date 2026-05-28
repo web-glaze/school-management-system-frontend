@@ -25,6 +25,18 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 import axios from "axios";
 import {
   Building2,
@@ -46,6 +58,7 @@ interface Department {
   id: string;
   name: string;
   departmentCode?: string;
+  createdAt: string;
 }
 
 export default function DepartmentPage() {
@@ -55,6 +68,7 @@ export default function DepartmentPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchDepartments = async () => {
     try {
@@ -115,6 +129,7 @@ export default function DepartmentPage() {
 
   const deleteDepartment = async (id: string) => {
     try {
+      setDeletingId(id);
       setLoading(true);
 
       const token = localStorage.getItem("token");
@@ -130,6 +145,8 @@ export default function DepartmentPage() {
       console.log(error);
 
       setLoading(false);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -204,16 +221,16 @@ export default function DepartmentPage() {
                       <Button
                         type="submit"
                         disabled={loading}
-                        className="min-w-[130px]"
+                        className="min-w-[130px] gap-2 px-5"
                       >
                         {loading ? (
                           <>
-                            <Loader2 className="mr-2 size-4 animate-spin" />
+                            <Loader2 className="size-4 animate-spin" />
                             Creating...
                           </>
                         ) : (
                           <>
-                            <Plus className="mr-2 size-4" />
+                            <Plus className="size-4" />
                             Create
                           </>
                         )}
@@ -305,7 +322,7 @@ export default function DepartmentPage() {
                         <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top">
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
-                            {/* <span className="text-base">
+                            <span className="text-base">
                               {new Date(
                                 department.createdAt,
                               ).toLocaleDateString("en-US", {
@@ -313,8 +330,7 @@ export default function DepartmentPage() {
                                 day: "numeric",
                                 year: "2-digit",
                               })}
-                            </span> */}
-                            May 27, 26
+                            </span>
                           </div>
                         </TableCell>
 
@@ -328,15 +344,65 @@ export default function DepartmentPage() {
                           >
                             <Eye className="size-5" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteDepartment(department.id)}
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                            title="Delete Complaint"
-                          >
-                            <Trash2 className="size-5" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                title="Delete Technician"
+                              >
+                                <Trash2 className="size-5" />
+                              </Button>
+                            </AlertDialogTrigger>
+
+                            <AlertDialogContent className="sm:max-w-[420px]">
+                              <AlertDialogHeader>
+                                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+                                  <Trash2 className="size-6 text-destructive" />
+                                </div>
+
+                                <AlertDialogTitle className="w-full text-center text-xl">
+                                  Delete Department?
+                                </AlertDialogTitle>
+
+                                <AlertDialogDescription className="text-center">
+                                  This action cannot be undone. This will
+                                  permanently remove
+                                  <span className="font-semibold text-foreground">
+                                    {" "}
+                                    {department.name}
+                                  </span>
+                                  .
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+
+                              <AlertDialogFooter className="mt-4">
+                                <AlertDialogCancel className="h-11">
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    deleteDepartment(department.id)
+                                  }
+                                  disabled={deletingId === department.id}
+                                  className="h-11 bg-destructive text-white hover:bg-destructive/90 gap-2 px-5"
+                                >
+                                  {deletingId === department.id ? (
+                                    <>
+                                      <Loader2 className="size-4 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="size-4" />
+                                      Delete Department
+                                    </>
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     );
