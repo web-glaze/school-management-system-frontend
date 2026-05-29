@@ -10,23 +10,16 @@ import {
   CheckCircle2,
   Search,
   Trash2,
-  User,
-  UserCheck,
-  MapPin,
-  AlertTriangle,
-  Calendar,
-  Mail,
-  ChevronDown,
   Inbox,
-  Sparkles,
-  RefreshCw,
-  XCircle,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
   SlidersHorizontal,
   Eye,
+  XCircle,
+  Calendar,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -50,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -133,7 +127,10 @@ export default function ComplaintsPage() {
   const filteredAndSortedComplaints = useMemo(() => {
     const filtered = complaints.filter((complaint) => {
       const matchesSearch =
-        complaint.description.slice(0, 60).toLowerCase().includes(search.toLowerCase()) ||
+        complaint.description
+          .slice(0, 60)
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
         complaint.description.toLowerCase().includes(search.toLowerCase()) ||
         complaint.locationType.toLowerCase().includes(search.toLowerCase()) ||
         complaint.subLocation.toLowerCase().includes(search.toLowerCase()) ||
@@ -328,6 +325,18 @@ export default function ComplaintsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Tickets</h1>
+            <p className="text-muted-foreground">Manage and track tickets</p>
+          </div>
+          <Link href="/maintenance/tickets/create">
+            <Button className="bg-primary text-white hover:bg-primary/90">
+              <Plus size={18} /> Create Ticket
+            </Button>
+          </Link>
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
           {statusStats.map((stat) => {
             const Icon = stat.icon;
@@ -655,15 +664,19 @@ export default function ComplaintsPage() {
 
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>window.location.href =`/maintenance/complaints/ticket-management/${complaint.id}`}
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                            title="View Complaint"
+                          <Link
+                            href={`/maintenance/tickets/ticket-management/${complaint.id}`}
                           >
-                            <Eye className="size-5" />
-                          </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              title="View Complaint"
+                            >
+                              <Eye className="size-5" />
+                            </Button>
+                          </Link>
+
                           <Button
                             variant="ghost"
                             size="icon"
