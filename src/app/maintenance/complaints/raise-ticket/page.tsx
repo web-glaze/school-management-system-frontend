@@ -24,9 +24,6 @@ export default function RaiseTicketPage() {
   const [locations, setLocations] =
     useState<Location[]>([]);
 
-  const [title, setTitle] =
-    useState("");
-
   const [description, setDescription] =
     useState("");
 
@@ -143,7 +140,6 @@ export default function RaiseTicketPage() {
         await axios.post(
           `${API_URL}/api/complaints`,
           {
-            title,
 
             description,
 
@@ -169,7 +165,6 @@ export default function RaiseTicketPage() {
           "Complaint registered successfully",
         );
 
-        setTitle("");
         setDescription("");
         setPriority(
           "MEDIUM",
@@ -195,7 +190,7 @@ export default function RaiseTicketPage() {
           </h1>
 
           <p className="mt-4 text-lg text-gray-500">
-            Register maintenance complaints with structured campus locations.
+            Register complaints with structured campus locations.
           </p>
         </div>
 
@@ -206,26 +201,6 @@ export default function RaiseTicketPage() {
           }
           className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 space-y-8"
         >
-
-          {/* Title */}
-          <div>
-            <label className="text-lg font-semibold text-gray-700">
-              Complaint Title
-            </label>
-
-            <input
-              type="text"
-              value={title}
-              onChange={(e) =>
-                setTitle(
-                  e.target.value,
-                )
-              }
-              required
-              placeholder="Enter complaint title"
-              className="mt-3 w-full h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
-            />
-          </div>
 
           {/* Description */}
           <div>

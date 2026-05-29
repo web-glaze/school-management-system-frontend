@@ -15,8 +15,8 @@ export default function MaintenancePage() {
   const userCards = [
     {
       title: "Raise Ticket",
-      description: "Register a new maintenance complaint quickly.",
-      href: "/maintenance/raise-ticket",
+      description: "Register a new complaint.description.slice(0, 60) quickly.",
+      href: "/maintenance/complaints/raise-ticket",
     },
 
     {
@@ -42,7 +42,7 @@ export default function MaintenancePage() {
     {
       title: "Raise Ticket",
       description: "Register complaints on behalf of departments.",
-      href: "/maintenance/raise-ticket",
+      href: "/maintenance/complaints/raise-ticket",
     },
     {
       title: "My Complaints",
@@ -61,7 +61,7 @@ export default function MaintenancePage() {
   const adminCards = [
     {
       title: "Complaint Management",
-      description: "Manage all maintenance complaints system-wide.",
+      description: "Manage all complaint.description.slice(0, 60)s system-wide.",
       href: "/maintenance/complaints",
     },
 
@@ -74,7 +74,7 @@ export default function MaintenancePage() {
     {
       title: "Raise Ticket",
       description: "Create and manage maintenance requests.",
-      href: "/maintenance/raise-ticket",
+      href: "/maintenance/complaints/raise-ticket",
     },
 
     {

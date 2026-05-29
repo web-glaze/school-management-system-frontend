@@ -22,6 +22,12 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+
+const user =
+  typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem("user") || "{}")
+    : {};
+
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   role?: "superadmin" | "admin" | "manager" | "user";
 }
@@ -121,9 +127,9 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
 
   const data = {
     user: {
-      name: "Ecole ERP",
-      email: "admin@ecole.com",
-      avatar: "/ui/shadcn.jpg",
+      name: "",
+      email: user.mail,
+      avatar:"",
     },
 
     navSingle: navItems,

@@ -80,7 +80,7 @@ export default function ComplaintsPage() {
   const filteredComplaints = useMemo(() => {
     return complaints.filter((complaint) => {
       const matchesSearch =
-        complaint.title.toLowerCase().includes(search.toLowerCase()) ||
+        complaint.description.slice(0, 60).toLowerCase().includes(search.toLowerCase()) ||
         complaint.subLocation.toLowerCase().includes(search.toLowerCase());
 
       const matchesStatus =
@@ -108,7 +108,7 @@ export default function ComplaintsPage() {
             <h1 className="text-5xl font-bold mt-4">Complaints Portal</h1>
 
             <p className="mt-5 text-lg text-white/90 max-w-2xl">
-              Manage and track all maintenance complaints raised inside the
+              Manage and track all complaint.description.slice(0, 60)s raised inside the
               ECOLE ecosystem.
             </p>
 
@@ -209,7 +209,7 @@ export default function ComplaintsPage() {
                       <td className="p-6">
                         <div>
                           <p className="font-semibold text-gray-800">
-                            {complaint.title}
+                            {complaint.description.slice(0, 60)}
                           </p>
 
                           <p className="text-sm text-gray-500 mt-1">

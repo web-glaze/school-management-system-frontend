@@ -106,7 +106,7 @@ export default function MyComplaintsPage() {
       return complaints.filter(
         (complaint) => {
           const matchesSearch =
-            complaint.title
+            complaint.description.slice(0, 60)
               .toLowerCase()
               .includes(
                 search.toLowerCase()
@@ -242,7 +242,7 @@ export default function MyComplaintsPage() {
                     <div>
                       <h2 className="text-3xl font-bold text-gray-800">
                         {
-                          complaint.title
+                          complaint.description.slice(0, 60)
                         }
                       </h2>
 

@@ -133,7 +133,7 @@ export default function ComplaintsPage() {
   const filteredAndSortedComplaints = useMemo(() => {
     const filtered = complaints.filter((complaint) => {
       const matchesSearch =
-        complaint.title.toLowerCase().includes(search.toLowerCase()) ||
+        complaint.description.slice(0, 60).toLowerCase().includes(search.toLowerCase()) ||
         complaint.description.toLowerCase().includes(search.toLowerCase()) ||
         complaint.locationType.toLowerCase().includes(search.toLowerCase()) ||
         complaint.subLocation.toLowerCase().includes(search.toLowerCase()) ||
@@ -565,7 +565,7 @@ export default function ComplaintsPage() {
                         <TableCell className="py-4 pl-6 align-top">
                           <div className="space-y-1 max-w-[260px]">
                             <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              {complaint.title}
+                              {complaint.description.slice(0, 60)}
                             </p>
                             <p className="text-muted-foreground text-xs font-light line-clamp-2 leading-relaxed">
                               {complaint.description}
@@ -658,6 +658,7 @@ export default function ComplaintsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() =>window.location.href =`/maintenance/complaints/ticket-management/${complaint.id}`}
                             className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
                             title="View Complaint"
                           >
