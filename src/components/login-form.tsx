@@ -68,10 +68,6 @@ export function LoginForm({
         }),
       );
 
-      console.log({
-        user,
-        frontendRole: role,
-      });
 
       // EVERYONE GOES HERE
       router.push("/dashboard");

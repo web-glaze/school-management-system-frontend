@@ -49,25 +49,14 @@ interface Technician {
 
 interface Complaint {
   id: string;
-
-  ticketNumber?: string;
-
-  title: string;
-
+  ticketCode?: string;
   description: string;
-
   locationType: string;
-
   subLocation: string;
-
   priority: string;
-
   status: string;
-
   managerRemark?: string;
-
   createdAt: string;
-
   user?: {
     email: string;
   };
@@ -152,7 +141,7 @@ export default function TicketManagementPage() {
 
   const saveChanges = async () => {
     try {
-        if (!complaint) return;
+      if (!complaint) return;
       setSaving(true);
 
       const token = localStorage.getItem("token");
@@ -160,7 +149,6 @@ export default function TicketManagementPage() {
       await axios.patch(
         `${API_URL}/api/complaints/${id}`,
         {
-          title: complaint.description.slice(0, 60),
           description: complaint.description,
         },
         {
@@ -169,7 +157,17 @@ export default function TicketManagementPage() {
           },
         },
       );
-
+      await axios.patch(
+        `${API_URL}/api/complaints/${id}/status`,
+        {
+          status,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       await axios.patch(
         `${API_URL}/api/complaints/${id}/priority`,
         {
@@ -346,7 +344,7 @@ export default function TicketManagementPage() {
                       </p>
 
                       <p className="font-bold">
-                        {complaint.ticketNumber || "TKT-001"}
+                        {complaint.ticketCode || "TKT-001"}
                       </p>
                     </div>
                   </div>
