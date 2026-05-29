@@ -25,6 +25,18 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 import axios from "axios";
 import {
   Building2,
@@ -32,6 +44,7 @@ import {
   Eye,
   Inbox,
   Loader2,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -46,6 +59,7 @@ interface Department {
   id: string;
   name: string;
   departmentCode?: string;
+  createdAt: string;
 }
 
 export default function DepartmentPage() {
@@ -55,6 +69,12 @@ export default function DepartmentPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState<Department | null>(
+    null,
+  );
+  const [editName, setEditName] = useState("");
 
   const fetchDepartments = async () => {
     try {
@@ -113,8 +133,49 @@ export default function DepartmentPage() {
     }
   };
 
+  const openEditDialog = (department: Department) => {
+    setEditingDepartment(department);
+    setEditName(department.name);
+    setEditOpen(true);
+  };
+
+  const updateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingDepartment) return;
+
+    try {
+      setLoading(true);
+
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${API_URL}/api/departments/${editingDepartment.id}`,
+        {
+          name: editName,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      await fetchDepartments();
+
+      setEditOpen(false);
+      setEditingDepartment(null);
+      setEditName("");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const deleteDepartment = async (id: string) => {
     try {
+      setDeletingId(id);
       setLoading(true);
 
       const token = localStorage.getItem("token");
@@ -130,6 +191,8 @@ export default function DepartmentPage() {
       console.log(error);
 
       setLoading(false);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -204,16 +267,16 @@ export default function DepartmentPage() {
                       <Button
                         type="submit"
                         disabled={loading}
-                        className="min-w-[130px]"
+                        className="min-w-[130px] gap-2 px-5"
                       >
                         {loading ? (
                           <>
-                            <Loader2 className="mr-2 size-4 animate-spin" />
+                            <Loader2 className="size-4 animate-spin" />
                             Creating...
                           </>
                         ) : (
                           <>
-                            <Plus className="mr-2 size-4" />
+                            <Plus className="size-4" />
                             Create
                           </>
                         )}
@@ -246,7 +309,7 @@ export default function DepartmentPage() {
                 </div>
               ))}
             </div>
-          ) : departments.length === 0 ? (
+          ) : filteredDepartments.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 md:p-16 text-center">
               <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
                 <Inbox className="size-6 stroke-[1.5]" />
@@ -305,7 +368,7 @@ export default function DepartmentPage() {
                         <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top">
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
-                            {/* <span className="text-base">
+                            <span className="text-base">
                               {new Date(
                                 department.createdAt,
                               ).toLocaleDateString("en-US", {
@@ -313,30 +376,152 @@ export default function DepartmentPage() {
                                 day: "numeric",
                                 year: "2-digit",
                               })}
-                            </span> */}
-                            May 27, 26
+                            </span>
                           </div>
                         </TableCell>
 
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                            title="View Complaint"
-                          >
-                            <Eye className="size-5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteDepartment(department.id)}
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                            title="Delete Complaint"
-                          >
-                            <Trash2 className="size-5" />
-                          </Button>
+                          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(department)}
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              title="Edit Department"
+                            >
+                              <Pencil className="size-5" />
+                            </Button>
+
+                            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+                              <div className="border-b px-6 py-5">
+                                <div className="flex items-center gap-3">
+                                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Pencil className="size-5 text-primary" />
+                                  </div>
+
+                                  <div>
+                                    <DialogTitle className="text-lg">
+                                      Edit Department
+                                    </DialogTitle>
+
+                                    <DialogDescription>
+                                      Update department details
+                                    </DialogDescription>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <form
+                                onSubmit={updateDepartment}
+                                className="space-y-6 p-6"
+                              >
+                                <FieldGroup>
+                                  <Field>
+                                    <Label htmlFor="edit-department-name">
+                                      Department Name
+                                    </Label>
+
+                                    <Input
+                                      id="edit-department-name"
+                                      placeholder="Electrical, Plumbing, IT..."
+                                      value={editName}
+                                      onChange={(e) =>
+                                        setEditName(e.target.value)
+                                      }
+                                      required
+                                      className="mt-2"
+                                    />
+                                  </Field>
+                                </FieldGroup>
+
+                                <DialogFooter className="gap-2">
+                                  <DialogClose asChild>
+                                    <Button variant="outline" type="button">
+                                      Cancel
+                                    </Button>
+                                  </DialogClose>
+
+                                  <Button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="min-w-[130px] gap-2 px-5"
+                                  >
+                                    {loading ? (
+                                      <>
+                                        <Loader2 className="size-4 animate-spin" />
+                                        Updating...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Pencil className="size-4" />
+                                        Update
+                                      </>
+                                    )}
+                                  </Button>
+                                </DialogFooter>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                title="Delete Department"
+                              >
+                                <Trash2 className="size-5" />
+                              </Button>
+                            </AlertDialogTrigger>
+
+                            <AlertDialogContent className="sm:max-w-[420px]">
+                              <AlertDialogHeader>
+                                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+                                  <Trash2 className="size-6 text-destructive" />
+                                </div>
+
+                                <AlertDialogTitle className="w-full text-center text-xl">
+                                  Delete Department?
+                                </AlertDialogTitle>
+
+                                <AlertDialogDescription className="text-center">
+                                  This action cannot be undone. This will
+                                  permanently remove
+                                  <span className="font-semibold text-foreground">
+                                    {" "}
+                                    {department.name}
+                                  </span>
+                                  .
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+
+                              <AlertDialogFooter className="mt-4">
+                                <AlertDialogCancel className="h-11">
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    deleteDepartment(department.id)
+                                  }
+                                  disabled={deletingId === department.id}
+                                  className="h-11 bg-destructive text-white hover:bg-destructive/90 gap-2 px-5"
+                                >
+                                  {deletingId === department.id ? (
+                                    <>
+                                      <Loader2 className="size-4 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="size-4" />
+                                      Delete Department
+                                    </>
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     );
