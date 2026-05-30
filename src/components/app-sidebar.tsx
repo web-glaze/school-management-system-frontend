@@ -11,7 +11,7 @@ import {
   Ticket,
   VectorSquare,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -23,17 +23,49 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const user =
-  typeof window !== "undefined"
-    ? JSON.parse(localStorage.getItem("user") || "{}")
-    : {};
-
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  role?: "superadmin" | "admin" | "manager" | "user";
+  role?: "superadmin" | "admin" | "manager" | "technician" | "user";
 }
 
-export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
+interface StoredUser {
+  id?: string;
+  email?: string;
+  role?: string;
+  roles?: string[];
+}
+
+export function AppSidebar({ role, ...props }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Read user from localStorage inside the component so it is reactive on
+  // login/logout — reading at module scope ran only once at JS load and kept
+  // a stale user across sessions.
+  const [user, setUser] = React.useState<StoredUser>({});
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("user");
+      setUser(raw ? JSON.parse(raw) : {});
+    } catch {
+      setUser({});
+    }
+  }, []);
+
+  // If a role was not explicitly passed, fall back to what's stored. We do
+  // NOT silently default to "admin" any more — that would leak admin menu to
+  // unauthenticated visitors. If we genuinely have nothing, send to /login.
+  const effectiveRole: AppSidebarProps["role"] =
+    role ?? (user.role as AppSidebarProps["role"]) ?? "user";
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
 
   /* SUPER ADMIN */
   const superAdminMenu = [
@@ -105,6 +137,18 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
     },
   ];
 
+  /* TECHNICIAN */
+  const technicianMenu = [
+    {
+      title: "My Tickets",
+      url: "/maintenance/tickets",
+      icon: Ticket,
+      isActive:
+        pathname === "/maintenance/tickets" ||
+        pathname.startsWith("/maintenance/tickets/"),
+    },
+  ];
+
   /* USER */
   const userMenu = [
     {
@@ -117,18 +161,20 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
 
   let navItems = userMenu;
 
-  if (role === "superadmin") {
+  if (effectiveRole === "superadmin") {
     navItems = superAdminMenu;
-  } else if (role === "admin") {
+  } else if (effectiveRole === "admin") {
     navItems = adminMenu;
-  } else if (role === "manager") {
+  } else if (effectiveRole === "manager") {
     navItems = managerMenu;
+  } else if (effectiveRole === "technician") {
+    navItems = technicianMenu;
   }
 
   const data = {
     user: {
-      name: "",
-      email: user.mail,
+      name: user.email ? user.email.split("@")[0] : "",
+      email: user.email ?? "",
       avatar: "",
     },
 

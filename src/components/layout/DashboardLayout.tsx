@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
 
@@ -21,7 +22,31 @@ import {
 interface User {
   email: string;
 
-  role: "superadmin" | "admin" | "manager" | "user";
+  role: "superadmin" | "admin" | "manager" | "technician" | "user";
+}
+
+// Pretty labels for known route segments — fall back to a title-cased copy
+// of the raw segment so a brand-new page still gets a sensible breadcrumb.
+const ROUTE_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  maintenance: "Maintenance",
+  tickets: "Tickets",
+  create: "New Ticket",
+  technician: "Technicians",
+  departments: "Departments",
+  location: "Locations",
+  user: "Users",
+  "my-complaints": "My Complaints",
+};
+
+function prettySegment(seg: string): string {
+  if (ROUTE_LABELS[seg]) return ROUTE_LABELS[seg];
+  // Skip ids that look like uuids/cuids.
+  if (/^[0-9a-f-]{8,}$/i.test(seg)) return "Details";
+  return seg
+    .split("-")
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ");
 }
 
 export default function DashboardLayout({
@@ -29,7 +54,21 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname() ?? "";
   const [user, setUser] = useState<User | null>(null);
+
+  // Build the trail from the URL: "/maintenance/tickets/abc" →
+  // [{label: "Maintenance", href: "/maintenance"},
+  //  {label: "Tickets",     href: "/maintenance/tickets"},
+  //  {label: "Details",     href: "/maintenance/tickets/abc"}]
+  const crumbs = useMemo(() => {
+    const segments = pathname.split("/").filter(Boolean);
+    return segments.map((seg, i) => ({
+      label: prettySegment(seg),
+      href: "/" + segments.slice(0, i + 1).join("/"),
+    }));
+  }, [pathname]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -37,15 +76,17 @@ export default function DashboardLayout({
     const token = localStorage.getItem("token");
 
     if (!storedUser || !token) {
-      window.location.href = "/login";
+      router.push("/login");
 
       return;
     }
 
-    queueMicrotask(() => {
+    try {
       setUser(JSON.parse(storedUser));
-    });
-  }, []);
+    } catch {
+      router.push("/login");
+    }
+  }, [router]);
 
   if (!user) return null;
 
@@ -59,12 +100,25 @@ export default function DashboardLayout({
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Maintenance</BreadcrumbPage>
-              </BreadcrumbItem>
+              {crumbs.map((c, i) => {
+                const isLast = i === crumbs.length - 1;
+                return (
+                  <span key={c.href} className="flex items-center gap-1">
+                    <BreadcrumbSeparator className="hidden md:block" />
+                    <BreadcrumbItem>
+                      {isLast ? (
+                        <BreadcrumbPage>{c.label}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink href={c.href}>
+                          {c.label}
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                  </span>
+                );
+              })}
             </BreadcrumbList>
           </Breadcrumb>
         </header>

@@ -15,10 +15,9 @@ export default function MaintenancePage() {
   const userCards = [
     {
       title: "Raise Ticket",
-      description: "Register a new complaint.description.slice(0, 60) quickly.",
+      description: "Register a new complaint quickly.",
       href: "/maintenance/complaints/raise-ticket",
     },
-
     {
       title: "My Complaints",
       description: "Track status and progress of your complaints.",
@@ -32,13 +31,11 @@ export default function MaintenancePage() {
       description: "Assign technicians and manage complaint workflow.",
       href: "/maintenance/complaints",
     },
-
     {
       title: "Technician Management",
       description: "View and manage maintenance technicians.",
       href: "/maintenance/technician",
     },
-
     {
       title: "Raise Ticket",
       description: "Register complaints on behalf of departments.",
@@ -49,7 +46,6 @@ export default function MaintenancePage() {
       description: "Track status and progress of your complaints.",
       href: "/maintenance/my-complaints",
     },
-
     {
       title: "Location Management",
       description:
@@ -61,22 +57,19 @@ export default function MaintenancePage() {
   const adminCards = [
     {
       title: "Complaint Management",
-      description: "Manage all complaint.description.slice(0, 60)s system-wide.",
+      description: "Manage all complaints system-wide.",
       href: "/maintenance/complaints",
     },
-
     {
       title: "Technician Management",
       description: "Add and manage technicians and assignments.",
       href: "/maintenance/technician",
     },
-
     {
       title: "Raise Ticket",
       description: "Create and manage maintenance requests.",
       href: "/maintenance/complaints/raise-ticket",
     },
-
     {
       title: "My Complaints",
       description: "Track your personal maintenance requests.",
@@ -87,7 +80,6 @@ export default function MaintenancePage() {
       description: "Create and manage ERP IDs, roles and passwords.",
       href: "/maintenance/user",
     },
-
     {
       title: "Location Management",
       description:
@@ -103,14 +95,8 @@ export default function MaintenancePage() {
   ];
 
   let cards = userCards;
-
-  if (role === "manager") {
-    cards = managerCards;
-  }
-
-  if (role === "admin" || role === "superadmin") {
-    cards = adminCards;
-  }
+  if (role === "manager") cards = managerCards;
+  if (role === "admin" || role === "superadmin") cards = adminCards;
 
   return (
     <DashboardLayout>
@@ -120,21 +106,20 @@ export default function MaintenancePage() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
 
           <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
+            <p className="uppercase tracking-[0.25em] text-[11px] text-white/80">
               ECOLE ERP
             </p>
 
-            <h1 className="text-5xl font-bold mt-4">Maintenance Dashboard</h1>
+            <h1 className="text-2xl font-bold mt-2">Maintenance Dashboard</h1>
 
-            <p className="mt-5 text-lg text-white/90 max-w-3xl">
+            <p className="mt-2 text-sm text-white/90 max-w-3xl">
               Centralized maintenance management system for complaints,
               technician assignments, tracking and workflow control.
             </p>
 
-            <div className="mt-6 inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm px-5 py-3 rounded-2xl">
-              <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
-
-              <span className="font-medium capitalize">
+            <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-xs font-medium capitalize">
                 Logged in as {role}
               </span>
             </div>
@@ -144,23 +129,26 @@ export default function MaintenancePage() {
         {/* Quick Stats */}
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-            <p className="text-gray-500 font-medium">Module Status</p>
-
-            <h2 className="text-4xl font-bold mt-4 text-green-600">Active</h2>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+              Module Status
+            </p>
+            <h2 className="text-xl font-bold mt-2 text-green-600">Active</h2>
           </div>
 
           <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-            <p className="text-gray-500 font-medium">Role Access</p>
-
-            <h2 className="text-4xl font-bold mt-4 text-blue-600 capitalize">
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+              Role Access
+            </p>
+            <h2 className="text-xl font-bold mt-2 text-blue-600 capitalize">
               {role}
             </h2>
           </div>
 
           <div className="bg-white rounded-[2rem] p-7 shadow-lg border border-gray-100">
-            <p className="text-gray-500 font-medium">Available Actions</p>
-
-            <h2 className="text-4xl font-bold mt-4 text-cyan-500">
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+              Available Actions
+            </p>
+            <h2 className="text-xl font-bold mt-2 text-cyan-500">
               {cards.length}
             </h2>
           </div>
@@ -168,39 +156,38 @@ export default function MaintenancePage() {
 
         {/* Action Cards */}
         <div>
-          <div className="mb-8">
-            <h2 className="text-4xl font-bold text-gray-800">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-800">
               Maintenance Controls
             </h2>
-
-            <p className="text-gray-500 mt-3 text-lg">
+            <p className="text-gray-500 mt-1 text-sm">
               Access maintenance operations based on your role permissions.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {cards.map((card) => (
               <Link
                 key={card.title}
                 href={card.href}
-                className="group bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100 hover:border-blue-200 hover:shadow-2xl transition duration-300 relative overflow-hidden"
+                className="group bg-white rounded-[2rem] p-6 shadow-lg border border-gray-100 hover:border-blue-200 hover:shadow-2xl transition duration-300 relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-40 h-40 bg-blue-50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition duration-300" />
 
                 <div className="relative z-10">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white text-base font-bold shadow-md">
                     {card.title.charAt(0)}
                   </div>
 
-                  <h3 className="text-2xl font-bold text-gray-800 mt-7">
+                  <h3 className="text-base font-bold text-gray-800 mt-4">
                     {card.title}
                   </h3>
 
-                  <p className="text-gray-500 mt-4 leading-relaxed">
+                  <p className="text-gray-500 mt-1.5 text-xs leading-relaxed">
                     {card.description}
                   </p>
 
-                  <div className="mt-8 inline-flex items-center gap-2 text-blue-600 font-semibold">
+                  <div className="mt-5 inline-flex items-center gap-2 text-blue-600 text-xs font-semibold">
                     Open Module
                     <span className="group-hover:translate-x-1 transition">
                       →

@@ -1,4 +1,6 @@
 "use client";
+import { logError } from "@/lib/api-helpers";
+
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -61,7 +63,7 @@ export default function MyComplaintsPage() {
         Array.isArray(response.data) ? response.data : response.data.data || [],
       );
     } catch (error) {
-      console.log(error);
+      logError("my-complaints.page", error);
     } finally {
       setLoading(false);
     }

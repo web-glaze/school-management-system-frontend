@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3000",
+  // Read from NEXT_PUBLIC_API_URL so dev/staging/prod work without code edits.
+  // Falls back to localhost for first-run developer convenience.
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000",
   headers: {
     "Content-Type": "application/json",
   },

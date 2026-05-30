@@ -1,4 +1,6 @@
 "use client";
+import { logError } from "@/lib/api-helpers";
+
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +78,7 @@ interface Technician {
   code: string;
   name: string;
   phone?: string;
+  email?: string;
   isActive: boolean;
   createdAt: string;
   department?: {
@@ -91,6 +94,7 @@ export default function TechnicianPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -106,6 +110,7 @@ export default function TechnicianPage() {
 
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editDepartmentId, setEditDepartmentId] = useState("");
 
   /* FETCH TECHNICIANS */
@@ -126,7 +131,7 @@ export default function TechnicianPage() {
       setTechnicians(data);
       setFilteredTechnicians(data);
     } catch (error) {
-      console.log(error);
+      logError("technician.page", error);
     } finally {
       setLoading(false);
     }
@@ -146,7 +151,7 @@ export default function TechnicianPage() {
         Array.isArray(response.data) ? response.data : response.data.data || [],
       );
     } catch (error) {
-      console.log(error);
+      logError("technician.page", error);
     }
   };
 
@@ -166,6 +171,7 @@ export default function TechnicianPage() {
         technician.name,
         technician.code,
         technician.phone,
+        technician.email,
         technician.department?.name,
       ]
         .filter(Boolean)
@@ -187,6 +193,7 @@ export default function TechnicianPage() {
         {
           name,
           phone,
+          email: email || undefined,
           departmentId,
         },
         {
@@ -198,13 +205,14 @@ export default function TechnicianPage() {
 
       setName("");
       setPhone("");
+      setEmail("");
       setDepartmentId("");
       setOpen(false);
 
       await fetchTechnicians();
       setLoading(false);
     } catch (error) {
-      console.log(error);
+      logError("technician.page", error);
 
       alert("Failed to add technician");
     }
@@ -215,6 +223,7 @@ export default function TechnicianPage() {
 
     setEditName(technician.name || "");
     setEditPhone(technician.phone || "");
+    setEditEmail(technician.email || "");
     setEditDepartmentId(technician.department?.id || "");
 
     setEditOpen(true);
@@ -235,6 +244,7 @@ export default function TechnicianPage() {
         {
           name: editName,
           phone: editPhone,
+          email: editEmail || undefined,
           departmentId: editDepartmentId,
         },
         {
@@ -251,9 +261,10 @@ export default function TechnicianPage() {
 
       setEditName("");
       setEditPhone("");
+      setEditEmail("");
       setEditDepartmentId("");
     } catch (error) {
-      console.log(error);
+      logError("technician.page", error);
     } finally {
       setLoading(false);
     }
@@ -274,7 +285,7 @@ export default function TechnicianPage() {
 
       fetchTechnicians();
     } catch (error) {
-      console.log(error);
+      logError("technician.page", error);
     } finally {
       setDeletingId(null);
     }
@@ -357,9 +368,8 @@ export default function TechnicianPage() {
                           id="technician-email"
                           type="email"
                           placeholder="Enter Your Email"
-                          // value={email}
-                          // onChange={(e) => setEmail(e.target.value)}
-                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
                         />
                       </Field>
                     </FieldGroup>
@@ -511,7 +521,7 @@ export default function TechnicianPage() {
                         <TableCell className="py-4 align-top">
                           <div className="space-y-1 max-w-[120px]">
                             <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              {/* {technician.email || "-"} */} info@example.com
+                              {technician.email || "-"}
                             </p>
                           </div>
                         </TableCell>
@@ -614,6 +624,24 @@ export default function TechnicianPage() {
                                         )
                                       }
                                       maxLength={10}
+                                    />
+                                  </Field>
+                                </FieldGroup>
+
+                                <FieldGroup>
+                                  <Field>
+                                    <Label htmlFor="edit-technician-email">
+                                      Email
+                                    </Label>
+
+                                    <Input
+                                      id="edit-technician-email"
+                                      type="email"
+                                      placeholder="Enter Email"
+                                      value={editEmail}
+                                      onChange={(e) =>
+                                        setEditEmail(e.target.value)
+                                      }
                                     />
                                   </Field>
                                 </FieldGroup>

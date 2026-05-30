@@ -1,4 +1,6 @@
 "use client";
+import { logError } from "@/lib/api-helpers";
+
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import axios from "axios";
@@ -49,6 +51,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Complaint {
   id: string;
+  ticketCode?: string;
   title: string;
   description: string;
   locationType: string;
@@ -106,7 +109,7 @@ export default function ComplaintsPage() {
           : techniciansRes.data.data || [],
       );
     } catch (error) {
-      console.log(error);
+      logError("tickets.page", error);
     } finally {
       setLoading(false);
     }
@@ -173,7 +176,22 @@ export default function ComplaintsPage() {
         }
       };
 
-      return 0;
+      if (sortBy === "PRIORITY_HIGH") {
+        // Highest priority first; tie-break on newest createdAt.
+        return (
+          getPriorityWeight(b.priority) - getPriorityWeight(a.priority) ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      }
+      if (sortBy === "PRIORITY_LOW") {
+        return (
+          getPriorityWeight(a.priority) - getPriorityWeight(b.priority) ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      }
+
+      // Default: newest first.
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [complaints, search, statusFilter, sortBy]);
 
@@ -204,7 +222,7 @@ export default function ComplaintsPage() {
 
       fetchData();
     } catch (error) {
-      console.log(error);
+      logError("tickets.page", error);
     }
   };
 
@@ -226,7 +244,7 @@ export default function ComplaintsPage() {
 
       fetchData();
     } catch (error) {
-      console.log(error);
+      logError("tickets.page", error);
     }
   };
 
@@ -251,7 +269,7 @@ export default function ComplaintsPage() {
 
       fetchData();
     } catch (error) {
-      console.log(error);
+      logError("tickets.page", error);
     }
   };
 
@@ -267,7 +285,7 @@ export default function ComplaintsPage() {
 
       fetchData();
     } catch (error) {
-      console.log(error);
+      logError("tickets.page", error);
     }
   };
 
@@ -547,7 +565,7 @@ export default function ComplaintsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/30">
-                  {paginatedComplaints.map((complaint) => {
+                  {paginatedComplaints.map((complaint, rowIndex) => {
                     const isUrgent = complaint.priority === "URGENT";
                     const isHigh = complaint.priority === "HIGH";
                     const isMedium = complaint.priority === "MEDIUM";
@@ -560,6 +578,12 @@ export default function ComplaintsPage() {
                           ? "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border-amber-500/20"
                           : "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border-emerald-500/20";
 
+                    // Prefer the server-issued ticket code (e.g. TKT-007);
+                    // fall back to a running row number that respects pagination.
+                    const displayId =
+                      complaint.ticketCode ??
+                      String((currentPage - 1) * pageSize + rowIndex + 1);
+
                     return (
                       <TableRow
                         key={complaint.id}
@@ -568,7 +592,7 @@ export default function ComplaintsPage() {
                         <TableCell className="py-4 pl-6 align-top">
                           <div className="space-y-1 max-w-[20px]">
                             <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              1
+                              {displayId}
                             </p>
                           </div>
                         </TableCell>

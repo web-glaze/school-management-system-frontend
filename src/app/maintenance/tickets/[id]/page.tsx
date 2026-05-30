@@ -1,4 +1,6 @@
 "use client";
+import { logError } from "@/lib/api-helpers";
+
 
 import axios from "axios";
 
@@ -48,6 +50,14 @@ interface Technician {
   name: string;
 }
 
+interface ComplaintItem {
+  id: string;
+  description: string;
+  priority: string;
+  status?: string;
+  imageUrl?: string | null;
+}
+
 interface Complaint {
   id: string;
   ticketCode?: string;
@@ -60,6 +70,9 @@ interface Complaint {
   createdAt: string;
   imageUrl?: string;
   adminImageUrl?: string;
+  // Multi-item tickets carry their issue rows here. Older tickets that
+  // only used the parent description will have an empty array.
+  items?: ComplaintItem[];
   user?: {
     email: string;
   };
@@ -116,7 +129,7 @@ export default function TicketManagementPage() {
       setTechnicianId(complaintData.assignedTechnician?.id || "");
       setAdminImageUrl(complaintData.adminImageUrl || "");
     } catch (error) {
-      console.log(error);
+      logError("tickets.[id].page", error);
     } finally {
       setLoading(false);
     }
@@ -189,7 +202,7 @@ export default function TicketManagementPage() {
 
       fetchData();
     } catch (error) {
-      console.log(error);
+      logError("tickets.[id].page", error);
 
       alert("Failed To Update Ticket");
     } finally {
@@ -241,7 +254,7 @@ export default function TicketManagementPage() {
 
       alert("Status image uploaded");
     } catch (error) {
-      console.log(error);
+      logError("tickets.[id].page", error);
 
       alert("Failed to upload image");
     } finally {
@@ -311,6 +324,55 @@ export default function TicketManagementPage() {
                       alt="Complaint"
                       className="w-full rounded-xl border max-h-96 object-cover"
                     />
+                  </div>
+                )}
+
+                {/* Multi-item issues: if the ticket has more than one issue
+                    (or even just one stored as an item), list each below the
+                    primary description so the manager sees every reported
+                    problem at a glance. */}
+                {complaint.items && complaint.items.length > 1 && (
+                  <div className="space-y-3">
+                    <Label className="text-sm">
+                      All Issues in This Ticket ({complaint.items.length})
+                    </Label>
+                    <div className="space-y-2.5">
+                      {complaint.items.map((it, idx) => (
+                        <div
+                          key={it.id}
+                          className="rounded-lg border border-border/70 bg-muted/20 p-3"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                              Issue {idx + 1}
+                            </span>
+                            <span
+                              className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${
+                                it.priority === "URGENT"
+                                  ? "bg-rose-500/10 text-rose-600"
+                                  : it.priority === "HIGH"
+                                    ? "bg-orange-500/10 text-orange-600"
+                                    : it.priority === "MEDIUM"
+                                      ? "bg-amber-500/10 text-amber-600"
+                                      : "bg-emerald-500/10 text-emerald-600"
+                              }`}
+                            >
+                              {it.priority}
+                            </span>
+                          </div>
+                          <p className="text-xs leading-relaxed text-foreground">
+                            {it.description}
+                          </p>
+                          {it.imageUrl && (
+                            <img
+                              src={it.imageUrl}
+                              alt={`Issue ${idx + 1}`}
+                              className="mt-2 rounded-md border max-h-48 object-cover"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -433,74 +495,6 @@ export default function TicketManagementPage() {
                       <p className="font-bold">
                         {complaint.ticketCode || "TKT-001"}
                       </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <MapPin className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">Location</p>
-
-                      <p className="font-medium">{complaint.locationType}</p>
-
-                      <p className="text-sm text-muted-foreground">
-                        {complaint.subLocation}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Calendar className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Created Date
-                      </p>
-
-                      <p className="font-medium">
-                        {new Date(complaint.createdAt).toLocaleString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <User className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">User</p>
-
-                      <p className="font-medium">{complaint.user?.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Wrench className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Technician
-                      </p>
-
-                      <p className="font-medium">
-                        {complaint.assignedTechnician?.name || "Unassigned"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Clock3 className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">Priority</p>
-
-                      <p className="font-medium">{complaint.priority}</p>
                     </div>
                   </div>
                 </div>

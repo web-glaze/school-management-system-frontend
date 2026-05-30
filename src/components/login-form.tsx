@@ -54,6 +54,8 @@ export function LoginForm({
         role = "admin";
       } else if (roles.includes("MANAGER")) {
         role = "manager";
+      } else if (roles.includes("TECHNICIAN")) {
+        role = "technician";
       }
 
       localStorage.setItem("token", response.data.data.accessToken);

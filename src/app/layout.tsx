@@ -13,8 +13,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col font-['Plus_Jakarta_Sans']">
+    // suppressHydrationWarning: the `dark` class is set on the client by
+    // theme logic (and browser extensions like Grammarly mutate <html> /
+    // <body> attributes before React hydrates). Both are expected — React
+    // would otherwise flag the className diff as a hydration mismatch.
+    <html
+      lang="en"
+      className="h-full antialiased"
+      suppressHydrationWarning
+    >
+      <body
+        className="min-h-full flex flex-col font-['Plus_Jakarta_Sans']"
+        suppressHydrationWarning
+      >
         <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
       </body>
     </html>

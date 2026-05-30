@@ -1,4 +1,6 @@
 "use client";
+import { logError } from "@/lib/api-helpers";
+
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -77,7 +79,7 @@ export default function UserPage() {
                 .data || []
         );
       } catch (error) {
-        console.log(error);
+        logError("user.page", error);
       }
     };
 
@@ -125,9 +127,7 @@ export default function UserPage() {
 
       } catch (error : any ) {
 
-  console.log(
-    error.response?.data
-  );
+  logError("user.page.create", error);
 
   alert(
     error.response?.data
@@ -178,7 +178,7 @@ export default function UserPage() {
         );
 
       } catch (error) {
-        console.log(error);
+        logError("user.page", error);
       }
     };
 
@@ -202,7 +202,7 @@ export default function UserPage() {
         fetchUsers();
 
       } catch (error) {
-        console.log(error);
+        logError("user.page", error);
       }
     };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { logError } from "@/lib/api-helpers";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ import {
   Loader2,
   Check,
   ChevronRight,
+  Plus,
 } from "lucide-react";
 
 import axios from "axios";
@@ -38,17 +40,59 @@ interface Location {
   parentId?: string | null;
 }
 
+// One complaint item inside a ticket. A ticket can carry many items so a
+// user with several issues in the same location only files one ticket.
+interface IssueItem {
+  id: string;
+  description: string;
+  priority: string;
+  imageUrl?: string;
+  uploading?: boolean;
+}
+
+function newIssue(): IssueItem {
+  return {
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `tmp-${Math.random().toString(36).slice(2)}`,
+    description: "",
+    priority: "MEDIUM",
+    imageUrl: "",
+  };
+}
+
 export default function RaiseTicketPage() {
   const router = useRouter();
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(1);
 
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("MEDIUM");
+  // Multi-item issues. Always has at least one row.
+  const [items, setItems] = useState<IssueItem[]>([newIssue()]);
+
+  // Backwards-compatible aliases — first item's description/priority/image
+  // are still the "primary" fields, so existing rendering code keeps working.
+  const description = items[0]?.description ?? "";
+  const priority = items[0]?.priority ?? "MEDIUM";
+  const imageUrl = items[0]?.imageUrl ?? "";
+
+  const setDescription = (v: string) =>
+    setItems((prev) => prev.map((it, i) => (i === 0 ? { ...it, description: v } : it)));
+  const setPriority = (v: string) =>
+    setItems((prev) => prev.map((it, i) => (i === 0 ? { ...it, priority: v } : it)));
+  const setImageUrl = (v: string) =>
+    setItems((prev) => prev.map((it, i) => (i === 0 ? { ...it, imageUrl: v } : it)));
+
+  const updateItem = (id: string, patch: Partial<IssueItem>) =>
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+
+  const addItem = () => setItems((prev) => [...prev, newIssue()]);
+
+  const removeItem = (id: string) =>
+    setItems((prev) => (prev.length <= 1 ? prev : prev.filter((it) => it.id !== id)));
 
   // Drill-down and Path State
   const [selectedPath, setSelectedPath] = useState<string[]>([]);
@@ -70,7 +114,7 @@ export default function RaiseTicketPage() {
         Array.isArray(response.data) ? response.data : response.data.data || [],
       );
     } catch (error) {
-      console.error("Failed to fetch locations:", error);
+      logError("tickets.create.fetchLocations", error);
     } finally {
       setLocationsLoading(false);
     }
@@ -108,16 +152,22 @@ export default function RaiseTicketPage() {
       },
     );
 
-    console.log(
-      "UPLOAD RESPONSE:",
-      response.data,
-    );
+    // Defensive: backend wraps in { data: { url } }, but tolerate both shapes
+    // (and a future bare-string url) so a shape change doesn't crash the form.
+    const rawData = response.data;
+    const inner = (rawData && (rawData.data ?? rawData)) || {};
+    const uploadedUrl: string | undefined =
+      typeof inner === "string" ? inner : inner.url ?? inner.path;
 
-    setImageUrl(response.data.data.url);
+    if (!uploadedUrl) {
+      throw new Error("Upload succeeded but server returned no URL");
+    }
+
+    setImageUrl(uploadedUrl);
 
     alert("Image uploaded successfully");
   } catch (error) {
-    console.error(error);
+    logError("tickets.create.upload", error);
 
     alert("Failed to upload image");
   } finally {
@@ -218,8 +268,17 @@ export default function RaiseTicketPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!description.trim()) {
-      alert("Please describe the issue.");
+    // Trim and drop empty rows. At least one valid description required.
+    const cleanItems = items
+      .map((it) => ({
+        description: it.description.trim(),
+        priority: it.priority,
+        imageUrl: it.imageUrl?.trim() || undefined,
+      }))
+      .filter((it) => it.description.length > 0);
+
+    if (cleanItems.length === 0) {
+      alert("Please describe at least one issue.");
       return;
     }
 
@@ -230,9 +289,13 @@ export default function RaiseTicketPage() {
       await axios.post(
         `${API_URL}/api/complaints`,
         {
-          description,
-          priority,
-          imageUrl,
+          // Legacy fields populated from the first item so older readers
+          // keep working — backend mirrors these onto the parent row.
+          description: cleanItems[0].description,
+          priority: cleanItems[0].priority,
+          imageUrl: cleanItems[0].imageUrl,
+          // New multi-item payload — backend will fan these out into rows.
+          items: cleanItems,
           locationType: locationPath,
           subLocation: selectedPath[selectedPath.length - 1],
         },
@@ -243,13 +306,55 @@ export default function RaiseTicketPage() {
         },
       );
 
-      setImageUrl("");
+      setItems([newIssue()]);
       router.push("../tickets");
     } catch (error) {
-      console.error("Failed to submit complaint:", error);
+      logError("tickets.create.submit", error);
       alert("Failed to register complaint. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  /* PER-ITEM IMAGE UPLOAD */
+  const handleItemImageUpload = async (
+    itemId: string,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      updateItem(itemId, { uploading: true });
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await axios.post(
+        `${API_URL}/api/uploads/image`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      const rawData = response.data;
+      const inner = (rawData && (rawData.data ?? rawData)) || {};
+      const uploadedUrl: string | undefined =
+        typeof inner === "string" ? inner : inner.url ?? inner.path;
+
+      if (!uploadedUrl) {
+        throw new Error("Upload succeeded but server returned no URL");
+      }
+
+      updateItem(itemId, { imageUrl: uploadedUrl, uploading: false });
+    } catch (error) {
+      logError("tickets.create.itemUpload", error);
+      updateItem(itemId, { uploading: false });
+      alert("Failed to upload image");
     }
   };
 
@@ -555,20 +660,20 @@ export default function RaiseTicketPage() {
               /* ================== STEP 2: DETAILS ================== */
               <form
                 onSubmit={handleSubmit}
-                className="space-y-8 flex-1 flex flex-col justify-between animate-in fade-in duration-200"
+                className="space-y-6 flex-1 flex flex-col justify-between animate-in fade-in duration-200"
               >
                 <div className="space-y-6">
                   {/* Context Path Summary */}
                   <div className="bg-primary/[0.02] dark:bg-primary/[0.005] border border-primary/10 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-300">
                     <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <MapPin className="size-5 text-primary" />
+                      <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <MapPin className="size-4 text-primary" />
                       </div>
                       <div>
                         <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                           Target Location
                         </span>
-                        <p className="text-sm font-bold text-foreground mt-0.5">
+                        <p className="text-xs font-bold text-foreground mt-0.5">
                           {locationPath}
                         </p>
                       </div>
@@ -583,151 +688,152 @@ export default function RaiseTicketPage() {
                     </Button>
                   </div>
 
-                  {/* Issue description field */}
-                  <div className="space-y-2">
-                    <Label>Issue Summary</Label>
-                    <Textarea
-                      id="issue-description"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      required
-                      placeholder="Please clearly describe the issue (e.g. AC leaking in room 202, leaking pipe under bathroom sink, broken lock etc.)"
-                      className="min-h-[110px] rounded-xl border-border/80 focus-visible:ring-primary focus-visible:border-primary text-xs p-4 leading-relaxed transition-all"
-                    />
-                  </div>
+                  {/* Multi-item issues list. Each row is one complaint inside
+                     this single ticket. Add/remove rows freely. */}
                   <div className="space-y-4">
-  <Label className="text-base font-semibold">
-    Complaint Image (Optional)
-  </Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold">
+                        Issues ({items.length})
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addItem}
+                        className="gap-1.5 h-8 text-xs"
+                      >
+                        <Plus className="size-3.5" />
+                        Add Another Issue
+                      </Button>
+                    </div>
 
-  <div className="border-2 border-dashed rounded-xl p-6 text-center bg-muted/20">
-    <input
-      id="complaint-image"
-      type="file"
-      accept="image/*"
-      onChange={handleImageUpload}
-      className="hidden"
-    />
+                    {items.map((it, idx) => (
+                      <div
+                        key={it.id}
+                        className="rounded-xl border border-border/70 bg-card p-4 space-y-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Issue {idx + 1}
+                          </span>
+                          {items.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeItem(it.id)}
+                              className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-7 px-2 gap-1"
+                            >
+                              <Undo className="size-3.5" />
+                              Remove
+                            </Button>
+                          )}
+                        </div>
 
-    <label
-      htmlFor="complaint-image"
-      className="cursor-pointer flex flex-col items-center gap-3"
-    >
-      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-        <Upload className="h-6 w-6" />
-      </div>
+                        {/* Description */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Description</Label>
+                          <Textarea
+                            value={it.description}
+                            onChange={(e) =>
+                              updateItem(it.id, { description: e.target.value })
+                            }
+                            placeholder="e.g. AC leaking in room 202, tap broken, lock stuck etc."
+                            className="min-h-[90px] rounded-lg border-border/80 focus-visible:ring-primary focus-visible:border-primary text-xs p-3 leading-relaxed"
+                          />
+                        </div>
 
-      <div>
-        <p className="font-medium">
-          Click to upload image
-        </p>
+                        {/* Priority cards (compact) */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Priority</Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {priorities.map((p) => {
+                              const isSelected = it.priority === p.value;
+                              const Icon = p.icon;
+                              return (
+                                <button
+                                  key={p.value}
+                                  type="button"
+                                  onClick={() =>
+                                    updateItem(it.id, { priority: p.value })
+                                  }
+                                  className={`flex items-center gap-2 p-2.5 rounded-lg border text-left transition-all ${
+                                    isSelected
+                                      ? p.activeBgClass +
+                                        " shadow-sm ring-1 ring-primary/10"
+                                      : "border-border bg-card hover:bg-muted/30"
+                                  }`}
+                                >
+                                  <div
+                                    className={`size-6 rounded-md flex items-center justify-center ${
+                                      isSelected
+                                        ? "bg-card shadow-sm border"
+                                        : "bg-muted"
+                                    }`}
+                                  >
+                                    <Icon className={`size-3.5 ${p.colorClass}`} />
+                                  </div>
+                                  <span className="text-[11px] font-semibold text-foreground">
+                                    {p.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
 
-        <p className="text-sm text-muted-foreground">
-          PNG, JPG, WEBP up to 5MB
-        </p>
-      </div>
-    </label>
-  </div>
-
-  {uploading && (
-    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-      <p className="text-sm text-blue-700">
-        Uploading image...
-      </p>
-    </div>
-  )}
-
-  {imageUrl && (
-    <div className="space-y-4">
-      <div className="rounded-xl overflow-hidden border">
-        <img
-          src={imageUrl}
-          alt="Preview"
-          className="w-full max-h-80 object-cover"
-        />
-      </div>
-
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() =>
-            document
-              .getElementById("complaint-image")
-              ?.click()
-          }
-        >
-          Update Image
-        </Button>
-
-        <Button
-          type="button"
-          variant="destructive"
-          onClick={() => setImageUrl("")}
-        >
-          Remove Image
-        </Button>
-      </div>
-    </div>
-  )}
-</div>
-
-                  {/* Custom priority radio cards */}
-                  <div className="space-y-3">
-                    <Label>Priority</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {priorities.map((item) => {
-                        const isSelected = priority === item.value;
-                        const Icon = item.icon;
-                        return (
-                          <button
-                            key={item.value}
-                            type="button"
-                            onClick={() => setPriority(item.value)}
-                            className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-200 relative overflow-hidden group ${
-                              isSelected
-                                ? item.activeBgClass +
-                                  " shadow-sm ring-1 ring-primary/10"
-                                : "border-border bg-card text-foreground hover:border-border-hover hover:bg-muted/30"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 w-full">
-                              <div
-                                className={`size-8 rounded-lg flex items-center justify-center transition-colors ${
-                                  isSelected
-                                    ? "bg-card shadow-sm border"
-                                    : "bg-muted"
-                                }`}
+                        {/* Per-item image upload */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Image (optional)</Label>
+                          {!it.imageUrl ? (
+                            <div className="border-2 border-dashed rounded-lg p-4 text-center bg-muted/10">
+                              <input
+                                id={`item-image-${it.id}`}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) =>
+                                  handleItemImageUpload(it.id, e)
+                                }
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`item-image-${it.id}`}
+                                className="cursor-pointer inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"
                               >
-                                <Icon
-                                  className={`size-4.5 ${item.colorClass}`}
+                                <Upload className="size-3.5" />
+                                {it.uploading ? "Uploading..." : "Upload image"}
+                              </label>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="rounded-lg overflow-hidden border">
+                                <img
+                                  src={it.imageUrl}
+                                  alt="Preview"
+                                  className="w-full max-h-56 object-cover"
                                 />
                               </div>
-                              <span className="text-xs font-bold text-foreground">
-                                {item.label}
-                              </span>
-
-                              <div className="ml-auto flex items-center gap-2">
-                                {isSelected && (
-                                  <div className="size-4.5 rounded-full bg-primary flex items-center justify-center text-white animate-in zoom-in duration-200">
-                                    <Check className="size-2.5 stroke-[3]" />
-                                  </div>
-                                )}
-                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  updateItem(it.id, { imageUrl: "" })
+                                }
+                                className="text-xs text-rose-600 hover:bg-rose-50 h-7 px-2"
+                              >
+                                Remove image
+                              </Button>
                             </div>
-
-                            <p className="text-[11px] text-muted-foreground mt-2.5 leading-relaxed">
-                              {item.description}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="flex items-center justify-between pt-6 border-t border-border/80 mt-10">
+                <div className="flex items-center justify-between pt-5 border-t border-border/80 mt-6">
                   <Button
                     type="button"
                     variant="outline"
@@ -750,8 +856,8 @@ export default function RaiseTicketPage() {
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="size-4" />
-                        Register Complaint
+                        <Check className="size-4" />
+                        Submit Ticket
                       </>
                     )}
                   </Button>
@@ -763,4 +869,19 @@ export default function RaiseTicketPage() {
       </div>
     </DashboardLayout>
   );
+}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+  );
+}
 }

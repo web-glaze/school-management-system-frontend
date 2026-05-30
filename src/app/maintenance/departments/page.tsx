@@ -1,4 +1,6 @@
 "use client";
+import { logError } from "@/lib/api-helpers";
+
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +91,7 @@ export default function DepartmentPage() {
         Array.isArray(response.data) ? response.data : response.data.data || [],
       );
     } catch (error) {
-      console.log(error);
+      logError("departments.page", error);
     } finally {
       setLoading(false);
     }
@@ -127,7 +129,7 @@ export default function DepartmentPage() {
 
       setOpen(false);
     } catch (error) {
-      console.log(error);
+      logError("departments.page", error);
 
       setLoading(false);
     }
@@ -167,7 +169,7 @@ export default function DepartmentPage() {
       setEditingDepartment(null);
       setEditName("");
     } catch (error) {
-      console.log(error);
+      logError("departments.page", error);
     } finally {
       setLoading(false);
     }
@@ -188,7 +190,7 @@ export default function DepartmentPage() {
 
       await fetchDepartments();
     } catch (error) {
-      console.log(error);
+      logError("departments.page", error);
 
       setLoading(false);
     } finally {

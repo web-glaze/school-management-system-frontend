@@ -1,4 +1,6 @@
 "use client";
+import { logError } from "@/lib/api-helpers";
+
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -81,7 +83,7 @@ export default function LocationPage() {
         Array.isArray(response.data) ? response.data : response.data.data || [],
       );
     } catch (error) {
-      console.log(error);
+      logError("location.page", error);
     } finally {
       setLoading(false);
     }
@@ -115,7 +117,7 @@ export default function LocationPage() {
 
       fetchLocations();
     } catch (error) {
-      console.log(error);
+      logError("location.page", error);
     }
   };
 
@@ -132,7 +134,7 @@ export default function LocationPage() {
 
       fetchLocations();
     } catch (error) {
-      console.log(error);
+      logError("location.page", error);
     }
   };
 
