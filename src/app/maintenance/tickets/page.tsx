@@ -20,6 +20,7 @@ import {
   XCircle,
   Calendar,
   Plus,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -128,11 +129,11 @@ export default function ComplaintsPage() {
     const filtered = complaints.filter((complaint) => {
       const matchesSearch =
         complaint.description
-          
+
           .slice(0, 60)
-          
+
           .toLowerCase()
-          
+
           .includes(search.toLowerCase()) ||
         complaint.description.toLowerCase().includes(search.toLowerCase()) ||
         complaint.locationType.toLowerCase().includes(search.toLowerCase()) ||
@@ -154,7 +155,9 @@ export default function ComplaintsPage() {
         );
       }
       if (sortBy === "OLDEST") {
-        return new Date(a.createdAt).getTime() - new Date(b.At).getTime();
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       }
 
       const getPriorityWeight = (priority: string) => {
@@ -667,16 +670,14 @@ export default function ComplaintsPage() {
 
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top">
-                          <Link
-                            href={`/maintenance/tickets/ticket-management/${complaint.id}`}
-                          >
+                          <Link href={`/maintenance/tickets/${complaint.id}`}>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                              title="View Complaint"
+                              title="View Tickets"
                             >
-                              <Eye className="size-5" />
+                              <Pencil className="size-5" />
                             </Button>
                           </Link>
 
@@ -685,7 +686,7 @@ export default function ComplaintsPage() {
                             size="icon"
                             onClick={() => deleteComplaint(complaint.id)}
                             className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                            title="Delete Complaint"
+                            title="Delete Tickets"
                           >
                             <Trash2 className="size-5" />
                           </Button>

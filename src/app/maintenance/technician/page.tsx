@@ -62,6 +62,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -206,7 +207,9 @@ export default function TechnicianPage() {
     } catch (error) {
       console.log(error);
 
-      alert("Failed to add technician");
+      toast.error("Failed to add technician");
+    } finally {
+      toast.success("Technician added successfully!");
     }
   };
 
@@ -277,6 +280,8 @@ export default function TechnicianPage() {
       console.log(error);
     } finally {
       setDeletingId(null);
+
+      toast.success("Technician deleted successfully!");
     }
   };
 
@@ -528,7 +533,7 @@ export default function TechnicianPage() {
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
                             <span className="text-base">
-                             {new Date(technician.createdAt).toLocaleString(
+                              {new Date(technician.createdAt).toLocaleString(
                                 "en-IN",
                                 {
                                   day: "2-digit",

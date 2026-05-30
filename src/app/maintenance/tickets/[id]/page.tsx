@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -194,13 +195,13 @@ export default function TicketManagementPage() {
         );
       }
 
-      alert("Ticket Updated Successfully");
+      toast.success("Ticket Updated Successfully");
 
       fetchData();
     } catch (error) {
       console.log(error);
 
-      alert("Failed To Update Ticket");
+      toast.error("Failed To Update Ticket");
     } finally {
       setSaving(false);
     }
