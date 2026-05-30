@@ -120,7 +120,8 @@ export default function ComplaintsPage() {
 
   // Reset page when filters, sorting or page size changes
   useEffect(() => {
-    setCurrentPage(1);
+    setTimeout(()=>{
+    setCurrentPage(1);},0);
   }, [search, statusFilter, sortBy, pageSize]);
 
   // Client side filtration and sorting
@@ -154,7 +155,7 @@ export default function ComplaintsPage() {
         );
       }
       if (sortBy === "OLDEST") {
-        return new Date(a.createdAt).getTime() - new Date(b.At).getTime();
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
 
       const getPriorityWeight = (priority: string) => {
@@ -668,7 +669,7 @@ export default function ComplaintsPage() {
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top">
                           <Link
-                            href={`/maintenance/tickets/ticket-management/${complaint.id}`}
+                            href={`/maintenance/tickets/${complaint.id}`}
                           >
                             <Button
                               variant="ghost"

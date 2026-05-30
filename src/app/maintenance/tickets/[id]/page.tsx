@@ -17,6 +17,7 @@ import {
   Ticket,
   User,
   Wrench,
+  Upload,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,8 @@ interface Complaint {
   status: string;
   managerRemark?: string;
   createdAt: string;
+  imageUrl?: string;
+  adminImageUrl?: string;
   user?: {
     email: string;
   };
@@ -70,29 +73,20 @@ interface Complaint {
 
 export default function TicketManagementPage() {
   const params = useParams();
-
   const router = useRouter();
-
   const id = params.id as string;
-
   const [loading, setLoading] = useState(true);
-
   const [saving, setSaving] = useState(false);
-
   const [complaint, setComplaint] = useState<Complaint | null>(null);
-
   const [technicians, setTechnicians] = useState<Technician[]>([]);
-
   const [status, setStatus] = useState("");
-
   const [priority, setPriority] = useState("");
-
   const [technicianId, setTechnicianId] = useState("");
-
+  const [adminImageUrl, setAdminImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const fetchData = async () => {
     try {
       const token = localStorage.getItem("token");
-
       const complaintResponse = await axios.get(
         `${API_URL}/api/complaints/${id}`,
         {
@@ -116,14 +110,11 @@ export default function TicketManagementPage() {
         : technicianResponse.data.data || [];
 
       setComplaint(complaintData);
-
       setTechnicians(technicianData);
-
       setStatus(complaintData.status || "");
-
       setPriority(complaintData.priority || "");
-
       setTechnicianId(complaintData.assignedTechnician?.id || "");
+      setAdminImageUrl(complaintData.adminImageUrl || "");
     } catch (error) {
       console.log(error);
     } finally {
@@ -206,6 +197,58 @@ export default function TicketManagementPage() {
     }
   };
 
+  const handleAdminImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+
+      const token = localStorage.getItem("token");
+
+      const formData = new FormData();
+
+      formData.append("file", file);
+
+      const uploadResponse = await axios.post(
+        `${API_URL}/api/uploads/image`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const imageUrl = uploadResponse.data.data.url;
+
+      await axios.patch(
+        `${API_URL}/api/complaints/${id}/admin-image`,
+        {
+          adminImageUrl: imageUrl,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      setAdminImageUrl(imageUrl);
+
+      alert("Status image uploaded");
+    } catch (error) {
+      console.log(error);
+
+      alert("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (loading || !complaint) {
     return (
       <DashboardLayout>
@@ -258,6 +301,18 @@ export default function TicketManagementPage() {
                     className="mt-2 min-h-[140px]"
                   />
                 </div>
+
+                {complaint.imageUrl && (
+                  <div className="space-y-3">
+                    <Label>User Submitted Image</Label>
+
+                    <img
+                      src={complaint.imageUrl}
+                      alt="Complaint"
+                      className="w-full rounded-xl border max-h-96 object-cover"
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
@@ -319,6 +374,38 @@ export default function TicketManagementPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-4">
+                  <Label>Admin Status Image</Label>
+
+                  <input
+                    id="admin-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAdminImageUpload}
+                    className="hidden"
+                  />
+
+                  <label
+                    htmlFor="admin-image"
+                    className="cursor-pointer border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-3"
+                  >
+                    <Upload className="h-6 w-6" />
+
+                    <span>Upload Status Image</span>
+                  </label>
+
+                  {uploadingImage && (
+                    <p className="text-sm text-blue-600">Uploading...</p>
+                  )}
+
+                  {adminImageUrl && (
+                    <img
+                      src={adminImageUrl}
+                      alt="Admin Update"
+                      className="w-full rounded-xl border max-h-96 object-cover"
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>

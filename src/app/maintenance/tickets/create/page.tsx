@@ -77,7 +77,8 @@ export default function RaiseTicketPage() {
   };
 
   useEffect(() => {
-    fetchLocations();
+    setTimeout( ()=>{
+    fetchLocations();},0);
   }, []);
 
   const handleImageUpload = async (
