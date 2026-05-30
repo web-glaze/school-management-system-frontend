@@ -62,10 +62,10 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
     },
 
     {
-      title: "Complaints",
-      url: "/maintenance/complaints",
+      title: "Tickets",
+      url: "/maintenance/tickets",
       icon: Ticket,
-      isActive: pathname === "/maintenance/complaints",
+      isActive: pathname === "/maintenance/tickets",
     },
 
     {
@@ -98,10 +98,10 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
       isActive: pathname === "/maintenance" || pathname === "/maintenance/",
     },
     {
-      title: "Complaints",
-      url: "/maintenance/complaints",
+      title: "Tickets",
+      url: "/maintenance/tickets",
       icon: Ticket,
-      isActive: pathname === "/maintenance/complaints",
+      isActive: pathname === "/maintenance/tickets",
     },
   ];
 
@@ -129,7 +129,7 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
     user: {
       name: "",
       email: user.mail,
-      avatar:"",
+      avatar: "",
     },
 
     navSingle: navItems,
