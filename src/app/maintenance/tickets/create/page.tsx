@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
+import {Upload,} from "lucide-react";
 
 import {
   Building2,
@@ -42,6 +43,8 @@ export default function RaiseTicketPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(1);
 
   const [description, setDescription] = useState("");
@@ -76,6 +79,50 @@ export default function RaiseTicketPage() {
   useEffect(() => {
     fetchLocations();
   }, []);
+
+  const handleImageUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>,
+) => {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  try {
+    setUploading(true);
+
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await axios.post(
+      `${API_URL}/api/uploads/image`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    console.log(
+      "UPLOAD RESPONSE:",
+      response.data,
+    );
+
+    setImageUrl(response.data.data.url);
+
+    alert("Image uploaded successfully");
+  } catch (error) {
+    console.error(error);
+
+    alert("Failed to upload image");
+  } finally {
+    setUploading(false);
+  }
+};
 
   /* COMPUTE ACTIVE VISIBLE OPTIONS */
   const optionsToDisplay = useMemo(() => {
@@ -184,6 +231,7 @@ export default function RaiseTicketPage() {
         {
           description,
           priority,
+          imageUrl,
           locationType: locationPath,
           subLocation: selectedPath[selectedPath.length - 1],
         },
@@ -194,6 +242,7 @@ export default function RaiseTicketPage() {
         },
       );
 
+      setImageUrl("");
       router.push("../tickets");
     } catch (error) {
       console.error("Failed to submit complaint:", error);
@@ -545,6 +594,82 @@ export default function RaiseTicketPage() {
                       className="min-h-[110px] rounded-xl border-border/80 focus-visible:ring-primary focus-visible:border-primary text-xs p-4 leading-relaxed transition-all"
                     />
                   </div>
+                  <div className="space-y-4">
+  <Label className="text-base font-semibold">
+    Complaint Image (Optional)
+  </Label>
+
+  <div className="border-2 border-dashed rounded-xl p-6 text-center bg-muted/20">
+    <input
+      id="complaint-image"
+      type="file"
+      accept="image/*"
+      onChange={handleImageUpload}
+      className="hidden"
+    />
+
+    <label
+      htmlFor="complaint-image"
+      className="cursor-pointer flex flex-col items-center gap-3"
+    >
+      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+        <Upload className="h-6 w-6" />
+      </div>
+
+      <div>
+        <p className="font-medium">
+          Click to upload image
+        </p>
+
+        <p className="text-sm text-muted-foreground">
+          PNG, JPG, WEBP up to 5MB
+        </p>
+      </div>
+    </label>
+  </div>
+
+  {uploading && (
+    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+      <p className="text-sm text-blue-700">
+        Uploading image...
+      </p>
+    </div>
+  )}
+
+  {imageUrl && (
+    <div className="space-y-4">
+      <div className="rounded-xl overflow-hidden border">
+        <img
+          src={imageUrl}
+          alt="Preview"
+          className="w-full max-h-80 object-cover"
+        />
+      </div>
+
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() =>
+            document
+              .getElementById("complaint-image")
+              ?.click()
+          }
+        >
+          Update Image
+        </Button>
+
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={() => setImageUrl("")}
+        >
+          Remove Image
+        </Button>
+      </div>
+    </div>
+  )}
+</div>
 
                   {/* Custom priority radio cards */}
                   <div className="space-y-3">
