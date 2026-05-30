@@ -41,10 +41,12 @@ import {
   Inbox,
   Loader2,
   MapPin,
+  Pencil,
   Plus,
   Search,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -116,6 +118,8 @@ export default function LocationPage() {
       fetchLocations();
     } catch (error) {
       console.log(error);
+    } finally {
+      toast.success("Location created successfully");
     }
   };
 
@@ -133,6 +137,8 @@ export default function LocationPage() {
       fetchLocations();
     } catch (error) {
       console.log(error);
+    } finally {
+      toast.success("Location deleted successfully");
     }
   };
 
@@ -289,6 +295,54 @@ export default function LocationPage() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 gap-2">
+                      <Pencil className="size-4" />
+                    </Button>
+                  </DialogTrigger>
+
+                  <DialogContent className="sm:max-w-[420px]">
+                    <DialogTitle>Edit Location</DialogTitle>
+                    <DialogDescription>
+                      Edit the location details
+                      <span className="font-bold">{location.name}</span>
+                    </DialogDescription>
+
+                    <div className="space-y-4 py-4">
+                      <Input
+                        placeholder="Sub location name"
+                        value={subLocationMap[location.id] || ""}
+                        onChange={(e) =>
+                          setSubLocationMap((prev) => ({
+                            ...prev,
+                            [location.id]: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <DialogFooter>
+                      <Button
+                        className="gap-2 px-5"
+                        onClick={async () => {
+                          await createLocation(
+                            subLocationMap[location.id],
+                            location.id,
+                          );
+
+                          setSubLocationMap((prev) => ({
+                            ...prev,
+                            [location.id]: "",
+                          }));
+                        }}
+                      >
+                        <Plus className="size-4" />
+                        Update Location
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
 
                 {/* DELETE */}
                 <AlertDialog>
@@ -365,6 +419,90 @@ export default function LocationPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Locations</h1>
+            <p className="text-muted-foreground">Manage and track locations</p>
+          </div>
+          {/* CREATE ROOT */}
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 px-5">
+                <Plus className="size-4" />
+                Add Main Location
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+              <div className="border-b px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <MapPin className="size-5 text-primary" />
+                  </div>
+
+                  <div>
+                    <DialogTitle className="text-lg">
+                      Create Main Location
+                    </DialogTitle>
+
+                    <DialogDescription>
+                      Add a new main campus location
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 p-6">
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="location-name">Location Name</Label>
+
+                    <Input
+                      id="location-name"
+                      placeholder="Main Building, Block A..."
+                      value={rootName}
+                      onChange={(e) => setRootName(e.target.value)}
+                      className="mt-2"
+                    />
+                  </Field>
+                </FieldGroup>
+
+                <DialogFooter className="gap-2">
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+
+                  <Button
+                    className="gap-2 min-w-[130px]"
+                    onClick={async () => {
+                      setLoading(true);
+
+                      await createLocation(rootName);
+
+                      setRootName("");
+
+                      setLoading(false);
+
+                      setOpen(false);
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="size-4" />
+                        Create
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
         {/* TOP BAR */}
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-5">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
@@ -380,85 +518,6 @@ export default function LocationPage() {
                 className="pl-11"
               />
             </div>
-
-            {/* CREATE ROOT */}
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2 px-5">
-                  <Plus className="size-4" />
-                  Add Main Location
-                </Button>
-              </DialogTrigger>
-
-              <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
-                <div className="border-b px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <MapPin className="size-5 text-primary" />
-                    </div>
-
-                    <div>
-                      <DialogTitle className="text-lg">
-                        Create Main Location
-                      </DialogTitle>
-
-                      <DialogDescription>
-                        Add a new main campus location
-                      </DialogDescription>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6 p-6">
-                  <FieldGroup>
-                    <Field>
-                      <Label htmlFor="location-name">Location Name</Label>
-
-                      <Input
-                        id="location-name"
-                        placeholder="Main Building, Block A..."
-                        value={rootName}
-                        onChange={(e) => setRootName(e.target.value)}
-                        className="mt-2"
-                      />
-                    </Field>
-                  </FieldGroup>
-
-                  <DialogFooter className="gap-2">
-                    <DialogClose asChild>
-                      <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-
-                    <Button
-                      className="gap-2 min-w-[130px]"
-                      onClick={async () => {
-                        setLoading(true);
-
-                        await createLocation(rootName);
-
-                        setRootName("");
-
-                        setLoading(false);
-
-                        setOpen(false);
-                      }}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="size-4 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="size-4" />
-                          Create
-                        </>
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
 
           {/* EMPTY */}

@@ -16,10 +16,11 @@ import {
   ChevronsLeft,
   ChevronsRight,
   SlidersHorizontal,
-  Eye,
   XCircle,
   Calendar,
   Plus,
+  Pencil,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,18 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -61,33 +74,22 @@ interface Complaint {
   assignedTechnician?: { id: string; name: string };
 }
 
-interface Technician {
-  id: string;
-  name: string;
-}
-
 export default function ComplaintsPage() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("NEWEST");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      const [complaintsRes, techniciansRes] = await Promise.all([
+      const [complaintsRes] = await Promise.all([
         axios.get(`${API_URL}/api/complaints`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }),
-
-        axios.get(`${API_URL}/api/technicians`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -98,12 +100,6 @@ export default function ComplaintsPage() {
         Array.isArray(complaintsRes.data)
           ? complaintsRes.data
           : complaintsRes.data.data || [],
-      );
-
-      setTechnicians(
-        Array.isArray(techniciansRes.data)
-          ? techniciansRes.data
-          : techniciansRes.data.data || [],
       );
     } catch (error) {
       console.log(error);
@@ -120,8 +116,9 @@ export default function ComplaintsPage() {
 
   // Reset page when filters, sorting or page size changes
   useEffect(() => {
-    setTimeout(()=>{
-    setCurrentPage(1);},0);
+    setTimeout(() => {
+    setCurrentPage(1);
+    },0);
   }, [search, statusFilter, sortBy, pageSize]);
 
   // Client side filtration and sorting
@@ -129,11 +126,11 @@ export default function ComplaintsPage() {
     const filtered = complaints.filter((complaint) => {
       const matchesSearch =
         complaint.description
-          
+
           .slice(0, 60)
-          
+
           .toLowerCase()
-          
+
           .includes(search.toLowerCase()) ||
         complaint.description.toLowerCase().includes(search.toLowerCase()) ||
         complaint.locationType.toLowerCase().includes(search.toLowerCase()) ||
@@ -155,23 +152,10 @@ export default function ComplaintsPage() {
         );
       }
       if (sortBy === "OLDEST") {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       }
-
-      const getPriorityWeight = (priority: string) => {
-        switch (priority) {
-          case "URGENT":
-            return 4;
-          case "HIGH":
-            return 3;
-          case "MEDIUM":
-            return 2;
-          case "LOW":
-            return 1;
-          default:
-            return 0;
-        }
-      };
 
       return 0;
     });
@@ -186,75 +170,6 @@ export default function ComplaintsPage() {
   const totalPages =
     Math.ceil(filteredAndSortedComplaints.length / pageSize) || 1;
 
-  const updateStatus = async (complaintId: string, status: string) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.patch(
-        `${API_URL}/api/complaints/${complaintId}/status`,
-        {
-          status,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      fetchData();
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const updatePriority = async (complaintId: string, priority: string) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.patch(
-        `${API_URL}/api/complaints/${complaintId}/priority`,
-        {
-          priority,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      fetchData();
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const assignTechnician = async (
-    complaintId: string,
-    technicianId: string,
-  ) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.patch(
-        `${API_URL}/api/complaints/${complaintId}/assign`,
-        {
-          technicianId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      fetchData();
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
   const deleteComplaint = async (complaintId: string) => {
     try {
       const token = localStorage.getItem("token");
@@ -268,6 +183,8 @@ export default function ComplaintsPage() {
       fetchData();
     } catch (error) {
       console.log(error);
+    } finally {
+      toast.success("Ticket deleted successfully");
     }
   };
 
@@ -568,7 +485,7 @@ export default function ComplaintsPage() {
                         <TableCell className="py-4 pl-6 align-top">
                           <div className="space-y-1 max-w-[20px]">
                             <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              1
+                              {complaint.ticketCode}
                             </p>
                           </div>
                         </TableCell>
@@ -668,6 +585,7 @@ export default function ComplaintsPage() {
 
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top">
+
                           <Link
                             href={`/maintenance/tickets/${complaint.ticketCode}`}
                           >
@@ -675,21 +593,70 @@ export default function ComplaintsPage() {
                               variant="ghost"
                               size="icon"
                               className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                              title="View Complaint"
+                              title="View Tickets"
                             >
-                              <Eye className="size-5" />
+                              <Pencil className="size-5" />
                             </Button>
                           </Link>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                title="Delete Technician"
+                              >
+                                <Trash2 className="size-5" />
+                              </Button>
+                            </AlertDialogTrigger>
 
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteComplaint(complaint.ticketCode)}
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                            title="Delete Complaint"
-                          >
-                            <Trash2 className="size-5" />
-                          </Button>
+
+                            <AlertDialogContent className="sm:max-w-[420px]">
+                              <AlertDialogHeader>
+                                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+                                  <Trash2 className="size-6 text-destructive" />
+                                </div>
+
+                                <AlertDialogTitle className="w-full text-center text-xl">
+                                  Delete Ticket?
+                                </AlertDialogTitle>
+
+                                <AlertDialogDescription className="text-center">
+                                  This action cannot be undone. This will
+                                  permanently remove
+                                  <span className="font-semibold text-foreground">
+                                    {" "}
+                                    {complaint.title}
+                                  </span>
+                                  .
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+
+                              <AlertDialogFooter className="mt-4">
+                                <AlertDialogCancel className="h-11">
+                                  Cancel
+                                </AlertDialogCancel>
+
+                                <AlertDialogAction
+                                  onClick={() => deleteComplaint(complaint.ticketCode)}
+                                  disabled={deletingId === complaint.ticketCode}
+                                  className="h-11 bg-destructive text-white hover:bg-destructive/90"
+                                >
+                                  {deletingId === complaint.ticketCode ? (
+                                    <>
+                                      <Loader2 className="mr-2 size-4 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="mr-2 size-4" />
+                                      Delete Ticket
+                                    </>
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     );

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/field";
 
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -68,7 +69,6 @@ export function LoginForm({
         }),
       );
 
-
       // EVERYONE GOES HERE
       router.push("/dashboard");
     } catch (error: unknown) {
@@ -80,18 +80,18 @@ export function LoginForm({
 
       if (typeof message === "string") {
         if (message.toLowerCase().includes("password")) {
-          alert("Invalid Password");
+          toast.error("Invalid Password");
         } else if (
           message.toLowerCase().includes("credential") ||
           message.toLowerCase().includes("user") ||
           message.toLowerCase().includes("email")
         ) {
-          alert("Invalid Credentials");
+          toast.error("Invalid Credentials");
         } else {
-          alert(message);
+          toast.error(message);
         }
       } else {
-        alert("Login Failed");
+        toast.error("Login Failed");
       }
     } finally {
       setLoading(false);

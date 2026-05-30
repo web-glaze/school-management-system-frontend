@@ -49,6 +49,8 @@ import {
 
 import { useEffect, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
+import Link from "next/link";
+import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -167,6 +169,7 @@ export default function DepartmentPage() {
       console.log(error);
     } finally {
       setLoading(false);
+      toast.success("Department updated successfully");
     }
   };
 
@@ -201,6 +204,82 @@ export default function DepartmentPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Departments</h1>
+            <p className="text-muted-foreground">
+              Manage and track departments
+            </p>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 px-5">
+                <Plus className="size-4" />
+                Add Department
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+              <div className="border-b px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Building2 className="size-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg">
+                      Create Department
+                    </DialogTitle>
+                    <DialogDescription>
+                      Add a new maintenance department
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={createDepartment} className="space-y-6 p-6">
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="department-name">Department Name</Label>
+                    <Input
+                      id="department-name"
+                      placeholder="Electrical, Plumbing, IT..."
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      className="mt-2"
+                    />
+                  </Field>
+                </FieldGroup>
+
+                <DialogFooter className="gap-2">
+                  <DialogClose asChild>
+                    <Button variant="outline" type="button">
+                      Cancel
+                    </Button>
+                  </DialogClose>
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="min-w-[130px] gap-2 px-5"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="size-4" />
+                        Create
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="relative w-full lg:w-[350px] group">
@@ -212,76 +291,6 @@ export default function DepartmentPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-11"
               />
-            </div>
-            <div>
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2 px-5">
-                    <Plus className="size-4" />
-                    Add Department
-                  </Button>
-                </DialogTrigger>
-
-                <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
-                  <div className="border-b px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Building2 className="size-5 text-primary" />
-                      </div>
-                      <div>
-                        <DialogTitle className="text-lg">
-                          Create Department
-                        </DialogTitle>
-                        <DialogDescription>
-                          Add a new maintenance department
-                        </DialogDescription>
-                      </div>
-                    </div>
-                  </div>
-
-                  <form onSubmit={createDepartment} className="space-y-6 p-6">
-                    <FieldGroup>
-                      <Field>
-                        <Label htmlFor="department-name">Department Name</Label>
-                        <Input
-                          id="department-name"
-                          placeholder="Electrical, Plumbing, IT..."
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                          className="mt-2"
-                        />
-                      </Field>
-                    </FieldGroup>
-
-                    <DialogFooter className="gap-2">
-                      <DialogClose asChild>
-                        <Button variant="outline" type="button">
-                          Cancel
-                        </Button>
-                      </DialogClose>
-
-                      <Button
-                        type="submit"
-                        disabled={loading}
-                        className="min-w-[130px] gap-2 px-5"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" />
-                            Creating...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="size-4" />
-                            Create
-                          </>
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
             </div>
           </div>
           {loading ? (
