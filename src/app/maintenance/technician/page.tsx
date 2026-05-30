@@ -1,7 +1,6 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,7 +18,6 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -38,10 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import {
-  Building2,
   Calendar,
-  Eye,
-  Inbox,
   Loader2,
   Pencil,
   Plus,
@@ -73,7 +68,7 @@ interface Department {
 
 interface Technician {
   id: string;
-  code: string;
+  technicianCode: string;
   name: string;
   phone?: string;
   isActive: boolean;
@@ -82,6 +77,7 @@ interface Technician {
     id: string;
     name: string;
     departmentCode?: string;
+    
   };
 }
 
@@ -164,7 +160,7 @@ export default function TechnicianPage() {
     const filtered = technicians.filter((technician) =>
       [
         technician.name,
-        technician.code,
+        
         technician.phone,
         technician.department?.name,
       ]
@@ -487,9 +483,9 @@ export default function TechnicianPage() {
                         className="hover:bg-muted/20 transition-colors"
                       >
                         <TableCell className="py-4 pl-6 align-top">
-                          <div className="space-y-1 max-w-[100px]">
+                          <div className="space-y-1 max-w-[20px]">
                             <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              {technician.code || "-"}
+                              {technician.technicianCode}
                             </p>
                           </div>
                         </TableCell>
@@ -528,7 +524,7 @@ export default function TechnicianPage() {
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
                             <span className="text-base">
-                             {new Date(technician.createdAt).toLocaleString(
+                              {new Date(technician.createdAt).toLocaleString(
                                 "en-IN",
                                 {
                                   day: "2-digit",

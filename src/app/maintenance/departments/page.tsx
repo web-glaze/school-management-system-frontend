@@ -1,7 +1,6 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,7 +18,6 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -41,7 +39,6 @@ import axios from "axios";
 import {
   Building2,
   Calendar,
-  Eye,
   Inbox,
   Loader2,
   Pencil,

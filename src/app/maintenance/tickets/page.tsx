@@ -48,7 +48,7 @@ import Link from "next/link";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Complaint {
-  id: string;
+  ticketCode: string;
   title: string;
   description: string;
   locationType: string;
@@ -562,7 +562,7 @@ export default function ComplaintsPage() {
 
                     return (
                       <TableRow
-                        key={complaint.id}
+                        key={complaint.ticketCode}
                         className="hover:bg-muted/20 transition-colors"
                       >
                         <TableCell className="py-4 pl-6 align-top">
@@ -669,7 +669,7 @@ export default function ComplaintsPage() {
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top">
                           <Link
-                            href={`/maintenance/tickets/${complaint.id}`}
+                            href={`/maintenance/tickets/${complaint.ticketCode}`}
                           >
                             <Button
                               variant="ghost"
@@ -684,7 +684,7 @@ export default function ComplaintsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => deleteComplaint(complaint.id)}
+                            onClick={() => deleteComplaint(complaint.ticketCode)}
                             className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
                             title="Delete Complaint"
                           >
