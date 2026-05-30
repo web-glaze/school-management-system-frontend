@@ -341,7 +341,7 @@ function Stat({
         {label}
       </p>
       <h2
-        className={`text-xl sm:text-2xl lg:text-3xl font-extrabold mt-1 tracking-tight ${color}`}
+        className={`text-xl sm:text-2xl font-extrabold mt-1 tracking-tight ${color}`}
       >
         {value}
       </h2>
@@ -433,7 +433,7 @@ function DetailPanel({
 
         <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
           <div>
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-800">
+            <h3 className="text-base sm:text-lg font-bold text-gray-800">
               {complaint.title}
             </h3>
             <p className="text-sm sm:text-base text-gray-600 mt-2">

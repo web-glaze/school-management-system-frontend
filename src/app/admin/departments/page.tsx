@@ -120,7 +120,7 @@ export default function DepartmentsPage() {
             onSubmit={handleCreate}
             className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100 space-y-6"
           >
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-base font-bold text-gray-800">
               New Department
             </h2>
             <div className="grid md:grid-cols-2 gap-5">
@@ -178,7 +178,7 @@ export default function DepartmentsPage() {
 
         {/* List */}
         <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          <h2 className="text-base font-bold text-gray-800 mb-4">
             All Departments{" "}
             <span className="text-base font-normal text-gray-500">
               ({departments.length})

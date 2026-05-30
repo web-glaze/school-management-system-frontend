@@ -500,7 +500,7 @@ function KpiCard({
         {loading ? (
           <div className="h-7 sm:h-8 w-12 sm:w-14 skeleton bg-gray-100" />
         ) : (
-          <h3 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
             {value}
           </h3>
         )}

@@ -198,7 +198,7 @@ export default function RolesPermissionsPage() {
             onSubmit={handleCreate}
             className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100 space-y-6"
           >
-            <h2 className="text-2xl font-bold text-gray-800">Create New Role</h2>
+            <h2 className="text-base font-bold text-gray-800">Create New Role</h2>
             <div className="grid md:grid-cols-2 gap-5">
               <div>
                 <label className="block mb-3 text-sm font-semibold text-gray-700">
@@ -254,7 +254,7 @@ export default function RolesPermissionsPage() {
 
         {/* Roles list */}
         <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          <h2 className="text-base font-bold text-gray-800 mb-4">
             All Roles{" "}
             <span className="text-base font-normal text-gray-500">
               ({roles.length})
@@ -326,7 +326,7 @@ export default function RolesPermissionsPage() {
           >
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
               <div>
-                <h3 className="text-2xl font-bold text-gray-800">
+                <h3 className="text-lg font-bold text-gray-800">
                   {editingRole.name}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">

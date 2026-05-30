@@ -141,7 +141,7 @@ export default function TechniciansPage() {
             onSubmit={handleCreate}
             className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100 space-y-6"
           >
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-base font-bold text-gray-800">
               New Technician
             </h2>
             <div className="grid md:grid-cols-3 gap-5">
@@ -220,7 +220,7 @@ export default function TechniciansPage() {
 
         <div className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-base font-bold text-gray-800">
               All Technicians{" "}
               <span className="text-base font-normal text-gray-500">
                 ({technicians.length})

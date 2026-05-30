@@ -7,6 +7,7 @@ import api from "@/lib/axios";
 
 import { PhotoUpload, type UploadedFile } from "@/components/PhotoUpload";
 import { useComplaintsStore } from "@/store/complaints-store";
+import { detectDepartment } from "@/lib/department-detector";
 
 import { useRouter } from "next/navigation";
 
@@ -95,6 +96,85 @@ export default function RaiseTicketPage() {
       ? FALLBACK[locationType as keyof typeof FALLBACK]
       : [];
 
+  // ── Quick templates ──────────────────────────────────────
+  // One-click fill for common school maintenance issues.
+  // Smart: auto-detects priority based on issue severity.
+  const TEMPLATES: Array<{
+    label: string;
+    icon: string;
+    title: string;
+    description: string;
+    priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  }> = [
+    {
+      label: "AC not working",
+      icon: "❄️",
+      title: "AC not working",
+      description:
+        "Air conditioner is not cooling / not turning on. Please check and fix.",
+      priority: "MEDIUM",
+    },
+    {
+      label: "Water leakage",
+      icon: "💧",
+      title: "Water leakage",
+      description:
+        "Water leaking from pipe / tap / ceiling. May cause damage if not fixed soon.",
+      priority: "HIGH",
+    },
+    {
+      label: "Electrical issue",
+      icon: "⚡",
+      title: "Electrical fault",
+      description:
+        "Electrical problem — switch / socket / wiring issue. May be dangerous.",
+      priority: "HIGH",
+    },
+    {
+      label: "Fan broken",
+      icon: "🌀",
+      title: "Fan not working",
+      description: "Ceiling / table fan is not working or making noise.",
+      priority: "MEDIUM",
+    },
+    {
+      label: "Tube light",
+      icon: "💡",
+      title: "Tube light / bulb fused",
+      description: "Light is not working — needs replacement.",
+      priority: "LOW",
+    },
+    {
+      label: "WiFi down",
+      icon: "📶",
+      title: "WiFi / internet not working",
+      description: "Network connectivity issue in this location.",
+      priority: "MEDIUM",
+    },
+    {
+      label: "Toilet issue",
+      icon: "🚽",
+      title: "Toilet / washroom issue",
+      description: "Toilet flush / drainage / cleanliness issue.",
+      priority: "MEDIUM",
+    },
+    {
+      label: "URGENT — Fire/Gas",
+      icon: "🚨",
+      title: "URGENT — Fire / Gas leak",
+      description:
+        "URGENT: Fire detected / gas leak / smoke. Evacuate area immediately.",
+      priority: "URGENT",
+    },
+  ];
+
+  const applyTemplate = (t: (typeof TEMPLATES)[number]) => {
+    setTitle(t.title);
+    setDescription(t.description);
+    setPriority(t.priority);
+    toast.success(`Template applied: ${t.label}`);
+  };
+
   const isFormValid =
     title &&
     locationType &&
@@ -143,6 +223,12 @@ export default function RaiseTicketPage() {
       return description.length;
     }, [description]);
 
+  /** Smart auto-detection — runs as user types title or description. */
+  const detected = useMemo(
+    () => detectDepartment(`${title} ${description}`),
+    [title, description],
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-5">
@@ -153,6 +239,51 @@ export default function RaiseTicketPage() {
           subtitle="Register maintenance issues quickly and track them in real-time."
           accent="orange"
         />
+
+        {/* Quick templates — one-click fill */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-soft border border-gray-100">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div>
+              <h3 className="text-sm font-bold text-gray-800">
+                Quick Templates
+              </h3>
+              <p className="text-[11px] text-gray-500">
+                Tap to auto-fill title, description &amp; priority. You can
+                still edit before submitting.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.label}
+                type="button"
+                onClick={() => applyTemplate(t)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-[#f8fafc] hover:bg-teal-50 hover:border-teal-300 text-left transition group"
+              >
+                <span className="text-lg flex-shrink-0">{t.icon}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-gray-800 truncate">
+                    {t.label}
+                  </p>
+                  <p
+                    className={`text-[10px] font-bold uppercase tracking-wider ${
+                      t.priority === "URGENT"
+                        ? "text-red-500"
+                        : t.priority === "HIGH"
+                          ? "text-orange-500"
+                          : t.priority === "MEDIUM"
+                            ? "text-amber-500"
+                            : "text-emerald-500"
+                    }`}
+                  >
+                    {t.priority}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Success */}
         {success && (
@@ -328,6 +459,45 @@ export default function RaiseTicketPage() {
                   required
                 />
               </div>
+
+              {/* Smart suggestion — auto-detected department */}
+              {detected && (
+                <div
+                  className={`flex items-start gap-3 p-3 rounded-xl border ${
+                    detected.confidence === "high"
+                      ? "bg-emerald-50 border-emerald-200"
+                      : detected.confidence === "medium"
+                        ? "bg-teal-50 border-teal-200"
+                        : "bg-gray-50 border-gray-200"
+                  }`}
+                >
+                  <span className="text-2xl flex-shrink-0">{detected.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-800">
+                      Auto-detected:{" "}
+                      <span className="text-teal-700">{detected.label}</span>
+                      <span
+                        className={`ml-2 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                          detected.confidence === "high"
+                            ? "bg-emerald-200 text-emerald-800"
+                            : detected.confidence === "medium"
+                              ? "bg-teal-200 text-teal-800"
+                              : "bg-gray-200 text-gray-700"
+                        }`}
+                      >
+                        {detected.confidence} confidence
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-gray-600 mt-0.5">
+                      Will route to <b>{detected.label}</b> department.{" "}
+                      <span className="text-gray-400">
+                        Keywords:{" "}
+                        {detected.matchedKeywords.slice(0, 4).join(", ")}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Photo attachments */}
               <div>

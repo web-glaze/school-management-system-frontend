@@ -30,6 +30,12 @@ export default function LocationsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ name: "", parentId: "" });
 
+  // Bulk add — paste multiple names at once
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkParent, setBulkParent] = useState("");
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
   const fetchData = async () => {
     try {
       const res = await api.get("/api/locations");
@@ -74,6 +80,19 @@ export default function LocationsPage() {
     return roots;
   }, [locations]);
 
+  /** Flatten tree → list of { id, name, fullPath, depth } sorted by hierarchy. */
+  const flatWithPaths = useMemo(() => {
+    type Entry = { id: string; name: string; fullPath: string; depth: number };
+    const out: Entry[] = [];
+    const walk = (n: LocationNode, ancestors: string[]) => {
+      const path = [...ancestors, n.name].join(" → ");
+      out.push({ id: n.id, name: n.name, fullPath: path, depth: n.depth });
+      n.children.forEach((c) => walk(c, [...ancestors, n.name]));
+    };
+    tree.forEach((r) => walk(r, []));
+    return out;
+  }, [tree]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
@@ -97,6 +116,42 @@ export default function LocationsPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  /** Bulk add: paste many names separated by newlines, all become children of selected parent. */
+  const handleBulk = async () => {
+    const names = bulkText
+      .split("\n")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    if (names.length === 0) {
+      toast.error("Paste some names (one per line)");
+      return;
+    }
+
+    setBulkSubmitting(true);
+    let ok = 0;
+    let fail = 0;
+    for (const name of names) {
+      try {
+        await api.post("/api/locations", {
+          name,
+          parentId: bulkParent || null,
+        });
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setBulkSubmitting(false);
+
+    if (ok > 0) toast.success(`Added ${ok} location${ok > 1 ? "s" : ""}`);
+    if (fail > 0) toast.error(`${fail} failed`);
+
+    setBulkText("");
+    setBulkOpen(false);
+    fetchData();
   };
 
   const handleDelete = async (loc: Location) => {
@@ -141,11 +196,18 @@ export default function LocationsPage() {
         {/* Form */}
         <form
           onSubmit={handleCreate}
-          className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100"
+          className="bg-white rounded-2xl p-5 sm:p-6 shadow-soft border border-gray-100"
         >
-          <h2 className="text-xl font-bold text-gray-800 mb-5">
-            Add Location
-          </h2>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h2 className="text-base font-bold text-gray-800">Add Location</h2>
+            <button
+              type="button"
+              onClick={() => setBulkOpen((s) => !s)}
+              className="text-xs font-semibold text-teal-600 hover:text-teal-700"
+            >
+              {bulkOpen ? "✕ Close bulk" : "+ Bulk add (paste list)"}
+            </button>
+          </div>
           <div className="grid md:grid-cols-3 gap-5">
             <div>
               <label className="block mb-2 text-sm font-semibold text-gray-700">
@@ -171,31 +233,94 @@ export default function LocationsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, parentId: e.target.value }))
                 }
-                className="w-full h-12 rounded-2xl border border-gray-200 bg-[#f8fafc] px-4 outline-none focus:border-amber-400"
+                className="w-full h-12 rounded-2xl border border-gray-200 bg-[#f8fafc] px-4 outline-none focus:border-amber-400 text-sm"
               >
-                <option value="">— Top level —</option>
-                {locations.map((l) => (
+                <option value="">— Top level (no parent) —</option>
+                {flatWithPaths.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.name}
+                    {"  ".repeat(l.depth)}
+                    {l.depth > 0 ? "↳ " : "🏢 "}
+                    {l.fullPath}
                   </option>
                 ))}
               </select>
+              {form.parentId && (
+                <p className="text-[11px] text-gray-500 mt-1.5">
+                  Adding inside:{" "}
+                  <span className="font-semibold text-amber-700">
+                    {flatWithPaths.find((l) => l.id === form.parentId)?.fullPath}
+                  </span>
+                </p>
+              )}
             </div>
             <div className="flex items-end">
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full h-12 rounded-2xl bg-gradient-to-r from-amber-600 to-rose-400 text-white font-semibold disabled:opacity-50 shadow-lg"
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold disabled:opacity-50 shadow-md"
               >
                 {submitting ? "Adding..." : "+ Add Location"}
               </button>
             </div>
           </div>
+
+          {/* Bulk add panel — paste multiple names */}
+          {bulkOpen && (
+            <div className="mt-6 pt-5 border-t border-gray-100 space-y-3">
+              <p className="text-xs text-gray-500">
+                💡 Paste multiple names (one per line) — all become children of
+                the selected parent. Fast way to add Room 101–120, etc.
+              </p>
+              <div className="grid md:grid-cols-3 gap-3">
+                <div className="md:col-span-2">
+                  <label className="block mb-1.5 text-xs font-semibold text-gray-700">
+                    Names (one per line) *
+                  </label>
+                  <textarea
+                    value={bulkText}
+                    onChange={(e) => setBulkText(e.target.value)}
+                    placeholder={"Room 101\nRoom 102\nRoom 103\nRoom 104"}
+                    rows={6}
+                    className="w-full rounded-xl border border-gray-200 bg-[#f8fafc] p-3 text-sm font-mono outline-none focus:border-amber-400 resize-none"
+                  />
+                </div>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="block mb-1.5 text-xs font-semibold text-gray-700">
+                      Parent *
+                    </label>
+                    <select
+                      value={bulkParent}
+                      onChange={(e) => setBulkParent(e.target.value)}
+                      className="w-full h-10 rounded-xl border border-gray-200 bg-[#f8fafc] px-3 text-sm outline-none focus:border-amber-400"
+                    >
+                      <option value="">— Top level —</option>
+                      {flatWithPaths.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.fullPath}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleBulk}
+                    disabled={bulkSubmitting}
+                    className="mt-auto h-10 rounded-xl bg-teal-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-teal-700"
+                  >
+                    {bulkSubmitting
+                      ? "Adding..."
+                      : `+ Add All (${bulkText.split("\n").filter((s) => s.trim()).length})`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </form>
 
         {/* Tree */}
         <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          <h2 className="text-base font-bold text-gray-800 mb-4">
             All Locations{" "}
             <span className="text-base font-normal text-gray-500">
               ({locations.length})

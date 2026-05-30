@@ -198,7 +198,7 @@ export default function UsersManagementPage() {
             onSubmit={handleCreate}
             className="bg-white rounded-[2rem] p-8 shadow-lg border border-gray-100 space-y-6"
           >
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-base font-bold text-gray-800">
               Create New User
             </h2>
             <div className="grid md:grid-cols-2 gap-5">
@@ -314,7 +314,7 @@ export default function UsersManagementPage() {
         {/* Table */}
         <div className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-base font-bold text-gray-800">
               All Users{" "}
               <span className="text-base font-normal text-gray-500">
                 ({filtered.length})
@@ -458,7 +458,7 @@ export default function UsersManagementPage() {
             className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-2xl font-bold text-gray-800">Edit Roles</h3>
+            <h3 className="text-lg font-bold text-gray-800">Edit Roles</h3>
             <p className="text-gray-500 mt-2 text-sm">
               {editingUser.email ?? editingUser.phone}
             </p>
