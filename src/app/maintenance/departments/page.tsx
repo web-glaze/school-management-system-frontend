@@ -149,7 +149,7 @@ export default function DepartmentPage() {
 
       const token = localStorage.getItem("token");
 
-      await axios.put(
+      await axios.patch(
         `${API_URL}/api/departments/${editingDepartment.id}`,
         {
           name: editName,
@@ -369,13 +369,16 @@ export default function DepartmentPage() {
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
                             <span className="text-base">
-                              {new Date(
-                                department.createdAt,
-                              ).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "2-digit",
-                              })}
+                              {new Date(department.createdAt).toLocaleString(
+                                "en-IN",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
                             </span>
                           </div>
                         </TableCell>

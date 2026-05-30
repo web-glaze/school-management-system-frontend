@@ -4,11 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 
 import axios from "axios";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -21,53 +17,38 @@ interface Location {
 }
 
 export default function RaiseTicketPage() {
-  const [locations, setLocations] =
-    useState<Location[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
-  const [description, setDescription] =
-    useState("");
+  const [description, setDescription] = useState("");
 
-  const [priority, setPriority] =
-    useState("MEDIUM");
+  const [priority, setPriority] = useState("MEDIUM");
 
-  const [selectedPath, setSelectedPath] =
-    useState<string[]>([]);
+  const [selectedPath, setSelectedPath] = useState<string[]>([]);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [imageUrl, setImageUrl] = useState("");
+
+  const [uploading, setUploading] = useState(false);
 
   /* FETCH LOCATIONS */
-  const fetchLocations =
-    async () => {
-      try {
-        const token =
-          localStorage.getItem(
-            "token"
-          );
+  const fetchLocations = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        const response =
-          await axios.get(
-            `${API_URL}/api/locations`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+      const response = await axios.get(`${API_URL}/api/locations`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        setLocations(
-          Array.isArray(
-            response.data
-          )
-            ? response.data
-            : response.data
-                .data || []
-        );
-
-      } catch (error) {
-        console.log(error);
-      }
-    };
+      setLocations(
+        Array.isArray(response.data) ? response.data : response.data.data || [],
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   useEffect(() => {
     setTimeout(() => {
@@ -76,118 +57,78 @@ export default function RaiseTicketPage() {
   }, []);
 
   /* GET CHILDREN */
-  const getChildren = (
-    parentId: string | null,
-  ) => {
-    return locations.filter(
-      (location) =>
-        location.parentId ===
-        parentId
-    );
+  const getChildren = (parentId: string | null) => {
+    return locations.filter((location) => location.parentId === parentId);
   };
 
   /* ROOT LOCATIONS */
-  const rootLocations =
-    useMemo(() => {
-      return getChildren(null);
-    }, [locations]);
+  const rootLocations = useMemo(() => {
+    return getChildren(null);
+  }, [locations]);
 
   /* SELECT LOCATION */
-  const handleSelect =
-    (
-      level: number,
-      locationId: string,
-    ) => {
-      const updated =
-        selectedPath.slice(
-          0,
-          level,
-        );
+  const handleSelect = (level: number, locationId: string) => {
+    const updated = selectedPath.slice(0, level);
 
-      updated[level] =
-        locationId;
+    updated[level] = locationId;
 
-      setSelectedPath(updated);
-    };
+    setSelectedPath(updated);
+  };
 
   /* BUILD LOCATION PATH */
-  const locationPath =
-    selectedPath
-      .map((id) =>
-        locations.find(
-          (loc) =>
-            loc.id === id,
-        )?.name
-      )
-      .filter(Boolean)
-      .join(" > ");
+  const locationPath = selectedPath
+    .map((id) => locations.find((loc) => loc.id === id)?.name)
+    .filter(Boolean)
+    .join(" > ");
 
   /* SUBMIT */
-  const handleSubmit =
-    async (
-      e: React.FormEvent,
-    ) => {
-      e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const token =
-          localStorage.getItem(
-            "token"
-          );
+      const token = localStorage.getItem("token");
 
-        await axios.post(
-          `${API_URL}/api/complaints`,
-          {
+      await axios.post(
+        `${API_URL}/api/complaints`,
+        {
+          description,
 
-            description,
+          priority,
 
-            priority,
+          imageUrl,
 
-            locationType:
-              locationPath,
+          locationType: locationPath,
 
-            subLocation:
-              selectedPath[
-                selectedPath.length -
-                  1
-              ],
+          subLocation: selectedPath[selectedPath.length - 1],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        },
+      );
 
-        alert(
-          "Complaint registered successfully",
-        );
+      alert("Complaint registered successfully");
 
-        setDescription("");
-        setPriority(
-          "MEDIUM",
-        );
-        setSelectedPath([]);
-
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setDescription("");
+      setPriority("MEDIUM");
+      setSelectedPath([]);
+      setImageUrl("");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-
         {/* Header */}
         <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-10">
-
-          <h1 className="text-5xl font-bold text-gray-800">
-            Raise Ticket
-          </h1>
+          <h1 className="text-5xl font-bold text-gray-800">Raise Ticket</h1>
 
           <p className="mt-4 text-lg text-gray-500">
             Register complaints with structured campus locations.
@@ -196,12 +137,9 @@ export default function RaiseTicketPage() {
 
         {/* Form */}
         <form
-          onSubmit={
-            handleSubmit
-          }
+          onSubmit={handleSubmit}
           className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 space-y-8"
         >
-
           {/* Description */}
           <div>
             <label className="text-lg font-semibold text-gray-700">
@@ -209,14 +147,8 @@ export default function RaiseTicketPage() {
             </label>
 
             <textarea
-              value={
-                description
-              }
-              onChange={(e) =>
-                setDescription(
-                  e.target.value,
-                )
-              }
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               required
               placeholder="Explain the issue clearly..."
               className="mt-3 w-full min-h-[160px] rounded-2xl border border-gray-200 p-5 outline-none focus:border-blue-400"
@@ -231,34 +163,21 @@ export default function RaiseTicketPage() {
 
             <select
               value={priority}
-              onChange={(e) =>
-                setPriority(
-                  e.target.value,
-                )
-              }
+              onChange={(e) => setPriority(e.target.value)}
               className="mt-3 w-full h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
             >
-              <option value="LOW">
-                LOW
-              </option>
+              <option value="LOW">LOW</option>
 
-              <option value="MEDIUM">
-                MEDIUM
-              </option>
+              <option value="MEDIUM">MEDIUM</option>
 
-              <option value="HIGH">
-                HIGH
-              </option>
+              <option value="HIGH">HIGH</option>
 
-              <option value="URGENT">
-                URGENT
-              </option>
+              <option value="URGENT">URGENT</option>
             </select>
           </div>
 
           {/* Dynamic Locations */}
           <div className="space-y-6">
-
             <div>
               <h2 className="text-2xl font-bold text-gray-800">
                 Select Location
@@ -271,118 +190,51 @@ export default function RaiseTicketPage() {
 
             {/* Level Selectors */}
             <div className="space-y-5">
-
               {/* ROOT */}
               <select
-                value={
-                  selectedPath[0] ||
-                  ""
-                }
-                onChange={(e) =>
-                  handleSelect(
-                    0,
-                    e.target.value,
-                  )
-                }
+                value={selectedPath[0] || ""}
+                onChange={(e) => handleSelect(0, e.target.value)}
                 className="w-full h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
               >
-                <option value="">
-                  Select Root Location
-                </option>
+                <option value="">Select Root Location</option>
 
-                {rootLocations.map(
-                  (
-                    location,
-                  ) => (
-                    <option
-                      key={
-                        location.id
-                      }
-                      value={
-                        location.id
-                      }
-                    >
-                      {
-                        location.name
-                      }
-                    </option>
-                  ),
-                )}
+                {rootLocations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
               </select>
 
               {/* DYNAMIC LEVELS */}
-              {selectedPath.map(
-                (
-                  parentId,
-                  index,
-                ) => {
-                  const children =
-                    getChildren(
-                      parentId,
-                    );
+              {selectedPath.map((parentId, index) => {
+                const children = getChildren(parentId);
 
-                  if (
-                    children.length ===
-                    0
-                  ) {
-                    return null;
-                  }
+                if (children.length === 0) {
+                  return null;
+                }
 
-                  return (
-                    <select
-                      key={
-                        parentId
-                      }
-                      value={
-                        selectedPath[
-                          index +
-                            1
-                        ] || ""
-                      }
-                      onChange={(
-                        e,
-                      ) =>
-                        handleSelect(
-                          index +
-                            1,
-                          e.target
-                            .value,
-                        )
-                      }
-                      className="w-full h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
-                    >
-                      <option value="">
-                        Select Sub Location
+                return (
+                  <select
+                    key={parentId}
+                    value={selectedPath[index + 1] || ""}
+                    onChange={(e) => handleSelect(index + 1, e.target.value)}
+                    className="w-full h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
+                  >
+                    <option value="">Select Sub Location</option>
+
+                    {children.map((child) => (
+                      <option key={child.id} value={child.id}>
+                        {child.name}
                       </option>
-
-                      {children.map(
-                        (
-                          child,
-                        ) => (
-                          <option
-                            key={
-                              child.id
-                            }
-                            value={
-                              child.id
-                            }
-                          >
-                            {
-                              child.name
-                            }
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  );
-                },
-              )}
+                    ))}
+                  </select>
+                );
+              })}
             </div>
 
             {/* Selected Path */}
             {locationPath && (
               <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5">
-
                 <p className="text-sm text-blue-600 font-semibold">
                   Selected Location
                 </p>
@@ -394,15 +246,57 @@ export default function RaiseTicketPage() {
             )}
           </div>
 
+          <div>
+            <label className="text-lg font-semibold text-gray-700">
+              Upload Complaint Image
+            </label>
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+
+                if (!file) return;
+
+                try {
+                  setUploading(true);
+
+                  const formData = new FormData();
+
+                  formData.append("file", file);
+
+                  const response = await axios.post(
+                    `${API_URL}/api/upload`,
+                    formData,
+                  );
+
+                  setImageUrl(response.data.url);
+                } catch (error) {
+                  console.log(error);
+                } finally {
+                  setUploading(false);
+                }
+              }}
+              className="mt-3 block"
+            />
+
+            {imageUrl && (
+              <img
+                src={imageUrl}
+                alt="Preview"
+                className="mt-4 rounded-2xl border max-h-64"
+              />
+            )}
+          </div>
+
           {/* Submit */}
           <button
             type="submit"
             disabled={loading}
             className="h-14 px-10 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold shadow-lg hover:scale-[1.01] transition"
           >
-            {loading
-              ? "Submitting..."
-              : "Register Complaint"}
+           {loading? "Submitting...": uploading? "Uploading...": "Register Complaint"}
           </button>
         </form>
       </div>

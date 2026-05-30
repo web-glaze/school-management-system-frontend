@@ -133,7 +133,10 @@ export default function ComplaintsPage() {
   const filteredAndSortedComplaints = useMemo(() => {
     const filtered = complaints.filter((complaint) => {
       const matchesSearch =
-        complaint.description.slice(0, 60).toLowerCase().includes(search.toLowerCase()) ||
+        complaint.description
+          .slice(0, 60)
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
         complaint.description.toLowerCase().includes(search.toLowerCase()) ||
         complaint.locationType.toLowerCase().includes(search.toLowerCase()) ||
         complaint.subLocation.toLowerCase().includes(search.toLowerCase()) ||
@@ -154,9 +157,7 @@ export default function ComplaintsPage() {
         );
       }
       if (sortBy === "OLDEST") {
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
+        return new Date(a.createdAt).getTime() - new Date(b.At).getTime();
       }
 
       const getPriorityWeight = (priority: string) => {
@@ -641,12 +642,14 @@ export default function ComplaintsPage() {
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
                             <span className="text-base">
-                              {new Date(complaint.createdAt).toLocaleDateString(
-                                "en-US",
+                              {new Date(complaint.createdAt).toLocaleString(
+                                "en-IN",
                                 {
+                                  day: "2-digit",
                                   month: "short",
-                                  day: "numeric",
-                                  year: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 },
                               )}
                             </span>
@@ -658,7 +661,9 @@ export default function ComplaintsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() =>window.location.href =`/maintenance/complaints/ticket-management/${complaint.id}`}
+                            onClick={() =>
+                              (window.location.href = `/maintenance/complaints/ticket-management/${complaint.id}`)
+                            }
                             className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
                             title="View Complaint"
                           >

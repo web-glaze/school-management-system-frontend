@@ -372,7 +372,13 @@ export default function TicketManagementPage() {
                       </p>
 
                       <p className="font-medium">
-                        {new Date(complaint.createdAt).toLocaleDateString()}
+                        {new Date(complaint.createdAt).toLocaleString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
                   </div>
