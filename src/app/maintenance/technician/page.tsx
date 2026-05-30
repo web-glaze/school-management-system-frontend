@@ -259,6 +259,7 @@ export default function TechnicianPage() {
       console.log(error);
     } finally {
       setLoading(false);
+      toast.success("Technician updated successfully!");
     }
   };
 
@@ -288,6 +289,132 @@ export default function TechnicianPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Technicians</h1>
+            <p className="text-muted-foreground">
+              Manage and track technicians
+            </p>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 px-5">
+                <Plus className="size-4" />
+                Add Technician
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+              <div className="border-b px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <User className="size-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg">
+                      Create Technician
+                    </DialogTitle>
+                    <DialogDescription>
+                      Add a new maintenance technician
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleCreate} className="space-y-4 p-6">
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="technician-name">Name</Label>
+                    <Input
+                      id="technician-name"
+                      type="text"
+                      placeholder="Technician Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="technician-phone">Phone</Label>
+                    <Input
+                      id="technician-phone"
+                      type="tel"
+                      placeholder="Phone Number"
+                      value={phone}
+                      onChange={(e) =>
+                        setPhone(e.target.value.replace(/\D/g, ""))
+                      }
+                      maxLength={10}
+                    />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="technician-email">Email</Label>
+                    <Input
+                      id="technician-email"
+                      type="email"
+                      placeholder="Enter Your Email"
+                      // value={email}
+                      // onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </Field>
+                </FieldGroup>
+
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="department-id">Department</Label>
+                    <Select
+                      onValueChange={setDepartmentId}
+                      value={departmentId}
+                      required
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select department..." />
+                      </SelectTrigger>
+                      <SelectContent position={"popper"}>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>
+                            {dept.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </FieldGroup>
+
+                <DialogFooter className="gap-2">
+                  <DialogClose asChild>
+                    <Button variant="outline" type="button">
+                      Cancel
+                    </Button>
+                  </DialogClose>
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="min-w-[130px] gap-2 px-5"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="size-4" />
+                        Create
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="relative w-full lg:w-[350px] group">
@@ -299,126 +426,6 @@ export default function TechnicianPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-11"
               />
-            </div>
-            <div>
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2 px-5">
-                    <Plus className="size-4" />
-                    Add Technician
-                  </Button>
-                </DialogTrigger>
-
-                <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
-                  <div className="border-b px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <User className="size-5 text-primary" />
-                      </div>
-                      <div>
-                        <DialogTitle className="text-lg">
-                          Create Technician
-                        </DialogTitle>
-                        <DialogDescription>
-                          Add a new maintenance technician
-                        </DialogDescription>
-                      </div>
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleCreate} className="space-y-4 p-6">
-                    <FieldGroup>
-                      <Field>
-                        <Label htmlFor="technician-name">Name</Label>
-                        <Input
-                          id="technician-name"
-                          type="text"
-                          placeholder="Technician Name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                        />
-                      </Field>
-                    </FieldGroup>
-                    <FieldGroup>
-                      <Field>
-                        <Label htmlFor="technician-phone">Phone</Label>
-                        <Input
-                          id="technician-phone"
-                          type="tel"
-                          placeholder="Phone Number"
-                          value={phone}
-                          onChange={(e) =>
-                            setPhone(e.target.value.replace(/\D/g, ""))
-                          }
-                          maxLength={10}
-                        />
-                      </Field>
-                    </FieldGroup>
-                    <FieldGroup>
-                      <Field>
-                        <Label htmlFor="technician-email">Email</Label>
-                        <Input
-                          id="technician-email"
-                          type="email"
-                          placeholder="Enter Your Email"
-                          // value={email}
-                          // onChange={(e) => setEmail(e.target.value)}
-                          required
-                        />
-                      </Field>
-                    </FieldGroup>
-
-                    <FieldGroup>
-                      <Field>
-                        <Label htmlFor="department-id">Department</Label>
-                        <Select
-                          onValueChange={setDepartmentId}
-                          value={departmentId}
-                          required
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select department..." />
-                          </SelectTrigger>
-                          <SelectContent position={"popper"}>
-                            {departments.map((dept) => (
-                              <SelectItem key={dept.id} value={dept.id}>
-                                {dept.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    </FieldGroup>
-
-                    <DialogFooter className="gap-2">
-                      <DialogClose asChild>
-                        <Button variant="outline" type="button">
-                          Cancel
-                        </Button>
-                      </DialogClose>
-
-                      <Button
-                        type="submit"
-                        disabled={loading}
-                        className="min-w-[130px] gap-2 px-5"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" />
-                            Creating...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="size-4" />
-                            Create
-                          </>
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
             </div>
           </div>
           {loading ? (

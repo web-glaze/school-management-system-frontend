@@ -210,7 +210,7 @@ export default function RaiseTicketPage() {
     .filter(Boolean)
     .join(" > ");
 
-  /* SUBMIT COMPLAINT */
+  /* SUBMIT TICKET */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -240,11 +240,11 @@ export default function RaiseTicketPage() {
       );
 
       setImageUrl("");
-      toast.success("Complaint registered successfully");
+      toast.success("Ticket created successfully");
       router.push("../tickets");
     } catch (error) {
-      console.error("Failed to submit complaint:", error);
-      toast.error("Failed to register complaint. Please try again.");
+      console.error("Failed to submit ticket:", error);
+      toast.error("Failed to create ticket. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -300,8 +300,7 @@ export default function RaiseTicketPage() {
               Raise New Ticket
             </h1>
             <p className="text-muted-foreground mt-1.5 text-sm">
-              Follow our simple steps to report maintenance problems around
-              campus.
+              Follow the steps below to create a maintenance ticket quickly.
             </p>
           </div>
           <Link className="w-full md:w-auto" href="/maintenance/tickets">
@@ -374,9 +373,7 @@ export default function RaiseTicketPage() {
               <div className="flex items-center gap-3">
                 <div>
                   <h2 className="text-base font-bold text-foreground">
-                    {step === 1
-                      ? "Location Selection"
-                      : "Describe the Maintenance Issue"}
+                    {step === 1 ? "Location Selection" : "Describe the Issue"}
                   </h2>
                 </div>
               </div>
@@ -578,7 +575,7 @@ export default function RaiseTicketPage() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       required
-                      placeholder="Please clearly describe the issue (e.g. AC leaking in room 202, leaking pipe under bathroom sink, broken lock etc.)"
+                      placeholder="Provide a clear description of the issue, including location, impact, and any relevant details."
                     />
                   </div>
 
@@ -586,7 +583,7 @@ export default function RaiseTicketPage() {
                     <Label>Issue Image</Label>
 
                     <Input
-                      id="complaint-image"
+                      id="ticket-image"
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
@@ -595,7 +592,7 @@ export default function RaiseTicketPage() {
 
                     {!imageUrl ? (
                       <Label
-                        htmlFor="complaint-image"
+                        htmlFor="ticket-image"
                         className="
                           flex items-center gap-3
                           border rounded-xl
@@ -653,7 +650,7 @@ export default function RaiseTicketPage() {
                                 variant="outline"
                                 onClick={() =>
                                   document
-                                    .getElementById("complaint-image")
+                                    .getElementById("ticket-image")
                                     ?.click()
                                 }
                               >
@@ -676,7 +673,7 @@ export default function RaiseTicketPage() {
 
                   {/* Custom priority radio cards */}
                   <div className="space-y-3">
-                    <Label>Priority</Label>
+                    <Label>Ticket Priority</Label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       {priorities.map((item) => {
                         const isSelected = priority === item.value;
@@ -738,10 +735,15 @@ export default function RaiseTicketPage() {
 
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || uploading}
                     className="gap-2 px-5"
                   >
-                    {loading ? (
+                    {uploading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Uploading Image...
+                      </>
+                    ) : loading ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
                         Submitting...
@@ -749,7 +751,7 @@ export default function RaiseTicketPage() {
                     ) : (
                       <>
                         <CheckCircle2 className="size-4" />
-                        Register Complaint
+                        Submit Ticket
                       </>
                     )}
                   </Button>
