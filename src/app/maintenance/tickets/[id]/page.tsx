@@ -23,7 +23,13 @@ import { Badge } from "@/components/ui/badge";
 
 import { Button } from "@/components/ui/button";
 
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 import { Input } from "@/components/ui/input";
 
@@ -39,12 +45,18 @@ import {
 
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
+import { Field, FieldGroup } from "@/components/ui/field";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Technician {
   id: string;
+  name: string;
+}
 
+interface Department {
+  id: string;
   name: string;
 }
 
@@ -71,24 +83,18 @@ interface Complaint {
 
 export default function TicketManagementPage() {
   const params = useParams();
-
   const router = useRouter();
-
   const id = params.id as string;
-
   const [loading, setLoading] = useState(true);
-
   const [saving, setSaving] = useState(false);
-
   const [complaint, setComplaint] = useState<Complaint | null>(null);
-
   const [technicians, setTechnicians] = useState<Technician[]>([]);
-
   const [status, setStatus] = useState("");
-
   const [priority, setPriority] = useState("");
-
   const [technicianId, setTechnicianId] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   const fetchData = async () => {
     try {
@@ -109,6 +115,12 @@ export default function TicketManagementPage() {
         },
       });
 
+      const departmentResponse = await axios.get(`${API_URL}/api/departments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       const complaintData =
         complaintResponse.data.data || complaintResponse.data;
 
@@ -116,15 +128,18 @@ export default function TicketManagementPage() {
         ? technicianResponse.data
         : technicianResponse.data.data || [];
 
+      const departmentData = Array.isArray(departmentResponse.data)
+        ? departmentResponse.data
+        : departmentResponse.data.data || [];
+
       setComplaint(complaintData);
 
       setTechnicians(technicianData);
-
+      setDepartments(departmentData);
       setStatus(complaintData.status || "");
-
       setPriority(complaintData.priority || "");
-
       setTechnicianId(complaintData.assignedTechnician?.id || "");
+      setDepartmentId(complaintData.department?.id || "");
     } catch (error) {
       console.log(error);
     } finally {
@@ -195,6 +210,20 @@ export default function TicketManagementPage() {
         );
       }
 
+      if (departmentId) {
+        await axios.patch(
+          `${API_URL}/api/complaints/${id}/department`,
+          {
+            departmentId,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+      }
+
       toast.success("Ticket Updated Successfully");
 
       fetchData();
@@ -215,40 +244,80 @@ export default function TicketManagementPage() {
     );
   }
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+
+      case "ASSIGNED":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+
+      case "IN_PROGRESS":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+
+      case "RESOLVED":
+        return "bg-green-100 text-green-800 border-green-200";
+
+      case "CLOSED":
+        return "bg-slate-100 text-slate-800 border-slate-200";
+
+      default:
+        return "";
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "LOW":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+
+      case "MEDIUM":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+
+      case "HIGH":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+
+      case "URGENT":
+        return "bg-red-100 text-red-800 border-red-200";
+
+      default:
+        return "";
+    }
+  };
+
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.back()}>
-              <ArrowLeft className="size-4" />
-            </Button>
-
-            <div>
-              <h1 className="text-3xl font-black">Ticket Management</h1>
-
-              <p className="text-muted-foreground mt-1">
-                Manage complaint ticket
-              </p>
-            </div>
+      <div className="space-y-8 mx-auto max-w-7xl w-full">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              Ticket #{complaint.ticketCode}
+            </h1>
+            <p className="text-muted-foreground">Ticket Detail Page</p>
           </div>
-
-          <Button onClick={saveChanges} disabled={saving} className="h-11 px-6">
-            <Save className="size-4 mr-2" />
-
-            {saving ? "Saving..." : "Save Changes"}
+          <Button
+            className="bg-primary text-white hover:bg-primary/90"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft size={18} /> Back
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Left */}
-          <div className="xl:col-span-2">
-            <Card>
-              <CardContent className="p-8 space-y-6">
-                <div>
-                  <Label>Ticket Description</Label>
+        <div className="grid gap-4 lg:grid-cols-12">
+          <Card className="lg:col-span-8">
+            <CardHeader>
+              <CardTitle>Ticket Information</CardTitle>
+              <CardDescription>
+                Update ticket information, assignment and status.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              <FieldGroup>
+                <Field>
+                  <Label htmlFor="description">Ticket Description</Label>
                   <Textarea
+                    id="description"
                     value={complaint.description}
                     onChange={(e) =>
                       setComplaint({
@@ -256,171 +325,202 @@ export default function TicketManagementPage() {
                         description: e.target.value,
                       })
                     }
-                    className="mt-2 min-h-[140px]"
+                    className="min-h-[180px]"
                   />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
+                </Field>
+              </FieldGroup>
+              <div className="grid grid-cols-2 gap-6">
+                <FieldGroup>
+                  <Field>
                     <Label>Status</Label>
-
                     <Select value={status} onValueChange={setStatus}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Status" />
                       </SelectTrigger>
-
                       <SelectContent>
                         <SelectItem value="PENDING">Pending</SelectItem>
-
                         <SelectItem value="ASSIGNED">Assigned</SelectItem>
-
                         <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-
                         <SelectItem value="RESOLVED">Resolved</SelectItem>
-
                         <SelectItem value="CLOSED">Closed</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+                  </Field>
+                </FieldGroup>
 
-                  <div>
+                <FieldGroup>
+                  <Field>
                     <Label>Priority</Label>
-
                     <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Priority" />
                       </SelectTrigger>
-
                       <SelectContent>
                         <SelectItem value="LOW">Low</SelectItem>
-
                         <SelectItem value="MEDIUM">Medium</SelectItem>
-
                         <SelectItem value="HIGH">High</SelectItem>
-
                         <SelectItem value="URGENT">Urgent</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
+                  </Field>
+                </FieldGroup>
 
-                <div>
-                  <Label>Assign Technician</Label>
+                <FieldGroup>
+                  <Field>
+                    <Label>Assigned Technician</Label>
+                    <Select
+                      value={technicianId}
+                      onValueChange={setTechnicianId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Technician" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {technicians.map((technician) => (
+                          <SelectItem key={technician.id} value={technician.id}>
+                            {technician.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </FieldGroup>
 
-                  <Select value={technicianId} onValueChange={setTechnicianId}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Select Technician" />
-                    </SelectTrigger>
+                <FieldGroup>
+                  <Field>
+                    <Label>Department</Label>
+                    <Select
+                      value={departmentId}
+                      onValueChange={setDepartmentId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departments.map((department) => (
+                          <SelectItem key={department.id} value={department.id}>
+                            {department.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </FieldGroup>
+              </div>
 
-                    <SelectContent>
-                      {technicians.map((technician) => (
-                        <SelectItem key={technician.id} value={technician.id}>
-                          {technician.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <Button
+                onClick={saveChanges}
+                disabled={saving}
+                className="h-11 px-6"
+              >
+                <Save className="size-4 mr-2" />
 
-          {/* Right */}
-          <div>
-            <Card>
-              <CardContent className="p-6 space-y-5">
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="lg:col-span-4">
+            <CardHeader>
+              <CardTitle>Ticket Details</CardTitle>
+              <CardDescription>
+                Overview and assignment information
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Ticket Info</h2>
+                  <span className="text-sm text-muted-foreground">Status</span>
 
-                  <Badge>{complaint.status}</Badge>
+                  <Badge
+                    variant="outline"
+                    className={getStatusBadge(complaint.status)}
+                  >
+                    {complaint.status.replaceAll("_", " ")}
+                  </Badge>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="flex gap-3">
-                    <Ticket className="size-5 text-sky-600 mt-1" />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Priority
+                  </span>
 
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Ticket Number
-                      </p>
+                  <Badge
+                    variant="outline"
+                    className={getPriorityBadge(complaint.priority)}
+                  >
+                    {complaint.priority}
+                  </Badge>
+                </div>
 
-                      <p className="font-bold">
-                        {complaint.ticketCode || "TKT-001"}
-                      </p>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Department
+                  </span>
+
+                  <span className="font-medium">Electrical</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Assigned To
+                  </span>
+
+                  <span className="font-medium text-right">
+                    {complaint.assignedTechnician?.name || "Unassigned"}
+                  </span>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold">
+                    Reporting Information
+                  </h4>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Reported By
+                    </span>
+
+                    <span className="text-sm text-right break-all">
+                      {complaint.user?.email}
+                    </span>
                   </div>
 
-                  <div className="flex gap-3">
-                    <MapPin className="size-5 text-sky-600 mt-1" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Reported At
+                    </span>
 
-                    <div>
-                      <p className="text-xs text-muted-foreground">Location</p>
-
-                      <p className="font-medium">{complaint.locationType}</p>
-
-                      <p className="text-sm text-muted-foreground">
-                        {complaint.subLocation}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Calendar className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Created Date
-                      </p>
-
-                      <p className="font-medium">
-                        {new Date(complaint.createdAt).toLocaleString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <User className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">User</p>
-
-                      <p className="font-medium">{complaint.user?.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Wrench className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Technician
-                      </p>
-
-                      <p className="font-medium">
-                        {complaint.assignedTechnician?.name || "Unassigned"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Clock3 className="size-5 text-sky-600 mt-1" />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground">Priority</p>
-
-                      <p className="font-medium">{complaint.priority}</p>
-                    </div>
+                    <span className="text-sm text-right">
+                      {new Date(complaint.createdAt).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold">
+                    Location Information
+                  </h4>
+
+                  <div className="flex items-start justify-between gap-4">
+                    <span className="text-sm text-muted-foreground">
+                      {complaint.locationType}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </DashboardLayout>
