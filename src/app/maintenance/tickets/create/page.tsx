@@ -6,27 +6,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
 import {
-  Upload,
   ImagePlus,
-  X,
   RefreshCw,
   Trash2,
   Plus,
-  FolderOpen,
 } from "lucide-react";
 
 import {
   Building2,
   Layers,
   MapPin,
-  Map,
   ArrowUp,
   ArrowLeft,
   ArrowRight,
   AlertCircle,
   Flame,
   ShieldAlert,
-  Sparkles,
   CheckCircle2,
   Undo,
   Loader2,
@@ -83,7 +78,8 @@ export default function RaiseTicketPage() {
   };
 
   useEffect(() => {
-    fetchLocations();
+    setTimeout(()=>{
+    fetchLocations();},0);
   }, []);
 
   const handleImageUpload = async (

@@ -70,6 +70,7 @@ interface Department {
 interface Technician {
   id: string;
   technicianCode: string;
+  email: string;
   name: string;
   phone?: string;
   isActive: boolean;
@@ -148,13 +149,13 @@ export default function TechnicianPage() {
   };
 
   useEffect(() => {
-    fetchTechnicians();
-    fetchDepartments();
+    fetchTechnicians()
+    fetchDepartments()
   }, []);
 
   useEffect(() => {
     if (!search.trim()) {
-      setFilteredTechnicians(technicians);
+      setFilteredTechnicians(technicians)
       return;
     }
 
@@ -519,7 +520,7 @@ export default function TechnicianPage() {
                         <TableCell className="py-4 align-top">
                           <div className="space-y-1 max-w-[120px]">
                             <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              {/* {technician.email || "-"} */} info@example.com
+                               {technician.email || "-"} 
                             </p>
                           </div>
                         </TableCell>
