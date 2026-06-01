@@ -18,7 +18,6 @@ import {
   AlertCircle,
   Flame,
   ShieldAlert,
-  Sparkles,
   CheckCircle2,
   Undo,
   Loader2,
@@ -29,8 +28,6 @@ import {
 import axios from "axios";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -51,12 +48,12 @@ export default function RaiseTicketPage() {
 
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("MEDIUM");
+  const [complaints, setComplaints] = useState<any[]>([]);
 
   // Drill-down and Path State
   const [selectedPath, setSelectedPath] = useState<string[]>([]);
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
 
-  /* FETCH LOCATIONS */
   const fetchLocations = async () => {
     try {
       setLocationsLoading(true);
@@ -79,7 +76,9 @@ export default function RaiseTicketPage() {
   };
 
   useEffect(() => {
-    fetchLocations();
+    setTimeout(() => {
+      fetchLocations();
+    }, 0);
   }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,17 +110,16 @@ export default function RaiseTicketPage() {
 
       setImageUrl(response.data.data.url);
 
-      toast.success("Image uploaded successfully");
+      alert("Image uploaded successfully");
     } catch (error) {
       console.error(error);
 
-      toast.error("Failed to upload image");
+      alert("Failed to upload image");
     } finally {
       setUploading(false);
     }
   };
 
-  /* COMPUTE ACTIVE VISIBLE OPTIONS */
   const optionsToDisplay = useMemo(() => {
     if (locationsLoading) return [];
     return locations.filter((loc) => {
@@ -132,14 +130,12 @@ export default function RaiseTicketPage() {
     });
   }, [locations, currentParentId, locationsLoading]);
 
-  /* COMPUTE CURRENT TRAVERSED LEVEL INDEX */
   const currentLevel = useMemo(() => {
     if (currentParentId === null) return 0;
     const idx = selectedPath.indexOf(currentParentId);
     return idx !== -1 ? idx + 1 : 0;
   }, [currentParentId, selectedPath]);
 
-  /* COMPUTE METADATA FOR ACTIVE DISPLAYED LEVEL */
   const levelMetadata = useMemo(() => {
     switch (currentLevel) {
       case 0:
@@ -160,17 +156,14 @@ export default function RaiseTicketPage() {
     }
   }, [currentLevel]);
 
-  /* HANDLE CARD CLICK (DRILL DOWN OR SELECT LEAF) */
   const handleLocationClick = (loc: Location) => {
     const children = locations.filter((item) => item.parentId === loc.id);
 
     if (children.length > 0) {
-      // Has nested sub-locations: Drill down
       const newPath = [...selectedPath, loc.id];
       setSelectedPath(newPath);
       setCurrentParentId(loc.id);
     } else {
-      // Leaf node (no children): Select it at the current depth
       let currentLevelIndex = 0;
       if (currentParentId !== null) {
         currentLevelIndex = selectedPath.indexOf(currentParentId) + 1;
@@ -181,7 +174,6 @@ export default function RaiseTicketPage() {
     }
   };
 
-  /* GO BACK ONE LEVEL */
   const handleBackLocation = () => {
     if (selectedPath.length === 0) return;
 
@@ -196,7 +188,6 @@ export default function RaiseTicketPage() {
     }
   };
 
-  /* CHECK IF A LEAF HAS BEEN SELECTED */
   const isLeafSelected = useMemo(() => {
     if (selectedPath.length === 0) return false;
     const lastId = selectedPath[selectedPath.length - 1];
@@ -204,18 +195,28 @@ export default function RaiseTicketPage() {
     return children.length === 0;
   }, [selectedPath, locations]);
 
-  /* BUILD LOCATION PATH */
   const locationPath = selectedPath
     .map((id) => locations.find((loc) => loc.id === id)?.name)
     .filter(Boolean)
     .join(" > ");
-
-  /* SUBMIT TICKET */
+    
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!description.trim()) {
-      toast.error("Please describe the issue.");
+    const finalComplaints = [...complaints];
+
+    if (description.trim()) {
+      finalComplaints.push({
+        description,
+        priority,
+        imageUrl,
+        locationType: locationPath,
+        subLocation: selectedPath[selectedPath.length - 1],
+      });
+    }
+
+    if (finalComplaints.length === 0) {
+      alert("Please describe the issue.");
       return;
     }
 
@@ -223,28 +224,31 @@ export default function RaiseTicketPage() {
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      await axios.post(
-        `${API_URL}/api/complaints`,
-        {
-          description,
-          priority,
-          imageUrl,
-          locationType: locationPath,
-          subLocation: selectedPath[selectedPath.length - 1],
-        },
-        {
+      if (finalComplaints.length === 1) {
+        // Dispatch individual payload object
+        await axios.post(
+          `${API_URL}/api/complaints`,
+          finalComplaints[0],
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+      } else {
+        await axios.post(`${API_URL}/api/complaints/bulk`, finalComplaints, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        },
-      );
+        });
+      }
 
       setImageUrl("");
-      toast.success("Ticket created successfully");
+      setComplaints([]);
       router.push("../tickets");
     } catch (error) {
-      console.error("Failed to submit ticket:", error);
-      toast.error("Failed to create ticket. Please try again.");
+      console.error("Failed to submit complaint:", error);
+      alert("Failed to register complaint. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -254,6 +258,7 @@ export default function RaiseTicketPage() {
     {
       value: "LOW",
       label: "Low",
+      description: "Minor issue that can be scheduled for resolution later.",
       icon: ArrowUp,
       borderColorClass: "hover:border-emerald-500/40 focus:border-emerald-500",
       activeBgClass:
@@ -263,6 +268,7 @@ export default function RaiseTicketPage() {
     {
       value: "MEDIUM",
       label: "Medium",
+      description: "Standard maintenance request requiring normal attention.",
       icon: AlertCircle,
       borderColorClass: "hover:border-blue-500/40 focus:border-blue-500",
       activeBgClass:
@@ -272,6 +278,7 @@ export default function RaiseTicketPage() {
     {
       value: "HIGH",
       label: "High",
+      description: "Requires priority attention. Could cause disruption.",
       icon: Flame,
       borderColorClass: "hover:border-amber-500/40 focus:border-amber-500",
       activeBgClass:
@@ -281,6 +288,8 @@ export default function RaiseTicketPage() {
     {
       value: "URGENT",
       label: "Urgent",
+      description:
+        "Immediate action required. High-risk safety or core system hazard.",
       icon: ShieldAlert,
       borderColorClass: "hover:border-red-500/40 focus:border-red-500",
       activeBgClass: "border-red-500 bg-red-500/[0.03] dark:bg-red-500/[0.01]",
@@ -290,20 +299,49 @@ export default function RaiseTicketPage() {
 
   const ActiveLevelIcon = levelMetadata.icon;
 
+  const addComplaint = () => {
+    if (!description.trim()) {
+      alert("Please describe the issue.");
+      return;
+    }
+
+    setComplaints((prev) => [
+      ...prev,
+      {
+        description,
+        priority,
+        imageUrl,
+        locationType: locationPath,
+        subLocation: selectedPath[selectedPath.length - 1],
+      },
+    ]);
+
+    alert("Complaint added successfully!");
+
+    setDescription("");
+    setPriority("MEDIUM");
+    setImageUrl("");
+
+    setStep(1);
+    setSelectedPath([]);
+    setCurrentParentId(null);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8 max-w-4xl w-full mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between flex-col-reverse md:flex-row gap-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               Raise New Ticket
             </h1>
             <p className="text-muted-foreground mt-1.5 text-sm">
-              Follow the steps below to create a maintenance ticket quickly.
+              Follow our simple steps to report maintenance problems around
+              campus.
             </p>
           </div>
-          <Link className="w-full md:w-auto" href="/maintenance/tickets">
+          <Link href="/maintenance/tickets">
             <Button
               variant="outline"
               className="gap-2 border-border/80 hover:bg-muted font-medium transition-all shadow-sm"
@@ -317,7 +355,7 @@ export default function RaiseTicketPage() {
         <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between max-w-md mx-auto relative">
             {/* Step 1 Node */}
-            <div className="flex flex-col items-center z-10 relative">
+            <div className="flex flex-col items-center z-10">
               <button
                 type="button"
                 onClick={() => selectedPath.length > 0 && setStep(1)}
@@ -325,7 +363,7 @@ export default function RaiseTicketPage() {
                 className={`size-10 rounded-full flex items-center justify-center font-bold border-2 transition-all ${
                   step === 1
                     ? "bg-primary border-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
-                    : "bg-muted border-border text-muted-foreground"
+                    : "bg-primary/10 border-primary/20 text-primary cursor-pointer hover:bg-primary/20"
                 }`}
               >
                 {step > 1 ? <Check className="size-5 stroke-[2.5]" /> : "1"}
@@ -338,7 +376,7 @@ export default function RaiseTicketPage() {
             </div>
 
             {/* Connecting Progress Line */}
-            <div className="absolute left-[15%] right-[15%] top-5 h-[2px] bg-muted z-0">
+            <div className="absolute left-[15%] right-[15%] top-5 h-[2px] bg-muted -z-0">
               <div
                 className="h-full bg-primary transition-all duration-300"
                 style={{ width: step === 1 ? "0%" : "100%" }}
@@ -371,14 +409,23 @@ export default function RaiseTicketPage() {
           <div className="border-b border-border/60 px-6 py-5 bg-muted/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  {step === 1 ? (
+                    <Map className="size-5 text-primary" />
+                  ) : (
+                    <MapPin className="size-5 text-primary" />
+                  )}
+                </div>
                 <div>
                   <h2 className="text-base font-bold text-foreground">
-                    {step === 1 ? "Location Selection" : "Describe the Issue"}
+                    {step === 1
+                      ? "Location Selection"
+                      : "Describe the Maintenance Issue"}
                   </h2>
                 </div>
               </div>
               <div className="text-xs font-semibold text-muted-foreground bg-muted border border-border/60 px-3 py-1 rounded-full">
-                Step {step}
+                Step {step} of 2
               </div>
             </div>
           </div>
@@ -541,26 +588,25 @@ export default function RaiseTicketPage() {
               >
                 <div className="space-y-6">
                   {/* Context Path Summary */}
-                  <div className="border p-2 rounded-lg flex flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-300">
+                  <div className="bg-primary/[0.02] dark:bg-primary/[0.005] border border-primary/10 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-300">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
                         <MapPin className="size-5 text-primary" />
                       </div>
                       <div>
-                        <span className="text-sm font-semibold text-muted-foreground">
-                          Location
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Target Location
                         </span>
-                        <p className="text-sm text-foreground mt-0.5">
+                        <p className="text-sm font-bold text-foreground mt-0.5">
                           {locationPath}
                         </p>
                       </div>
                     </div>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       type="button"
                       onClick={() => setStep(1)}
-                      className=""
                     >
                       Change Location
                     </Button>
@@ -570,102 +616,84 @@ export default function RaiseTicketPage() {
                   <div className="space-y-2">
                     <Label>Issue Summary</Label>
                     <Textarea
-                      className="text-sm"
                       id="issue-description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      required
-                      placeholder="Provide a clear description of the issue, including location, impact, and any relevant details."
+                      required={complaints.length === 0}
+                      placeholder="Please clearly describe the issue (e.g. AC leaking in room 202, leaking pipe under bathroom sink, broken lock etc.)"
+                      className="min-h-[110px] rounded-xl border-border/80 focus-visible:ring-primary focus-visible:border-primary text-xs p-4 leading-relaxed transition-all"
                     />
                   </div>
+                  <div className="space-y-4">
+                    <Label className="text-base font-semibold">
+                      Complaint Image (Optional)
+                    </Label>
 
-                  <div className="space-y-3">
-                    <Label>Issue Image</Label>
+                    <div className="border-2 border-dashed rounded-xl p-6 text-center bg-muted/20">
+                      <input
+                        id="complaint-image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
 
-                    <Input
-                      id="ticket-image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-
-                    {!imageUrl ? (
-                      <Label
-                        htmlFor="ticket-image"
-                        className="
-                          flex items-center gap-3
-                          border rounded-xl
-                          p-4
-                          cursor-pointer
-                          hover:bg-muted/50
-                          transition
-                        "
+                      <label
+                        htmlFor="complaint-image"
+                        className="cursor-pointer flex flex-col items-center gap-3"
                       >
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          {uploading ? (
-                            <div className="text-sm text-primary flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            </div>
-                          ) : (
-                            <Upload className="h-5 w-5 text-primary" />
-                          )}
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Upload className="h-6 w-6" />
                         </div>
 
                         <div>
-                          <p className="text-sm font-medium">Upload Image</p>
+                          <p className="font-medium">Click to upload image</p>
 
-                          <p className="text-xs text-muted-foreground">
-                            PNG, JPG, WEBP • Max 5 MB
+                          <p className="text-sm text-muted-foreground">
+                            PNG, JPG, WEBP up to 5MB
                           </p>
                         </div>
-                      </Label>
-                    ) : (
-                      <div className="border rounded-xl p-3">
-                        <div className="flex gap-3 items-center">
+                      </label>
+                    </div>
+
+                    {uploading && (
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <p className="text-sm text-blue-700">
+                          Uploading image...
+                        </p>
+                      </div>
+                    )}
+
+                    {imageUrl && (
+                      <div className="space-y-4">
+                        <div className="rounded-xl overflow-hidden border">
                           <img
                             src={imageUrl}
                             alt="Preview"
-                            className="
-                              h-14
-                              w-h-14
-                              rounded-lg
-                              object-cover
-                              border
-                            "
+                            className="w-full max-h-80 object-cover"
                           />
+                        </div>
 
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">
-                              Image Attached
-                            </p>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              document
+                                .getElementById("complaint-image")
+                                ?.click()
+                            }
+                          >
+                            Update Image
+                          </Button>
 
-                            <p className="text-xs text-muted-foreground hidden md:block">
-                              Tap replace to upload another image
-                            </p>
-
-                            <div className="flex gap-2 mt-3">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  document
-                                    .getElementById("ticket-image")
-                                    ?.click()
-                                }
-                              >
-                                Replace
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setImageUrl("")}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => setImageUrl("")}
+                          >
+                            Remove Image
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -673,8 +701,8 @@ export default function RaiseTicketPage() {
 
                   {/* Custom priority radio cards */}
                   <div className="space-y-3">
-                    <Label>Ticket Priority</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <Label>Priority</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {priorities.map((item) => {
                         const isSelected = priority === item.value;
                         const Icon = item.icon;
@@ -702,7 +730,7 @@ export default function RaiseTicketPage() {
                                   className={`size-4.5 ${item.colorClass}`}
                                 />
                               </div>
-                              <span className="text-sm font-bold text-foreground">
+                              <span className="text-xs font-bold text-foreground">
                                 {item.label}
                               </span>
 
@@ -714,6 +742,10 @@ export default function RaiseTicketPage() {
                                 )}
                               </div>
                             </div>
+
+                            <p className="text-[11px] text-muted-foreground mt-2.5 leading-relaxed">
+                              {item.description}
+                            </p>
                           </button>
                         );
                       })}
@@ -733,28 +765,34 @@ export default function RaiseTicketPage() {
                     Back
                   </Button>
 
-                  <Button
-                    type="submit"
-                    disabled={loading || uploading}
-                    className="gap-2 px-5"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" />
-                        Uploading Image...
-                      </>
-                    ) : loading ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="size-4" />
-                        Submit Ticket
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addComplaint}
+                      className="gap-2 px-5"
+                    >
+                      Add Complaint
+                    </Button>
+
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="gap-2 px-5"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="size-4" />
+                          Register Complaint
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </form>
             )}
