@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { complaintService, technicianService, departmentService } from "@/services/api";
+import {
+  complaintService,
+  technicianService,
+  departmentService,
+} from "@/services/api";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ArrowLeft, Save, Upload, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Field, FieldGroup } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Technician {
   id: string;
@@ -60,7 +65,7 @@ export default function TicketManagementPage() {
   const router = useRouter();
   const id = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [complaint, setComplaint] = useState<Complaint | null>(null);
@@ -82,8 +87,12 @@ export default function TicketManagementPage() {
 
       const cData = cRes.data.data || cRes.data;
       setComplaint(cData);
-      setTechnicians(Array.isArray(tRes.data) ? tRes.data : tRes.data.data || []);
-      setDepartments(Array.isArray(dRes.data) ? dRes.data : dRes.data.data || []);
+      setTechnicians(
+        Array.isArray(tRes.data) ? tRes.data : tRes.data.data || [],
+      );
+      setDepartments(
+        Array.isArray(dRes.data) ? dRes.data : dRes.data.data || [],
+      );
       setStatus(cData.status || "");
       setPriority(cData.priority || "");
       setTechnicianId(cData.assignedTechnician?.id || "");
@@ -97,8 +106,9 @@ export default function TicketManagementPage() {
   };
 
   useEffect(() => {
-    setTimeout(()=>{
-    if (id) fetchData();},0);
+    setTimeout(() => {
+      if (id) fetchData();
+    }, 0);
   }, [id]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,8 +144,121 @@ export default function TicketManagementPage() {
   if (loading || !complaint) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center p-20 text-muted-foreground font-medium animate-pulse">
-          Loading ticket files...
+        <div className="mx-auto max-w-7xl w-full space-y-8">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+
+            <Skeleton className="h-10 w-28 rounded-md" />
+          </div>
+
+          {/* Main Grid */}
+          <div className="grid gap-4 lg:grid-cols-12">
+            {/* Left Card */}
+            <Card className="lg:col-span-8">
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-72 mt-2" />
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                {/* Description */}
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-[180px] w-full rounded-md" />
+                </div>
+
+                {/* Select Fields */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </div>
+                </div>
+
+                {/* Upload */}
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-40" />
+
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-10 w-40 rounded-md" />
+                    <Skeleton className="h-16 w-16 rounded-md" />
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <Skeleton className="h-11 w-36 rounded-md" />
+              </CardContent>
+            </Card>
+
+            {/* Right Card */}
+            <Card className="lg:col-span-4">
+              <CardHeader>
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-56 mt-2" />
+              </CardHeader>
+
+              <CardContent className="space-y-5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                  </div>
+                ))}
+
+                <Skeleton className="h-px w-full" />
+
+                {/* User Attachment */}
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-48 w-full rounded-lg" />
+                </div>
+
+                <Skeleton className="h-px w-full" />
+
+                {/* Reporting Info */}
+                <div className="space-y-4">
+                  <Skeleton className="h-4 w-40" />
+
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+
+                <Skeleton className="h-px w-full" />
+
+                {/* Location */}
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-16 w-full rounded-md" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -143,22 +266,33 @@ export default function TicketManagementPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "PENDING": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "ASSIGNED": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "IN_PROGRESS": return "bg-orange-100 text-orange-800 border-orange-200";
-      case "RESOLVED": return "bg-green-100 text-green-800 border-green-200";
-      case "CLOSED": return "bg-slate-100 text-slate-800 border-slate-200";
-      default: return "";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "ASSIGNED":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "IN_PROGRESS":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "RESOLVED":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "CLOSED":
+        return "bg-slate-100 text-slate-800 border-slate-200";
+      default:
+        return "";
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
-      case "LOW": return "bg-emerald-100 text-emerald-800 border-emerald-200";
-      case "MEDIUM": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "HIGH": return "bg-orange-100 text-orange-800 border-orange-200";
-      case "URGENT": return "bg-red-100 text-red-800 border-red-200";
-      default: return "";
+      case "LOW":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "MEDIUM":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "HIGH":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "URGENT":
+        return "bg-red-100 text-red-800 border-red-200";
+      default:
+        return "";
     }
   };
 
@@ -287,11 +421,26 @@ export default function TicketManagementPage() {
               <div className="space-y-2">
                 <Label>Admin Response Image</Label>
                 <div className="flex items-center gap-4">
-                  <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <Upload className="mr-2 size-4" /> Upload Image
                   </Button>
-                  <Input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
-                  {adminImageUrl && <img src={adminImageUrl} alt="Preview" className="h-16 w-16 object-cover rounded border" />}
+                  <Input
+                    type="file"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                  />
+                  {adminImageUrl && (
+                    <img
+                      src={adminImageUrl}
+                      alt="Preview"
+                      className="h-16 w-16 object-cover rounded border"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -358,13 +507,17 @@ export default function TicketManagementPage() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold">
-                    User Attachment
-                  </h4>
+                  <h4 className="text-sm font-semibold">User Attachment</h4>
                   {complaint.imageUrl ? (
-                    <img src={complaint.imageUrl} alt="User Attachment" className="w-full rounded border" />
+                    <img
+                      src={complaint.imageUrl}
+                      alt="User Attachment"
+                      className="w-full rounded border"
+                    />
                   ) : (
-                    <div className="h-32 flex items-center justify-center border rounded bg-slate-50"><ImageIcon className="text-slate-300" /></div>
+                    <div className="h-32 flex items-center justify-center border rounded bg-slate-50">
+                      <ImageIcon className="text-slate-300" />
+                    </div>
                   )}
                 </div>
 

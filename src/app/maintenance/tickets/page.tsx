@@ -71,6 +71,7 @@ interface Complaint {
   createdAt: string;
   user?: { email: string };
   assignedTechnician?: { id: string; name: string };
+  ticketCode?: string;
 }
 
 export default function ComplaintsPage() {
@@ -81,9 +82,10 @@ export default function ComplaintsPage() {
   const [sortBy, setSortBy] = useState("NEWEST");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  
+
   // Isolated state to handle targeting a specific ticket for deletion safely
-  const [targetDeleteComplaint, setTargetDeleteComplaint] = useState<Complaint | null>(null);
+  const [targetDeleteComplaint, setTargetDeleteComplaint] =
+    useState<Complaint | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
@@ -96,7 +98,7 @@ export default function ComplaintsPage() {
       setComplaints(
         Array.isArray(complaintsRes.data)
           ? complaintsRes.data
-          : complaintsRes.data.data || []
+          : complaintsRes.data.data || [],
       );
     } catch (error) {
       console.error(error);
@@ -107,20 +109,22 @@ export default function ComplaintsPage() {
   };
 
   useEffect(() => {
-    setTimeout(()=>{
-    fetchData();},0);
+    setTimeout(() => {
+      fetchData();
+    }, 0);
   }, []);
 
   // Reset page when filters, sorting or page size changes
   useEffect(() => {
-    setTimeout(()=>{
-    setCurrentPage(1);},0);
+    setTimeout(() => {
+      setCurrentPage(1);
+    }, 0);
   }, [search, statusFilter, sortBy, pageSize]);
 
   // Client side filtration and sorting
   const filteredAndSortedComplaints = useMemo(() => {
     const searchLower = search.toLowerCase();
-    
+
     const filtered = complaints.filter((complaint) => {
       const matchesSearch =
         complaint.description.toLowerCase().includes(searchLower) ||
@@ -128,7 +132,8 @@ export default function ComplaintsPage() {
         complaint.subLocation.toLowerCase().includes(searchLower) ||
         (complaint.user?.email || "").toLowerCase().includes(searchLower);
 
-      const matchesStatus = statusFilter === "ALL" || complaint.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "ALL" || complaint.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -146,16 +151,20 @@ export default function ComplaintsPage() {
     return filteredAndSortedComplaints.slice(startIndex, startIndex + pageSize);
   }, [filteredAndSortedComplaints, currentPage, pageSize]);
 
-  const totalPages = Math.ceil(filteredAndSortedComplaints.length / pageSize) || 1;
+  const totalPages =
+    Math.ceil(filteredAndSortedComplaints.length / pageSize) || 1;
 
   const handleDelete = async () => {
     if (!targetDeleteComplaint) return;
     setIsDeleting(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/api/complaints/${targetDeleteComplaint.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `${API_URL}/api/complaints/${targetDeleteComplaint.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       toast.success("Ticket deleted successfully");
       setTargetDeleteComplaint(null);
@@ -169,11 +178,46 @@ export default function ComplaintsPage() {
   };
 
   const statusStats = [
-    { id: "ALL", label: "All Complaints", count: complaints.length, icon: ClipboardList, colorClass: "text-indigo-600 bg-indigo-50 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/30" },
-    { id: "PENDING", label: "Pending", count: complaints.filter((c) => c.status === "PENDING").length, icon: Clock, colorClass: "text-amber-600 bg-amber-50 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30" },
-    { id: "IN_PROGRESS", label: "In Progress", count: complaints.filter((c) => c.status === "IN_PROGRESS").length, icon: Activity, colorClass: "text-sky-600 bg-sky-50 border-sky-100 dark:bg-sky-950/20 dark:text-sky-400 dark:border-sky-900/30" },
-    { id: "RESOLVED", label: "Resolved", count: complaints.filter((c) => c.status === "RESOLVED").length, icon: CheckCircle2, colorClass: "text-emerald-600 bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30" },
-    { id: "CLOSED", label: "Closed", count: complaints.filter((c) => c.status === "CLOSED").length, icon: XCircle, colorClass: "text-slate-600 bg-slate-100 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800" },
+    {
+      id: "ALL",
+      label: "All Complaints",
+      count: complaints.length,
+      icon: ClipboardList,
+      colorClass:
+        "text-indigo-600 bg-indigo-50 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/30",
+    },
+    {
+      id: "PENDING",
+      label: "Pending",
+      count: complaints.filter((c) => c.status === "PENDING").length,
+      icon: Clock,
+      colorClass:
+        "text-amber-600 bg-amber-50 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30",
+    },
+    {
+      id: "IN_PROGRESS",
+      label: "In Progress",
+      count: complaints.filter((c) => c.status === "IN_PROGRESS").length,
+      icon: Activity,
+      colorClass:
+        "text-sky-600 bg-sky-50 border-sky-100 dark:bg-sky-950/20 dark:text-sky-400 dark:border-sky-900/30",
+    },
+    {
+      id: "RESOLVED",
+      label: "Resolved",
+      count: complaints.filter((c) => c.status === "RESOLVED").length,
+      icon: CheckCircle2,
+      colorClass:
+        "text-emerald-600 bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30",
+    },
+    {
+      id: "CLOSED",
+      label: "Closed",
+      count: complaints.filter((c) => c.status === "CLOSED").length,
+      icon: XCircle,
+      colorClass:
+        "text-slate-600 bg-slate-100 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800",
+    },
   ];
 
   return (
@@ -203,11 +247,18 @@ export default function ComplaintsPage() {
                 onClick={() => setStatusFilter(stat.id)}
                 className={cn(
                   "group relative text-left rounded-lg p-6 bg-card border transition-all duration-300 overflow-hidden hover:shadow-md hover:-translate-y-1",
-                  isFilterActive ? "border-primary/30 ring-1 ring-primary/20" : "border-border/60 hover:border-primary/20"
+                  isFilterActive
+                    ? "border-primary/30 ring-1 ring-primary/20"
+                    : "border-border/60 hover:border-primary/20",
                 )}
               >
                 <div className="flex justify-between items-start relative z-10">
-                  <div className={cn("p-3 rounded-lg border transition-transform duration-300 group-hover:scale-110", stat.colorClass)}>
+                  <div
+                    className={cn(
+                      "p-3 rounded-lg border transition-transform duration-300 group-hover:scale-110",
+                      stat.colorClass,
+                    )}
+                  >
                     <Icon className="size-5" />
                   </div>
                   {isFilterActive && (
@@ -218,9 +269,15 @@ export default function ComplaintsPage() {
                 </div>
 
                 <div className="mt-5 space-y-1 relative z-10">
-                  <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">{stat.label}</p>
+                  <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    {stat.label}
+                  </p>
                   <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
-                    {loading ? <span className="inline-block w-8 h-8 rounded bg-muted animate-pulse" /> : stat.count}
+                    {loading ? (
+                      <span className="inline-block w-8 h-8 rounded bg-muted animate-pulse" />
+                    ) : (
+                      stat.count
+                    )}
                   </h2>
                 </div>
               </button>
@@ -242,10 +299,18 @@ export default function ComplaintsPage() {
               />
             </div>
 
-            <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
+            <Tabs
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+              className="w-full lg:w-auto"
+            >
               <TabsList className="w-full lg:w-auto rounded-full bg-muted/60 p-1 overflow-x-auto no-scrollbar">
                 {statusStats.map((stat) => (
-                  <TabsTrigger key={stat.id} value={stat.id} className="rounded-full px-4 py-2 whitespace-nowrap text-sm data-[state=active]:shadow-sm">
+                  <TabsTrigger
+                    key={stat.id}
+                    value={stat.id}
+                    className="rounded-full px-4 py-2 whitespace-nowrap text-sm data-[state=active]:shadow-sm"
+                  >
                     {stat.label.split(" ")[0]}
                   </TabsTrigger>
                 ))}
@@ -272,7 +337,10 @@ export default function ComplaintsPage() {
               </div>
 
               <div>
-                <Select value={String(pageSize)} onValueChange={(val) => setPageSize(Number(val))}>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(val) => setPageSize(Number(val))}
+                >
                   <SelectTrigger className="w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -292,13 +360,22 @@ export default function ComplaintsPage() {
             <div className="p-6 space-y-4">
               <div className="flex gap-4 border-b border-border/50 pb-3">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="h-6 bg-muted rounded flex-1 animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-6 bg-muted rounded flex-1 animate-pulse"
+                  />
                 ))}
               </div>
               {[1, 2, 3, 4, 5].map((row) => (
-                <div key={row} className="flex gap-4 py-2 border-b border-border/20">
+                <div
+                  key={row}
+                  className="flex gap-4 py-2 border-b border-border/20"
+                >
                   {[1, 2, 3, 4, 5, 6].map((c) => (
-                    <div key={c} className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                    <div
+                      key={c}
+                      className="h-8 bg-muted rounded flex-1 animate-pulse"
+                    />
                   ))}
                 </div>
               ))}
@@ -308,12 +385,21 @@ export default function ComplaintsPage() {
               <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
                 <Inbox className="size-6 stroke-[1.5]" />
               </div>
-              <h3 className="text-lg font-bold text-foreground">No Complaints Registered</h3>
+              <h3 className="text-lg font-bold text-foreground">
+                No Complaints Registered
+              </h3>
               <p className="text-muted-foreground mt-1.5 max-w-sm">
-                No matching records were found. Check search queries or reset filters.
+                No matching records were found. Check search queries or reset
+                filters.
               </p>
               {(search !== "" || statusFilter !== "ALL") && (
-                <Button onClick={() => { setSearch(""); setStatusFilter("ALL"); }} className="mt-5 px-6">
+                <Button
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter("ALL");
+                  }}
+                  className="mt-5 px-6"
+                >
                   Reset Filters
                 </Button>
               )}
@@ -323,38 +409,54 @@ export default function ComplaintsPage() {
               <Table>
                 <TableHeader className="bg-muted/40 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[50px]"># ID</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[220px]">Title / Description</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[170px]">Location</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[110px]">Priority</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[155px]">Status</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[100px]">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[50px]">
+                      # ID
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[220px]">
+                      Title / Description
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[170px]">
+                      Location
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[110px]">
+                      Priority
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[155px]">
+                      Status
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
+                      Created At
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[100px]">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/30">
                   {paginatedComplaints.map((complaint, index) => {
                     return (
-                      <TableRow key={complaint.id} className="hover:bg-muted/20 transition-colors">
+                      <TableRow
+                        key={complaint.id}
+                        className="hover:bg-muted/20 transition-colors"
+                      >
                         <TableCell className="py-4 pl-6 align-top font-semibold text-sm">
-                          {(currentPage - 1) * pageSize + index + 1}
+                          {complaint.ticketCode}
                         </TableCell>
 
                         <TableCell className="py-4 align-top">
                           <div className="space-y-1 max-w-[260px]">
                             <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors line-clamp-1">
-                              {complaint.title || complaint.description.slice(0, 40)}
-                            </p>
-                            <p className="text-muted-foreground text-xs font-light line-clamp-2 leading-relaxed">
-                              {complaint.description}
+                              {complaint.title ||
+                                complaint.description.slice(0, 40)}
                             </p>
                           </div>
                         </TableCell>
 
                         <TableCell className="py-4 align-top">
                           <div className="space-y-0.5 font-medium leading-tight text-sm">
-                            <p className="font-semibold text-foreground/90">{complaint.locationType}</p>
-                            <p className="text-muted-foreground text-[11px] font-normal">{complaint.subLocation}</p>
+                            <p className="font-semibold text-foreground/90">
+                              {complaint.locationType}
+                            </p>
                           </div>
                         </TableCell>
 
@@ -363,10 +465,14 @@ export default function ComplaintsPage() {
                             variant="outline"
                             className={cn(
                               "min-w-[90px] justify-center rounded-lg font-bold text-xs py-1 px-2.5",
-                              complaint.priority === "LOW" && "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
-                              complaint.priority === "MEDIUM" && "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",
-                              complaint.priority === "HIGH" && "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:text-orange-400",
-                              complaint.priority === "URGENT" && "border-rose-200 bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400"
+                              complaint.priority === "LOW" &&
+                                "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
+                              complaint.priority === "MEDIUM" &&
+                                "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",
+                              complaint.priority === "HIGH" &&
+                                "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:text-orange-400",
+                              complaint.priority === "URGENT" &&
+                                "border-rose-200 bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400",
                             )}
                           >
                             {complaint.priority}
@@ -378,11 +484,16 @@ export default function ComplaintsPage() {
                             variant="outline"
                             className={cn(
                               "min-w-[100px] justify-center rounded-lg font-bold text-xs py-1 px-2.5",
-                              complaint.status === "PENDING" && "border-slate-200 bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-                              complaint.status === "ASSIGNED" && "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400",
-                              complaint.status === "IN_PROGRESS" && "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",
-                              complaint.status === "RESOLVED" && "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
-                              complaint.status === "CLOSED" && "border-zinc-200 bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
+                              complaint.status === "PENDING" &&
+                                "border-slate-200 bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                              complaint.status === "ASSIGNED" &&
+                                "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400",
+                              complaint.status === "IN_PROGRESS" &&
+                                "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",
+                              complaint.status === "RESOLVED" &&
+                                "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
+                              complaint.status === "CLOSED" &&
+                                "border-zinc-200 bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-400",
                             )}
                           >
                             {complaint.status.replace("_", " ")}
@@ -393,18 +504,25 @@ export default function ComplaintsPage() {
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <Calendar className="size-3.5 text-muted-foreground/80" />
                             <span>
-                              {new Date(complaint.createdAt).toLocaleString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })}
+                              {new Date(complaint.createdAt).toLocaleString(
+                                "en-IN",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                },
+                              )}
                             </span>
                           </div>
                         </TableCell>
 
                         <TableCell className="py-4 pr-6 text-right align-top space-x-1">
                           <Link href={`/maintenance/tickets/${complaint.id}`}>
-                            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-blue-600">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-muted-foreground hover:text-blue-600"
+                            >
                               <Pencil className="size-4" />
                             </Button>
                           </Link>
@@ -427,22 +545,30 @@ export default function ComplaintsPage() {
         </div>
 
         {/* Global Isolated Delete Confirmation Modal */}
-        <AlertDialog open={!!targetDeleteComplaint} onOpenChange={(open) => !open && setTargetDeleteComplaint(null)}>
+        <AlertDialog
+          open={!!targetDeleteComplaint}
+          onOpenChange={(open) => !open && setTargetDeleteComplaint(null)}
+        >
           <AlertDialogContent className="sm:max-w-[420px]">
             <AlertDialogHeader>
               <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
                 <Trash2 className="size-6 text-destructive" />
               </div>
-              <AlertDialogTitle className="w-full text-center text-xl">Delete Ticket?</AlertDialogTitle>
+              <AlertDialogTitle className="w-full text-center text-xl">
+                Delete Ticket?
+              </AlertDialogTitle>
               <AlertDialogDescription className="text-center">
-                This action cannot be undone. This will permanently remove ticket{" "}
+                This action cannot be undone. This will permanently remove
+                ticket{" "}
                 <span className="font-semibold text-foreground">
                   {`"${targetDeleteComplaint?.title || targetDeleteComplaint?.description.slice(0, 25)}..."`}
                 </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="mt-4 gap-2 sm:gap-0">
-              <AlertDialogCancel className="h-11" disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogFooter className="mt-4 gap-2">
+              <AlertDialogCancel className="h-11" disabled={isDeleting}>
+                Cancel
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={(e) => {
                   e.preventDefault();
@@ -469,26 +595,61 @@ export default function ComplaintsPage() {
         {filteredAndSortedComplaints.length > 0 && (
           <div className="bg-card rounded-lg p-5 border border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-sm font-medium text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}</span> to{" "}
+              Showing{" "}
               <span className="font-semibold text-foreground">
-                {Math.min(currentPage * pageSize, filteredAndSortedComplaints.length)}
-              </span> of <span className="font-semibold text-foreground">{filteredAndSortedComplaints.length}</span> complaints
+                {(currentPage - 1) * pageSize + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-foreground">
+                {Math.min(
+                  currentPage * pageSize,
+                  filteredAndSortedComplaints.length,
+                )}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-foreground">
+                {filteredAndSortedComplaints.length}
+              </span>{" "}
+              complaints
             </div>
 
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="size-8">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="size-8"
+              >
                 <ChevronsLeft className="size-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="size-8">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="size-8"
+              >
                 <ChevronLeft className="size-4" />
               </Button>
-              
+
               <div className="flex items-center gap-1 px-1">
                 {Array.from({ length: totalPages }).map((_, idx) => {
                   const pageNum = idx + 1;
-                  if (Math.abs(currentPage - pageNum) > 1 && pageNum !== 1 && pageNum !== totalPages) {
+                  if (
+                    Math.abs(currentPage - pageNum) > 1 &&
+                    pageNum !== 1 &&
+                    pageNum !== totalPages
+                  ) {
                     if (pageNum === 2 || pageNum === totalPages - 1) {
-                      return <span key={pageNum} className="text-muted-foreground/60 text-xs px-1 select-none">..</span>;
+                      return (
+                        <span
+                          key={pageNum}
+                          className="text-muted-foreground/60 text-xs px-1 select-none"
+                        >
+                          ..
+                        </span>
+                      );
                     }
                     return null;
                   }
@@ -497,7 +658,10 @@ export default function ComplaintsPage() {
                       key={pageNum}
                       variant={currentPage === pageNum ? "default" : "outline"}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={cn("size-8 font-bold text-xs", currentPage === pageNum ? "bg-sky-600 text-white" : "")}
+                      className={cn(
+                        "size-8 font-bold text-xs",
+                        currentPage === pageNum ? "bg-sky-600 text-white" : "",
+                      )}
                     >
                       {pageNum}
                     </Button>
@@ -505,10 +669,24 @@ export default function ComplaintsPage() {
                 })}
               </div>
 
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="size-8">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="size-8"
+              >
                 <ChevronRight className="size-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="size-8">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="size-8"
+              >
                 <ChevronsRight className="size-4" />
               </Button>
             </div>
