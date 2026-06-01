@@ -1,5 +1,7 @@
 "use client";
 import { logError } from "@/lib/api-helpers";
+import { notify } from "@/lib/notify";
+import { imageUrl } from "@/lib/image-url";
 
 
 import axios from "axios";
@@ -150,61 +152,27 @@ export default function TicketManagementPage() {
 
       const token = localStorage.getItem("token");
 
+      // ONE consolidated PATCH instead of four separate hits. The backend
+      // updateComplaint(id, body) now accepts description, status, priority,
+      // and assignedTechnicianId together — see complaint.controller.ts.
       await axios.patch(
         `${API_URL}/api/complaints/${id}`,
         {
           description: complaint.description,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      await axios.patch(
-        `${API_URL}/api/complaints/${id}/status`,
-        {
           status,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      await axios.patch(
-        `${API_URL}/api/complaints/${id}/priority`,
-        {
           priority,
+          assignedTechnicianId: technicianId || null,
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
 
-      if (technicianId) {
-        await axios.patch(
-          `${API_URL}/api/complaints/${id}/assign`,
-          {
-            technicianId,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-      }
-
-      alert("Ticket Updated Successfully");
-
+      notify.success("Ticket updated");
       fetchData();
     } catch (error) {
       logError("tickets.[id].page", error);
-
-      alert("Failed To Update Ticket");
+      notify.error(error, "Failed to update ticket");
     } finally {
       setSaving(false);
     }
@@ -252,11 +220,11 @@ export default function TicketManagementPage() {
 
       setAdminImageUrl(imageUrl);
 
-      alert("Status image uploaded");
+      notify.success("Status image uploaded");
     } catch (error) {
       logError("tickets.[id].page", error);
 
-      alert("Failed to upload image");
+      notify.error("Failed to upload image");
     } finally {
       setUploadingImage(false);
     }
@@ -281,9 +249,9 @@ export default function TicketManagementPage() {
             </Button>
 
             <div>
-              <h1 className="text-3xl font-black">Ticket Management</h1>
+              <h1 className="text-xl font-bold">Ticket Management</h1>
 
-              <p className="text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Manage complaint ticket
               </p>
             </div>
@@ -320,7 +288,7 @@ export default function TicketManagementPage() {
                     <Label>User Submitted Image</Label>
 
                     <img
-                      src={complaint.imageUrl}
+                      src={imageUrl(complaint.imageUrl)}
                       alt="Complaint"
                       className="w-full rounded-xl border max-h-96 object-cover"
                     />
@@ -365,7 +333,7 @@ export default function TicketManagementPage() {
                           </p>
                           {it.imageUrl && (
                             <img
-                              src={it.imageUrl}
+                              src={imageUrl(it.imageUrl)}
                               alt={`Issue ${idx + 1}`}
                               className="mt-2 rounded-md border max-h-48 object-cover"
                             />

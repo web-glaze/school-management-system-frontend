@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Toaster } from "react-hot-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
@@ -27,6 +28,18 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              fontSize: "13px",
+              padding: "10px 14px",
+              borderRadius: "10px",
+            },
+            success: { iconTheme: { primary: "#0d9488", secondary: "#fff" } },
+            error: { iconTheme: { primary: "#dc2626", secondary: "#fff" } },
+          }}
+        />
       </body>
     </html>
   );

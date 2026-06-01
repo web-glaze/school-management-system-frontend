@@ -39,6 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
 
 import {
+  ChevronDown,
   ChevronRight,
   Inbox,
   Loader2,
@@ -47,6 +48,7 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
+import { notify } from "@/lib/notify";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -67,6 +69,13 @@ export default function LocationPage() {
   const [subLocationMap, setSubLocationMap] = useState<{
     [key: string]: string;
   }>({});
+
+  // Track which parents are expanded. Default: every parent open the first
+  // time the tree renders. Toggling the chevron flips a single id.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const isExpanded = (id: string) => expanded[id] !== false; // default open
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => ({ ...prev, [id]: !isExpanded(id) }));
 
   /* FETCH */
   const fetchLocations = async () => {
@@ -195,6 +204,25 @@ export default function LocationPage() {
             >
               {/* LEFT */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
+                {/* EXPAND / COLLAPSE — only when this row actually has children */}
+                {hasChildren ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(location.id)}
+                    className="size-6 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors shrink-0"
+                    title={isExpanded(location.id) ? "Collapse" : "Expand"}
+                  >
+                    {isExpanded(location.id) ? (
+                      <ChevronDown className="size-4" />
+                    ) : (
+                      <ChevronRight className="size-4" />
+                    )}
+                  </button>
+                ) : (
+                  // Spacer so leaf rows align with rows that have a chevron
+                  <span className="size-6 shrink-0" aria-hidden />
+                )}
+
                 {/* ICON */}
                 <div
                   className="
@@ -353,8 +381,8 @@ export default function LocationPage() {
               </div>
             </div>
 
-            {/* CHILDREN */}
-            {children.length > 0 && (
+            {/* CHILDREN — only when expanded */}
+            {children.length > 0 && isExpanded(location.id) && (
               <div className="mt-2 space-y-2">
                 {renderTree(location.id, level + 1)}
               </div>

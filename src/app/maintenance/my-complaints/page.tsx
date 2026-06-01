@@ -1,42 +1,18 @@
 "use client";
-import { logError } from "@/lib/api-helpers";
 
+// ✅ Centralised API layer — no direct axios calls, no token handling, no
+// envelope-unwrap branches. See src/lib/api/* for the full surface.
+import { api, type Complaint } from "@/lib/api";
+import { logError } from "@/lib/api-helpers";
+import { notify } from "@/lib/notify";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-
-import axios from "axios";
+import { PageHero } from "@/components/ui/PageHero";
+import { imageUrl } from "@/lib/image-url";
 
 import { useRouter } from "next/navigation";
 
 import { useEffect, useMemo, useState } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-interface Complaint {
-  id: string;
-
-  title: string;
-
-  description: string;
-
-  locationType: string;
-
-  subLocation: string;
-
-  imageUrl?: string;
-
-  adminImageUrl?: string;
-
-  priority: string;
-
-  status: string;
-
-  createdAt: string;
-
-  managerRemark?: string;
-
-  technicianRemark?: string;
-}
 
 export default function MyComplaintsPage() {
   const router = useRouter();
@@ -49,21 +25,16 @@ export default function MyComplaintsPage() {
 
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  // BEFORE: 15 lines of axios + token + try/catch + unwrap branch.
+  // AFTER: one call. The centralised client handles token, baseURL, and
+  // envelope unwrapping; we only handle UX (toast on error, loading flag).
   const fetchComplaints = async () => {
     try {
-      const token = localStorage.getItem("token");
-
-      const response = await axios.get(`${API_URL}/api/complaints/my`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setComplaints(
-        Array.isArray(response.data) ? response.data : response.data.data || [],
-      );
+      const data = await api.complaints.mine();
+      setComplaints(data);
     } catch (error) {
       logError("my-complaints.page", error);
+      notify.error(error, "Failed to load complaints");
     } finally {
       setLoading(false);
     }
@@ -102,23 +73,11 @@ export default function MyComplaintsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-
-          <div className="relative z-10">
-            <p className="uppercase tracking-[0.3em] text-sm text-white/80">
-              ECOLE ERP
-            </p>
-
-            <h1 className="text-5xl font-bold mt-4">My Complaints</h1>
-
-            <p className="mt-5 text-lg text-white/90 max-w-2xl">
-              Track all complaints you have registered and monitor their
-              progress in real-time.
-            </p>
-          </div>
-        </div>
+        {/* Hero — uses shared PageHero so sizes match dashboard */}
+        <PageHero
+          title="My Complaints"
+          subtitle="Track all complaints you have registered and monitor their progress in real-time."
+        />
 
         {/* Filters */}
         <div className="bg-white rounded-[2rem] p-6 shadow-lg border border-gray-100 flex flex-col lg:flex-row gap-4 justify-between">
@@ -156,12 +115,12 @@ export default function MyComplaintsPage() {
               Loading complaints...
             </div>
           ) : filteredComplaints.length === 0 ? (
-            <div className="bg-white rounded-[2rem] p-16 shadow-lg border border-gray-100 text-center">
-              <h2 className="text-3xl font-bold text-gray-800">
+            <div className="bg-white rounded-[2rem] p-10 shadow-lg border border-gray-100 text-center">
+              <h2 className="text-base font-bold text-gray-800">
                 No Complaints Found
               </h2>
 
-              <p className="text-gray-500 mt-4">
+              <p className="text-xs text-gray-500 mt-1.5">
                 You have not registered any complaints yet.
               </p>
             </div>
@@ -174,30 +133,30 @@ export default function MyComplaintsPage() {
                 {/* Top */}
                 <div className="p-8 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-800">
+                    <h2 className="text-base font-bold text-gray-800">
                       {complaint.description.slice(0, 60)}
                     </h2>
 
-                    <p className="text-gray-500 mt-3 max-w-3xl">
+                    <p className="text-xs text-gray-500 mt-1.5 max-w-3xl">
                       {complaint.description}
                     </p>
 
-                    <div className="flex flex-wrap gap-3 mt-5">
-                      <span className="px-4 py-2 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-[11px] font-medium">
                         {complaint.locationType}
                         {" • "}
                         {complaint.subLocation}
                       </span>
 
                       <span
-                        className={`px-4 py-2 rounded-full text-sm font-medium ${
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${
                           complaint.priority === "HIGH"
                             ? "bg-red-100 text-red-600"
                             : complaint.priority === "MEDIUM"
-                              ? "bg-yellow-100 text-yellow-600"
+                              ? "bg-yellow-100 text-yellow-700"
                               : complaint.priority === "URGENT"
                                 ? "bg-purple-100 text-purple-600"
-                                : "bg-green-100 text-green-600"
+                                : "bg-green-100 text-green-700"
                         }`}
                       >
                         {complaint.priority}
@@ -207,15 +166,15 @@ export default function MyComplaintsPage() {
 
                   <div>
                     <span
-                      className={`px-6 py-3 rounded-2xl text-sm font-semibold ${
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                         complaint.status === "PENDING"
-                          ? "bg-yellow-100 text-yellow-700"
+                          ? "bg-yellow-50 text-yellow-700"
                           : complaint.status === "ASSIGNED"
-                            ? "bg-cyan-100 text-cyan-700"
+                            ? "bg-cyan-50 text-cyan-700"
                             : complaint.status === "IN_PROGRESS"
-                              ? "bg-blue-100 text-blue-700"
+                              ? "bg-blue-50 text-blue-700"
                               : complaint.status === "RESOLVED"
-                                ? "bg-green-100 text-green-700"
+                                ? "bg-green-50 text-green-700"
                                 : "bg-gray-100 text-gray-700"
                       }`}
                     >
@@ -225,8 +184,8 @@ export default function MyComplaintsPage() {
                 </div>
 
                 {/* Timeline */}
-                <div className="p-8">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6">
+                <div className="p-6">
+                  <h3 className="text-sm font-bold text-gray-800 mb-4">
                     Progress Timeline
                   </h3>
                   {complaint.imageUrl && (
@@ -236,7 +195,7 @@ export default function MyComplaintsPage() {
                       </h4>
 
                       <img
-                        src={complaint.imageUrl}
+                        src={imageUrl(complaint.imageUrl)}
                         alt="Complaint"
                         className="rounded-2xl border max-h-80 object-cover"
                       />
@@ -249,7 +208,7 @@ export default function MyComplaintsPage() {
                       </h4>
 
                       <img
-                        src={complaint.adminImageUrl}
+                        src={imageUrl(complaint.adminImageUrl)}
                         alt="Admin Update"
                         className="rounded-2xl border max-h-80 object-cover"
                       />

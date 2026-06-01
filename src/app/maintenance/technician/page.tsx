@@ -1,5 +1,6 @@
 "use client";
 import { logError } from "@/lib/api-helpers";
+import { notify } from "@/lib/notify";
 
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -75,7 +76,10 @@ interface Department {
 
 interface Technician {
   id: string;
-  code: string;
+  // Backend field is `technicianCode` (e.g. "TECH-001"). The old `code`
+  // alias is kept so older API responses also render.
+  technicianCode?: string;
+  code?: string;
   name: string;
   phone?: string;
   email?: string;
@@ -169,7 +173,7 @@ export default function TechnicianPage() {
     const filtered = technicians.filter((technician) =>
       [
         technician.name,
-        technician.code,
+        technician.technicianCode ?? technician.code,
         technician.phone,
         technician.email,
         technician.department?.name,
@@ -214,7 +218,7 @@ export default function TechnicianPage() {
     } catch (error) {
       logError("technician.page", error);
 
-      alert("Failed to add technician");
+      notify.error("Failed to add technician");
     }
   };
 
@@ -499,7 +503,7 @@ export default function TechnicianPage() {
                         <TableCell className="py-4 pl-6 align-top">
                           <div className="space-y-1 max-w-[100px]">
                             <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              {technician.code || "-"}
+                              {technician.technicianCode ?? technician.code ?? "-"}
                             </p>
                           </div>
                         </TableCell>

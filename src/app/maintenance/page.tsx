@@ -3,100 +3,79 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 import Link from "next/link";
+import { AccessKey, canAccess, normaliseRole, Role } from "@/lib/rbac";
+
+/**
+ * Master list of dashboard cards. Each card declares the AccessKey it
+ * belongs to so the page filters by canAccess(role, key) — same RBAC
+ * source as the sidebar and the page guards. Add a card here once and
+ * every role that has access automatically sees it.
+ */
+const ALL_CARDS: Array<{
+  title: string;
+  description: string;
+  href: string;
+  access: AccessKey;
+}> = [
+  {
+    title: "Raise Ticket",
+    description: "Register a new complaint quickly.",
+    href: "/maintenance/tickets/create",
+    access: "tickets.create",
+  },
+  {
+    title: "My Complaints",
+    description: "Track status and progress of your complaints.",
+    href: "/maintenance/my-complaints",
+    access: "my-complaints",
+  },
+  {
+    title: "Complaint Management",
+    description: "Assign technicians and manage complaint workflow.",
+    href: "/maintenance/tickets",
+    access: "tickets.list",
+  },
+  {
+    title: "Technician Management",
+    description: "Add and manage technicians and assignments.",
+    href: "/maintenance/technician",
+    access: "technicians",
+  },
+  {
+    title: "Location Management",
+    description: "Create buildings, blocks, labs and nested campus locations.",
+    href: "/maintenance/location",
+    access: "locations",
+  },
+  {
+    title: "Department Management",
+    description:
+      "Manage electrician, carpenter, plumbing and maintenance departments.",
+    href: "/maintenance/departments",
+    access: "departments",
+  },
+  {
+    title: "User Management",
+    description: "Create and manage ERP IDs, roles and passwords.",
+    href: "/maintenance/user",
+    access: "users",
+  },
+  {
+    title: "Roles & Permissions",
+    description: "Decide which role can access which pages and actions.",
+    href: "/maintenance/roles",
+    access: "roles",
+  },
+];
 
 export default function MaintenancePage() {
   const storedUser =
     typeof window !== "undefined" ? localStorage.getItem("user") : null;
 
   const user = storedUser ? JSON.parse(storedUser) : null;
+  const role: Role = normaliseRole(user?.role);
 
-  const role = user?.role || "user";
-
-  const userCards = [
-    {
-      title: "Raise Ticket",
-      description: "Register a new complaint quickly.",
-      href: "/maintenance/complaints/raise-ticket",
-    },
-    {
-      title: "My Complaints",
-      description: "Track status and progress of your complaints.",
-      href: "/maintenance/my-complaints",
-    },
-  ];
-
-  const managerCards = [
-    {
-      title: "Complaint Management",
-      description: "Assign technicians and manage complaint workflow.",
-      href: "/maintenance/complaints",
-    },
-    {
-      title: "Technician Management",
-      description: "View and manage maintenance technicians.",
-      href: "/maintenance/technician",
-    },
-    {
-      title: "Raise Ticket",
-      description: "Register complaints on behalf of departments.",
-      href: "/maintenance/complaints/raise-ticket",
-    },
-    {
-      title: "My Complaints",
-      description: "Track status and progress of your complaints.",
-      href: "/maintenance/my-complaints",
-    },
-    {
-      title: "Location Management",
-      description:
-        "Create buildings, blocks, labs and nested campus locations.",
-      href: "/maintenance/location",
-    },
-  ];
-
-  const adminCards = [
-    {
-      title: "Complaint Management",
-      description: "Manage all complaints system-wide.",
-      href: "/maintenance/complaints",
-    },
-    {
-      title: "Technician Management",
-      description: "Add and manage technicians and assignments.",
-      href: "/maintenance/technician",
-    },
-    {
-      title: "Raise Ticket",
-      description: "Create and manage maintenance requests.",
-      href: "/maintenance/complaints/raise-ticket",
-    },
-    {
-      title: "My Complaints",
-      description: "Track your personal maintenance requests.",
-      href: "/maintenance/my-complaints",
-    },
-    {
-      title: "User Management",
-      description: "Create and manage ERP IDs, roles and passwords.",
-      href: "/maintenance/user",
-    },
-    {
-      title: "Location Management",
-      description:
-        "Create buildings, blocks, labs and nested campus locations.",
-      href: "/maintenance/location",
-    },
-    {
-      title: "Department Management",
-      description:
-        "Manage electrician, carpenter, plumbing and maintenance departments.",
-      href: "/maintenance/departments",
-    },
-  ];
-
-  let cards = userCards;
-  if (role === "manager") cards = managerCards;
-  if (role === "admin" || role === "superadmin") cards = adminCards;
+  const cards = ALL_CARDS.filter((c) => canAccess(role, c.access));
 
   return (
     <DashboardLayout>

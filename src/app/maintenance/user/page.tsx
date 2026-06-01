@@ -1,5 +1,6 @@
 "use client";
 import { logError } from "@/lib/api-helpers";
+import { notify } from "@/lib/notify";
 
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -128,12 +129,7 @@ export default function UserPage() {
       } catch (error : any ) {
 
   logError("user.page.create", error);
-
-  alert(
-    error.response?.data
-      ?.message ||
-      "Failed to create user"
-  );
+  notify.error(error, "Failed to create user");
 
       } finally {
         setLoading(false);
@@ -166,9 +162,7 @@ export default function UserPage() {
           }
         );
 
-        alert(
-          "Password updated"
-        );
+        notify.success("Password updated");
 
         setPasswordMap(
           (prev) => ({
@@ -220,21 +214,21 @@ export default function UserPage() {
       <div className="space-y-8">
 
         {/* Header */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-10">
+        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
 
-          <h1 className="text-5xl font-bold text-gray-800">
+          <h1 className="text-xl font-bold text-gray-800">
             User Management
           </h1>
 
-          <p className="mt-4 text-lg text-gray-500">
+          <p className="mt-1 text-sm text-gray-500">
             Create and manage teachers, staff, managers and admins across the ERP system.
           </p>
         </div>
 
         {/* Create User */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8">
+        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
 
-          <h2 className="text-3xl font-bold text-gray-800 mb-8">
+          <h2 className="text-sm font-bold text-gray-800 mb-4">
             Create New ID
           </h2>
 
@@ -341,9 +335,9 @@ export default function UserPage() {
         {/* Users */}
         <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
 
-          <div className="p-8 border-b border-gray-100">
+          <div className="p-5 border-b border-gray-100">
 
-            <h2 className="text-3xl font-bold text-gray-800">
+            <h2 className="text-sm font-bold text-gray-800">
               Existing Users
             </h2>
           </div>
@@ -354,17 +348,15 @@ export default function UserPage() {
               (user) => (
                 <div
                   key={user.id}
-                  className="p-6 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 hover:bg-gray-50 transition"
+                  className="p-4 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 hover:bg-gray-50 transition"
                 >
 
                   <div>
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {
-                        user.email
-                      }
+                    <h3 className="text-sm font-bold text-gray-800">
+                      {user.email}
                     </h3>
 
-                    <div className="flex flex-wrap gap-3 mt-3">
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
 
                       {user.userRoles.map(
                         (
@@ -375,7 +367,7 @@ export default function UserPage() {
                             key={
                               index
                             }
-                            className="px-4 py-2 rounded-full bg-blue-100 text-blue-600 text-sm font-medium"
+                            className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider"
                           >
                             {
                               item
@@ -393,51 +385,31 @@ export default function UserPage() {
 
                     <input
                       type="text"
-                      placeholder="New Password"
-                      value={
-                        passwordMap[
-                          user.id
-                        ] || ""
-                      }
+                      placeholder="New password"
+                      value={passwordMap[user.id] || ""}
                       onChange={(e) =>
-                        setPasswordMap(
-                          (
-                            prev
-                          ) => ({
-                            ...prev,
-                            [user.id]:
-                              e
-                                .target
-                                .value,
-                          })
-                        )
+                        setPasswordMap((prev) => ({
+                          ...prev,
+                          [user.id]: e.target.value,
+                        }))
                       }
-                      className="h-12 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
+                      className="h-9 text-xs rounded-full border border-gray-200 px-3 outline-none focus:border-blue-400"
                     />
 
                     <button
                       onClick={() =>
-                        changePassword(
-                          user.id,
-                          passwordMap[
-                            user.id
-                          ]
-                        )
+                        changePassword(user.id, passwordMap[user.id])
                       }
-                      className="h-12 px-6 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+                      className="h-9 px-4 rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition"
                     >
                       Change Password
                     </button>
 
                     <button
-                      onClick={() =>
-                        deleteUser(
-                          user.id
-                        )
-                      }
-                      className="h-12 px-6 rounded-2xl bg-red-100 text-red-600 font-semibold hover:bg-red-200 transition"
+                      onClick={() => deleteUser(user.id)}
+                      className="h-9 px-4 rounded-full bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition"
                     >
-                      Delete User
+                      Delete
                     </button>
                   </div>
                 </div>

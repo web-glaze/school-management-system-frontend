@@ -65,9 +65,10 @@ export function NavMain({
         </SidebarMenuItem>
       </SidebarMenu>
 
-      {/* Maintenance */}
+      {/* Maintenance — group header. Made bolder + slightly larger so the
+          items underneath visibly belong to a section, not the top level. */}
       <SidebarMenu>
-        <SidebarGroupLabel className="text-black/80 mt-2">
+        <SidebarGroupLabel className="mt-3 mb-1 text-foreground text-sm font-bold uppercase tracking-wider">
           Maintenance
         </SidebarGroupLabel>
 

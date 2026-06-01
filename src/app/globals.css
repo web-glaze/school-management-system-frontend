@@ -126,3 +126,49 @@
     cursor: pointer;
   }
 }
+
+/*
+ * Typography scale — single source of truth for text sizes used across
+ * pages. If a class name reads like a role ("page-title", "stat-value"),
+ * use it instead of raw size utilities so the whole app stays in sync.
+ *
+ *   .text-hero-eyebrow   tiny UPPERCASE label above the hero title
+ *   .text-hero-title     main page H1 inside a hero block
+ *   .text-hero-subtitle  one-line description under the hero title
+ *   .text-section-title  card / section H2 (above tables, lists, forms)
+ *   .text-section-subtitle
+ *                        muted helper under section titles
+ *   .text-stat-label     stat-card label (uppercase, wide-tracking)
+ *   .text-stat-value     big stat number
+ *   .text-meta           timestamps / IDs / footer text
+ *   .text-body           paragraph body inside cards (don't override)
+ */
+@layer components {
+  .text-hero-eyebrow {
+    @apply uppercase tracking-[0.25em] text-[11px];
+  }
+  .text-hero-title {
+    @apply text-2xl font-bold tracking-tight;
+  }
+  .text-hero-subtitle {
+    @apply text-sm;
+  }
+  .text-section-title {
+    @apply text-sm font-bold text-gray-800;
+  }
+  .text-section-subtitle {
+    @apply text-xs text-gray-500;
+  }
+  .text-stat-label {
+    @apply text-xs font-medium uppercase tracking-wider text-gray-500;
+  }
+  .text-stat-value {
+    @apply text-2xl font-bold text-gray-800;
+  }
+  .text-meta {
+    @apply text-[11px] text-gray-500;
+  }
+  .text-body {
+    @apply text-sm leading-relaxed;
+  }
+}

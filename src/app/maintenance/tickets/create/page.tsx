@@ -1,6 +1,7 @@
 "use client";
 
 import { logError } from "@/lib/api-helpers";
+import { notify } from "@/lib/notify";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -165,11 +166,11 @@ export default function RaiseTicketPage() {
 
     setImageUrl(uploadedUrl);
 
-    alert("Image uploaded successfully");
+    notify.success("Image uploaded");
   } catch (error) {
     logError("tickets.create.upload", error);
 
-    alert("Failed to upload image");
+    notify.error("Failed to upload image");
   } finally {
     setUploading(false);
   }
@@ -278,7 +279,7 @@ export default function RaiseTicketPage() {
       .filter((it) => it.description.length > 0);
 
     if (cleanItems.length === 0) {
-      alert("Please describe at least one issue.");
+      notify.error("Please describe at least one issue.");
       return;
     }
 
@@ -310,7 +311,7 @@ export default function RaiseTicketPage() {
       router.push("../tickets");
     } catch (error) {
       logError("tickets.create.submit", error);
-      alert("Failed to register complaint. Please try again.");
+      notify.error("Failed to register complaint. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -354,7 +355,7 @@ export default function RaiseTicketPage() {
     } catch (error) {
       logError("tickets.create.itemUpload", error);
       updateItem(itemId, { uploading: false });
-      alert("Failed to upload image");
+      notify.error("Failed to upload image");
     }
   };
 
@@ -405,14 +406,14 @@ export default function RaiseTicketPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 max-w-4xl w-full mx-auto">
+      <div className="space-y-8 w-full">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
               Raise New Ticket
             </h1>
-            <p className="text-muted-foreground mt-1.5 text-sm">
+            <p className="text-muted-foreground mt-0.5 text-xs">
               Follow our simple steps to report maintenance problems around
               campus.
             </p>
@@ -869,19 +870,4 @@ export default function RaiseTicketPage() {
       </div>
     </DashboardLayout>
   );
-}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-    </DashboardLayout>
-  );
-}
-  );
-}
 }

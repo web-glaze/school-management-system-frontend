@@ -393,9 +393,9 @@ export default function ComplaintsPage() {
                   <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                     {stat.label}
                   </p>
-                  <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground">
                     {loading ? (
-                      <span className="inline-block w-8 h-8 rounded bg-muted animate-pulse" />
+                      <span className="inline-block w-6 h-6 rounded bg-muted animate-pulse" />
                     ) : (
                       stat.count
                     )}
