@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
-import { Upload } from "lucide-react";
+import {
+  Upload,
+  ImagePlus,
+  X,
+  RefreshCw,
+  Trash2,
+  Plus,
+  FolderOpen,
+} from "lucide-react";
 
 import {
   Building2,
@@ -18,6 +26,7 @@ import {
   AlertCircle,
   Flame,
   ShieldAlert,
+  Sparkles,
   CheckCircle2,
   Undo,
   Loader2,
@@ -28,6 +37,8 @@ import {
 import axios from "axios";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -42,18 +53,14 @@ export default function RaiseTicketPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(1);
-
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("MEDIUM");
-  const [complaints, setComplaints] = useState<any[]>([]);
 
   // Drill-down and Path State
   const [selectedPath, setSelectedPath] = useState<string[]>([]);
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
 
+  /* FETCH LOCATIONS */
   const fetchLocations = async () => {
     try {
       setLocationsLoading(true);
@@ -76,12 +83,13 @@ export default function RaiseTicketPage() {
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      fetchLocations();
-    }, 0);
+    fetchLocations();
   }, []);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    issueId: number,
+  ) => {
     const file = e.target.files?.[0];
 
     if (!file) return;
@@ -92,7 +100,6 @@ export default function RaiseTicketPage() {
       const token = localStorage.getItem("token");
 
       const formData = new FormData();
-
       formData.append("file", file);
 
       const response = await axios.post(
@@ -106,20 +113,23 @@ export default function RaiseTicketPage() {
         },
       );
 
-      console.log("UPLOAD RESPONSE:", response.data);
+      const uploadedUrl = response.data.data.url;
 
-      setImageUrl(response.data.data.url);
+      setIssues((prev) =>
+        prev.map((issue) =>
+          issue.id === issueId ? { ...issue, imageUrl: uploadedUrl } : issue,
+        ),
+      );
 
-      alert("Image uploaded successfully");
+      toast.success("Image uploaded successfully");
     } catch (error) {
-      console.error(error);
-
-      alert("Failed to upload image");
+      toast.error("Failed to upload image");
     } finally {
       setUploading(false);
     }
   };
 
+  /* COMPUTE ACTIVE VISIBLE OPTIONS */
   const optionsToDisplay = useMemo(() => {
     if (locationsLoading) return [];
     return locations.filter((loc) => {
@@ -130,12 +140,14 @@ export default function RaiseTicketPage() {
     });
   }, [locations, currentParentId, locationsLoading]);
 
+  /* COMPUTE CURRENT TRAVERSED LEVEL INDEX */
   const currentLevel = useMemo(() => {
     if (currentParentId === null) return 0;
     const idx = selectedPath.indexOf(currentParentId);
     return idx !== -1 ? idx + 1 : 0;
   }, [currentParentId, selectedPath]);
 
+  /* COMPUTE METADATA FOR ACTIVE DISPLAYED LEVEL */
   const levelMetadata = useMemo(() => {
     switch (currentLevel) {
       case 0:
@@ -156,14 +168,17 @@ export default function RaiseTicketPage() {
     }
   }, [currentLevel]);
 
+  /* HANDLE CARD CLICK (DRILL DOWN OR SELECT LEAF) */
   const handleLocationClick = (loc: Location) => {
     const children = locations.filter((item) => item.parentId === loc.id);
 
     if (children.length > 0) {
+      // Has nested sub-locations: Drill down
       const newPath = [...selectedPath, loc.id];
       setSelectedPath(newPath);
       setCurrentParentId(loc.id);
     } else {
+      // Leaf node (no children): Select it at the current depth
       let currentLevelIndex = 0;
       if (currentParentId !== null) {
         currentLevelIndex = selectedPath.indexOf(currentParentId) + 1;
@@ -174,6 +189,7 @@ export default function RaiseTicketPage() {
     }
   };
 
+  /* GO BACK ONE LEVEL */
   const handleBackLocation = () => {
     if (selectedPath.length === 0) return;
 
@@ -188,6 +204,7 @@ export default function RaiseTicketPage() {
     }
   };
 
+  /* CHECK IF A LEAF HAS BEEN SELECTED */
   const isLeafSelected = useMemo(() => {
     if (selectedPath.length === 0) return false;
     const lastId = selectedPath[selectedPath.length - 1];
@@ -195,60 +212,62 @@ export default function RaiseTicketPage() {
     return children.length === 0;
   }, [selectedPath, locations]);
 
+  /* BUILD LOCATION PATH */
   const locationPath = selectedPath
     .map((id) => locations.find((loc) => loc.id === id)?.name)
     .filter(Boolean)
     .join(" > ");
-    
+
+  /* SUBMIT TICKET */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const invalidIssue = issues.find((issue) => !issue.description.trim());
 
-    const finalComplaints = [...complaints];
-
-    if (description.trim()) {
-      finalComplaints.push({
-        description,
-        priority,
-        imageUrl,
-        locationType: locationPath,
-        subLocation: selectedPath[selectedPath.length - 1],
-      });
+    if (invalidIssue) {
+      toast.error("Please fill all issue summaries.");
+      return;
     }
 
-    if (finalComplaints.length === 0) {
-      alert("Please describe the issue.");
+    const validIssues = issues.filter(
+      (issue) => issue.description.trim() !== "",
+    );
+
+    if (!validIssues.length) {
+      toast.error("Please add at least one issue.");
       return;
     }
 
     try {
       setLoading(true);
+
       const token = localStorage.getItem("token");
 
-      if (finalComplaints.length === 1) {
-        // Dispatch individual payload object
-        await axios.post(
-          `${API_URL}/api/complaints`,
-          finalComplaints[0],
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-      } else {
-        await axios.post(`${API_URL}/api/complaints/bulk`, finalComplaints, {
+      await axios.post(
+        `${API_URL}/api/complaints`,
+        {
+          complaints: validIssues.map((issue) => ({
+            description: issue.description,
+            priority: issue.priority,
+            imageUrl: issue.imageUrl,
+            locationType: locationPath,
+            subLocation: selectedPath[selectedPath.length - 1],
+          })),
+        },
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
-      }
+        },
+      );
 
-      setImageUrl("");
-      setComplaints([]);
+      toast.success(
+        `${validIssues.length} ticket${validIssues.length > 1 ? "s" : ""} created successfully`,
+      );
+
       router.push("../tickets");
     } catch (error) {
-      console.error("Failed to submit complaint:", error);
-      alert("Failed to register complaint. Please try again.");
+      console.error(error);
+      toast.error("Failed to create tickets");
     } finally {
       setLoading(false);
     }
@@ -258,7 +277,6 @@ export default function RaiseTicketPage() {
     {
       value: "LOW",
       label: "Low",
-      description: "Minor issue that can be scheduled for resolution later.",
       icon: ArrowUp,
       borderColorClass: "hover:border-emerald-500/40 focus:border-emerald-500",
       activeBgClass:
@@ -268,7 +286,6 @@ export default function RaiseTicketPage() {
     {
       value: "MEDIUM",
       label: "Medium",
-      description: "Standard maintenance request requiring normal attention.",
       icon: AlertCircle,
       borderColorClass: "hover:border-blue-500/40 focus:border-blue-500",
       activeBgClass:
@@ -278,7 +295,6 @@ export default function RaiseTicketPage() {
     {
       value: "HIGH",
       label: "High",
-      description: "Requires priority attention. Could cause disruption.",
       icon: Flame,
       borderColorClass: "hover:border-amber-500/40 focus:border-amber-500",
       activeBgClass:
@@ -288,8 +304,6 @@ export default function RaiseTicketPage() {
     {
       value: "URGENT",
       label: "Urgent",
-      description:
-        "Immediate action required. High-risk safety or core system hazard.",
       icon: ShieldAlert,
       borderColorClass: "hover:border-red-500/40 focus:border-red-500",
       activeBgClass: "border-red-500 bg-red-500/[0.03] dark:bg-red-500/[0.01]",
@@ -299,49 +313,44 @@ export default function RaiseTicketPage() {
 
   const ActiveLevelIcon = levelMetadata.icon;
 
-  const addComplaint = () => {
-    if (!description.trim()) {
-      alert("Please describe the issue.");
-      return;
-    }
-
-    setComplaints((prev) => [
+  const [issues, setIssues] = useState([
+    {
+      id: 1,
+      description: "",
+      imageUrl: "",
+      priority: "MEDIUM",
+    },
+  ]);
+  const addIssue = () => {
+    setIssues((prev) => [
       ...prev,
       {
-        description,
-        priority,
-        imageUrl,
-        locationType: locationPath,
-        subLocation: selectedPath[selectedPath.length - 1],
+        id: Date.now(),
+        description: "",
+        imageUrl: "",
+        priority: "MEDIUM",
       },
     ]);
+  };
 
-    alert("Complaint added successfully!");
-
-    setDescription("");
-    setPriority("MEDIUM");
-    setImageUrl("");
-
-    setStep(1);
-    setSelectedPath([]);
-    setCurrentParentId(null);
+  const removeIssue = (id: number) => {
+    setIssues(issues.filter((issue) => issue.id !== id));
   };
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 max-w-4xl w-full mx-auto">
+      <div className="space-y-8 max-w-5xl w-full mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-col-reverse md:flex-row gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
               Raise New Ticket
             </h1>
             <p className="text-muted-foreground mt-1.5 text-sm">
-              Follow our simple steps to report maintenance problems around
-              campus.
+              Follow the steps below to create a maintenance ticket quickly.
             </p>
           </div>
-          <Link href="/maintenance/tickets">
+          <Link className="w-full md:w-auto" href="/maintenance/tickets">
             <Button
               variant="outline"
               className="gap-2 border-border/80 hover:bg-muted font-medium transition-all shadow-sm"
@@ -355,7 +364,7 @@ export default function RaiseTicketPage() {
         <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between max-w-md mx-auto relative">
             {/* Step 1 Node */}
-            <div className="flex flex-col items-center z-10">
+            <div className="flex flex-col items-center z-10 relative">
               <button
                 type="button"
                 onClick={() => selectedPath.length > 0 && setStep(1)}
@@ -363,7 +372,7 @@ export default function RaiseTicketPage() {
                 className={`size-10 rounded-full flex items-center justify-center font-bold border-2 transition-all ${
                   step === 1
                     ? "bg-primary border-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
-                    : "bg-primary/10 border-primary/20 text-primary cursor-pointer hover:bg-primary/20"
+                    : "bg-muted border-border text-muted-foreground"
                 }`}
               >
                 {step > 1 ? <Check className="size-5 stroke-[2.5]" /> : "1"}
@@ -376,7 +385,7 @@ export default function RaiseTicketPage() {
             </div>
 
             {/* Connecting Progress Line */}
-            <div className="absolute left-[15%] right-[15%] top-5 h-[2px] bg-muted -z-0">
+            <div className="absolute left-[15%] right-[15%] top-5 h-[2px] bg-muted z-0">
               <div
                 className="h-full bg-primary transition-all duration-300"
                 style={{ width: step === 1 ? "0%" : "100%" }}
@@ -409,23 +418,14 @@ export default function RaiseTicketPage() {
           <div className="border-b border-border/60 px-6 py-5 bg-muted/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  {step === 1 ? (
-                    <Map className="size-5 text-primary" />
-                  ) : (
-                    <MapPin className="size-5 text-primary" />
-                  )}
-                </div>
                 <div>
                   <h2 className="text-base font-bold text-foreground">
-                    {step === 1
-                      ? "Location Selection"
-                      : "Describe the Maintenance Issue"}
+                    {step === 1 ? "Location Selection" : "Describe the Issue"}
                   </h2>
                 </div>
               </div>
               <div className="text-xs font-semibold text-muted-foreground bg-muted border border-border/60 px-3 py-1 rounded-full">
-                Step {step} of 2
+                Step {step}
               </div>
             </div>
           </div>
@@ -588,173 +588,262 @@ export default function RaiseTicketPage() {
               >
                 <div className="space-y-6">
                   {/* Context Path Summary */}
-                  <div className="bg-primary/[0.02] dark:bg-primary/[0.005] border border-primary/10 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-300">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <MapPin className="size-5 text-primary" />
+                  <div className="flex flex-row items-center justify-between gap-3 px-4 py-3 bg-primary/[0.03] border border-primary/15 rounded-xl animate-in fade-in duration-300">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="size-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <MapPin className="size-4.5 text-primary" />
                       </div>
-                      <div>
-                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          Target Location
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
+                          Selected Location
                         </span>
-                        <p className="text-sm font-bold text-foreground mt-0.5">
+                        <p className="text-sm font-semibold text-foreground truncate mt-0.5">
                           {locationPath}
                         </p>
                       </div>
                     </div>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       type="button"
                       onClick={() => setStep(1)}
+                      className="shrink-0 text-xs gap-1.5 h-8 px-3 border-border/60 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all"
                     >
-                      Change Location
+                      <RefreshCw className="size-3" />
+                      Change
                     </Button>
                   </div>
 
-                  {/* Issue description field */}
-                  <div className="space-y-2">
-                    <Label>Issue Summary</Label>
-                    <Textarea
-                      id="issue-description"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      required={complaints.length === 0}
-                      placeholder="Please clearly describe the issue (e.g. AC leaking in room 202, leaking pipe under bathroom sink, broken lock etc.)"
-                      className="min-h-[110px] rounded-xl border-border/80 focus-visible:ring-primary focus-visible:border-primary text-xs p-4 leading-relaxed transition-all"
-                    />
-                  </div>
+                  {/* Issues Section */}
                   <div className="space-y-4">
-                    <Label className="text-base font-semibold">
-                      Complaint Image (Optional)
-                    </Label>
-
-                    <div className="border-2 border-dashed rounded-xl p-6 text-center bg-muted/20">
-                      <input
-                        id="complaint-image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-
-                      <label
-                        htmlFor="complaint-image"
-                        className="cursor-pointer flex flex-col items-center gap-3"
-                      >
-                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Upload className="h-6 w-6" />
-                        </div>
-
-                        <div>
-                          <p className="font-medium">Click to upload image</p>
-
-                          <p className="text-sm text-muted-foreground">
-                            PNG, JPG, WEBP up to 5MB
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-
-                    {uploading && (
-                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                        <p className="text-sm text-blue-700">
-                          Uploading image...
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base font-bold">Issues</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Add one or more issues at this location
                         </p>
                       </div>
-                    )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addIssue}
+                        className="gap-1.5 h-9 px-4 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all text-sm font-medium"
+                      >
+                        <Plus className="size-3.5" />
+                        Add Issue
+                      </Button>
+                    </div>
 
-                    {imageUrl && (
-                      <div className="space-y-4">
-                        <div className="rounded-xl overflow-hidden border">
-                          <img
-                            src={imageUrl}
-                            alt="Preview"
-                            className="w-full max-h-80 object-cover"
-                          />
+                    {issues.map((issue, index) => (
+                      <div
+                        key={issue.id}
+                        className="relative border border-border/70 rounded-2xl overflow-hidden bg-card transition-all hover:border-border"
+                      >
+                        {/* Issue Card Header */}
+                        <div className="flex items-center justify-between px-5 py-3.5 bg-muted/30 border-b border-border/60">
+                          <div className="flex items-center gap-2.5">
+                            <span className="size-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                              {index + 1}
+                            </span>
+                            <h3 className="text-sm font-bold text-foreground">
+                              Issue #{index + 1}
+                            </h3>
+                          </div>
+                          {issues.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeIssue(issue.id)}
+                              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors px-2.5 py-1.5 rounded-lg hover:bg-destructive/5 font-medium"
+                            >
+                              <Trash2 className="size-3.5" />
+                              Remove
+                            </button>
+                          )}
                         </div>
 
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                              document
-                                .getElementById("complaint-image")
-                                ?.click()
-                            }
-                          >
-                            Update Image
-                          </Button>
-
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            onClick={() => setImageUrl("")}
-                          >
-                            Remove Image
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Custom priority radio cards */}
-                  <div className="space-y-3">
-                    <Label>Priority</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {priorities.map((item) => {
-                        const isSelected = priority === item.value;
-                        const Icon = item.icon;
-                        return (
-                          <button
-                            key={item.value}
-                            type="button"
-                            onClick={() => setPriority(item.value)}
-                            className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-200 relative overflow-hidden group ${
-                              isSelected
-                                ? item.activeBgClass +
-                                  " shadow-sm ring-1 ring-primary/10"
-                                : "border-border bg-card text-foreground hover:border-border-hover hover:bg-muted/30"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 w-full">
-                              <div
-                                className={`size-8 rounded-lg flex items-center justify-center transition-colors ${
-                                  isSelected
-                                    ? "bg-card shadow-sm border"
-                                    : "bg-muted"
-                                }`}
-                              >
-                                <Icon
-                                  className={`size-4.5 ${item.colorClass}`}
-                                />
-                              </div>
-                              <span className="text-xs font-bold text-foreground">
-                                {item.label}
-                              </span>
-
-                              <div className="ml-auto flex items-center gap-2">
-                                {isSelected && (
-                                  <div className="size-4.5 rounded-full bg-primary flex items-center justify-center text-white animate-in zoom-in duration-200">
-                                    <Check className="size-2.5 stroke-[3]" />
-                                  </div>
-                                )}
+                        {/* Issue Card Body */}
+                        <div className="p-5 grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-5">
+                          {/* Summary */}
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Issue Summary
+                              </Label>
+                              <Textarea
+                                placeholder="Describe the maintenance issue in detail..."
+                                value={issue.description}
+                                rows={5}
+                                className="resize-none text-sm leading-relaxed placeholder:text-muted-foreground/50 focus-visible:ring-primary/30"
+                                onChange={(e) => {
+                                  setIssues(
+                                    issues.map((i) =>
+                                      i.id === issue.id
+                                        ? { ...i, description: e.target.value }
+                                        : i,
+                                    ),
+                                  );
+                                }}
+                              />
+                            </div>
+                            {/* Priority Selector */}
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Priority Level
+                              </Label>
+                              <div className="grid grid-cols-4 gap-2">
+                                {priorities.map((p) => {
+                                  const Icon = p.icon;
+                                  const isActive = issue.priority === p.value;
+                                  return (
+                                    <Button
+                                      key={p.value}
+                                      type="button"
+                                      onClick={() =>
+                                        setIssues(
+                                          issues.map((i) =>
+                                            i.id === issue.id
+                                              ? { ...i, priority: p.value }
+                                              : i,
+                                          ),
+                                        )
+                                      }
+                                      className={`relative transition-all duration-200 ${
+                                        isActive
+                                          ? `${p.activeBgClass} ${p.colorClass} shadow-sm`
+                                          : `border-border/60 text-muted-foreground bg-muted/20 ${p.borderColorClass}`
+                                      }`}
+                                    >
+                                      <Icon
+                                        className={`size-4 shrink-0 ${isActive ? p.colorClass : "text-muted-foreground"}`}
+                                      />
+                                      <span
+                                        className={isActive ? p.colorClass : ""}
+                                      >
+                                        {p.label}
+                                      </span>
+                                      {isActive && (
+                                        <span className="absolute top-2 right-2 size-1 rounded-full bg-current opacity-70" />
+                                      )}
+                                    </Button>
+                                  );
+                                })}
                               </div>
                             </div>
+                          </div>
 
-                            <p className="text-[11px] text-muted-foreground mt-2.5 leading-relaxed">
-                              {item.description}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
+                          {/* Divider */}
+                          <div className="hidden lg:flex items-stretch">
+                            <div className="w-px bg-border/60 mx-1" />
+                          </div>
+
+                          {/* Right Column: Image + Priority */}
+                          <div className="space-y-4">
+                            {/* Image Upload */}
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Attach Photo
+                              </Label>
+
+                              {!issue.imageUrl ? (
+                                /* Drop Zone */
+                                <label
+                                  htmlFor={`image-upload-${issue.id}`}
+                                  className="group flex flex-col items-center justify-center gap-3 h-[150px] border-2 border-dashed border-border/60 rounded-xl cursor-pointer bg-muted/20 hover:bg-primary/[0.02] hover:border-primary/40 transition-all duration-200"
+                                >
+                                  <div className="size-10 rounded-xl bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                                    <ImagePlus className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                                      Click to upload photo
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                                      PNG, JPG, WEBP up to 10MB
+                                    </p>
+                                  </div>
+                                  <input
+                                    id={`image-upload-${issue.id}`}
+                                    type="file"
+                                    accept="image/*"
+                                    className="sr-only"
+                                    onChange={(e) =>
+                                      handleImageUpload(e, issue.id)
+                                    }
+                                  />
+                                </label>
+                              ) : (
+                                /* Image Preview with actions */
+                                <div className="relative rounded-xl overflow-hidden border border-border/60 group">
+                                  <img
+                                    src={issue.imageUrl}
+                                    alt={`Issue ${index + 1}`}
+                                    className="w-full h-[150px] object-cover"
+                                  />
+                                  {/* Overlay on hover */}
+                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                                    {/* Replace */}
+                                    <label
+                                      htmlFor={`image-replace-${issue.id}`}
+                                      className="flex items-center gap-1.5 text-xs font-semibold text-white bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-2 rounded-lg cursor-pointer transition-all"
+                                    >
+                                      <RefreshCw className="size-3.5" />
+                                      Replace
+                                      <input
+                                        id={`image-replace-${issue.id}`}
+                                        type="file"
+                                        accept="image/*"
+                                        className="sr-only"
+                                        onChange={(e) =>
+                                          handleImageUpload(e, issue.id)
+                                        }
+                                      />
+                                    </label>
+                                    {/* Delete */}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setIssues(
+                                          issues.map((i) =>
+                                            i.id === issue.id
+                                              ? { ...i, imageUrl: "" }
+                                              : i,
+                                          ),
+                                        )
+                                      }
+                                      className="flex items-center gap-1.5 text-xs font-semibold text-white bg-red-500/70 hover:bg-red-500/90 px-3 py-2 rounded-lg transition-all"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                      Delete
+                                    </button>
+                                  </div>
+                                  {/* Bottom status bar */}
+                                  <div className="absolute bottom-0 left-0 right-0 px-2.5 py-1.5 bg-black/40 backdrop-blur-sm">
+                                    <p className="text-[14px] text-white/90 font-medium flex items-center gap-1">
+                                      <CheckCircle2 className="size-3" />
+                                      Photo attached — hover to replace or
+                                      delete
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {uploading && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Loader2 className="size-3.5 animate-spin text-primary" />
+                                  Uploading...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="flex items-center justify-between pt-6 border-t border-border/80 mt-10">
+                <div className="flex items-center justify-between pt-6 border-t border-border/80 mt-6">
                   <Button
                     type="button"
                     variant="outline"
@@ -765,34 +854,28 @@ export default function RaiseTicketPage() {
                     Back
                   </Button>
 
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addComplaint}
-                      className="gap-2 px-5"
-                    >
-                      Add Complaint
-                    </Button>
-
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="gap-2 px-5"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="size-4 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="size-4" />
-                          Register Complaint
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  <Button
+                    type="submit"
+                    disabled={loading || uploading}
+                    className="gap-2 px-5 h-12 font-semibold"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Uploading Image...
+                      </>
+                    ) : loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="size-4" />
+                        Submit Ticket
+                      </>
+                    )}
+                  </Button>
                 </div>
               </form>
             )}
