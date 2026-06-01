@@ -81,6 +81,13 @@ export const complaints = {
   mine() {
     return request.get<Complaint[]>("/api/complaints/my");
   },
+  /**
+   * Tickets assigned to the logged-in technician (matches by email).
+   * Used by the technician dashboard / tickets list.
+   */
+  assignedToMe() {
+    return request.get<Complaint[]>("/api/complaints/assigned-to-me");
+  },
   get(id: string) {
     return request.get<Complaint>(`/api/complaints/${id}`);
   },
@@ -108,4 +115,25 @@ export const complaints = {
   removeImage(id: string) {
     return request.patch<Complaint>(`/api/complaints/${id}/remove-image`);
   },
+  /**
+   * Reassign a ticket to another technician with a mandatory reason.
+   * The backend writes the move to TicketTransfer for audit.
+   */
+  transfer(id: string, body: { toTechnicianId: string; reason: string }) {
+    return request.post<Complaint>(`/api/complaints/${id}/transfer`, body);
+  },
+  /** Read the full transfer history for a ticket. */
+  transfers(id: string) {
+    return request.get<TicketTransfer[]>(`/api/complaints/${id}/transfers`);
+  },
 };
+
+export interface TicketTransfer {
+  id: string;
+  complaintId: string;
+  fromTechId: string | null;
+  toTechId: string;
+  reason: string;
+  byUserId: string;
+  createdAt: string;
+}

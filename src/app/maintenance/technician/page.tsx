@@ -46,6 +46,7 @@ import {
   Eye,
   Inbox,
   Loader2,
+  KeyRound,
   Pencil,
   Plus,
   Search,
@@ -99,7 +100,11 @@ export default function TechnicianPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [departmentId, setDepartmentId] = useState("");
+  // Per-row state for the inline "change password" input on each tech.
+  const [pwInputs, setPwInputs] = useState<Record<string, string>>({});
+  const [pwSaving, setPwSaving] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -198,6 +203,10 @@ export default function TechnicianPage() {
           name,
           phone,
           email: email || undefined,
+          // Optional password — if provided, backend also creates the
+          // matching User account with TECHNICIAN role so this person
+          // can log in immediately.
+          password: password.trim() ? password.trim() : undefined,
           departmentId,
         },
         {
@@ -210,6 +219,7 @@ export default function TechnicianPage() {
       setName("");
       setPhone("");
       setEmail("");
+      setPassword("");
       setDepartmentId("");
       setOpen(false);
 
@@ -219,6 +229,35 @@ export default function TechnicianPage() {
       logError("technician.page", error);
 
       notify.error("Failed to add technician");
+    }
+  };
+
+  /**
+   * Set or reset the password for the User account linked to this
+   * technician. Backend creates the User if it doesn't exist yet, so the
+   * very first call here turns a no-login profile into a login-ready one.
+   */
+  const changeTechnicianPassword = async (technicianId: string) => {
+    const newPassword = (pwInputs[technicianId] ?? "").trim();
+    if (newPassword.length < 6) {
+      notify.error("Password must be at least 6 characters");
+      return;
+    }
+    try {
+      setPwSaving(technicianId);
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `${API_URL}/api/technicians/${technicianId}/password`,
+        { newPassword },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setPwInputs((prev) => ({ ...prev, [technicianId]: "" }));
+      notify.success("Password updated");
+    } catch (error) {
+      logError("technician.page.changePassword", error);
+      notify.error(error, "Failed to update password");
+    } finally {
+      setPwSaving(null);
     }
   };
 
@@ -371,10 +410,29 @@ export default function TechnicianPage() {
                         <Input
                           id="technician-email"
                           type="email"
-                          placeholder="Enter Your Email"
+                          placeholder="Enter email (also used for login)"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                         />
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="technician-password">
+                          Password (optional — for login)
+                        </Label>
+                        <Input
+                          id="technician-password"
+                          type="text"
+                          placeholder="Min 6 chars. Leave blank to skip login setup."
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          minLength={6}
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Filling password creates a User account with this
+                          email so the technician can sign in immediately.
+                        </p>
                       </Field>
                     </FieldGroup>
 
@@ -556,17 +614,100 @@ export default function TechnicianPage() {
                           </div>
                         </TableCell>
 
-                        {/* Actions */}
-                        <TableCell className="py-4 pr-6 text-right align-top">
+                        {/* Actions — compact icon row. Password reset
+                            lives in a popover so it doesn't squash the
+                            date column on narrow screens. */}
+                        <TableCell className="py-4 pr-6 align-top">
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Password reset popover */}
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={!technician.email}
+                                  className="size-9 rounded-lg text-muted-foreground hover:bg-amber-100/40 hover:text-amber-700 transition-all"
+                                  title={
+                                    technician.email
+                                      ? "Set or reset password"
+                                      : "Add email first to enable login"
+                                  }
+                                >
+                                  <KeyRound className="size-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[420px]">
+                                <DialogHeader>
+                                  <DialogTitle>
+                                    Set login password
+                                  </DialogTitle>
+                                  <DialogDescription>
+                                    Sets the password for the User account
+                                    matching{" "}
+                                    <span className="font-semibold text-foreground">
+                                      {technician.email}
+                                    </span>
+                                    . If no User account exists yet, one is
+                                    created with the TECHNICIAN role.
+                                  </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="space-y-3 py-2">
+                                  <Input
+                                    type="text"
+                                    placeholder="New password (min 6 chars)"
+                                    value={pwInputs[technician.id] ?? ""}
+                                    onChange={(e) =>
+                                      setPwInputs((prev) => ({
+                                        ...prev,
+                                        [technician.id]: e.target.value,
+                                      }))
+                                    }
+                                    className="h-10 text-sm"
+                                  />
+                                </div>
+
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <Button variant="ghost" type="button">
+                                      Cancel
+                                    </Button>
+                                  </DialogClose>
+                                  <Button
+                                    disabled={
+                                      pwSaving === technician.id ||
+                                      !(pwInputs[technician.id]?.trim())
+                                    }
+                                    onClick={() =>
+                                      changeTechnicianPassword(technician.id)
+                                    }
+                                    className="gap-2"
+                                  >
+                                    {pwSaving === technician.id ? (
+                                      <>
+                                        <Loader2 className="size-3.5 animate-spin" />
+                                        Saving…
+                                      </>
+                                    ) : (
+                                      <>
+                                        <KeyRound className="size-3.5" />
+                                        Save Password
+                                      </>
+                                    )}
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+
                           <Dialog open={editOpen} onOpenChange={setEditOpen}>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => openEditDialog(technician)}
-                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              className="size-9 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
                               title="Edit Technician"
                             >
-                              <Pencil className="size-5" />
+                              <Pencil className="size-4" />
                             </Button>
 
                             <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
@@ -762,6 +903,7 @@ export default function TechnicianPage() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

@@ -24,6 +24,12 @@ const ALL_CARDS: Array<{
     access: "tickets.create",
   },
   {
+    title: "Assigned to Me",
+    description: "Open tickets a manager assigned to you. Update status here.",
+    href: "/maintenance/assigned",
+    access: "assigned-tickets",
+  },
+  {
     title: "My Complaints",
     description: "Track status and progress of your complaints.",
     href: "/maintenance/my-complaints",

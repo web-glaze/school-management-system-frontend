@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ECOLE School ERP — DigitalOcean Deployment Guide</title>
+    <style>
+      :root {
+        --teal: #0d9488;
+        --teal-dark: #115e59;
+        --teal-light: #ccfbf1;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --ok: #16a34a;
+        --warn: #ca8a04;
+        --crit: #dc2626;
+        --brand: #2563eb;
+        --brand-dark: #1d4ed8;
+        --code-bg: #0f172a;
+        --code-ink: #e2e8f0;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.6;
+        font-size: 14px;
+      }
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 24px 72px; }
+
+      /* Hero */
+      .hero {
+        background: linear-gradient(135deg, #1e3a8a, #2563eb 60%, #06b6d4);
+        color: white;
+        border-radius: 18px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+      }
+      .hero .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 11px;
+        opacity: 0.85;
+      }
+      .hero h1 { margin: 8px 0 6px; font-size: 26px; }
+      .hero p { margin: 0; opacity: 0.95; font-size: 13px; max-width: 760px; }
+
+      /* Sticky TOC */
+      nav.toc {
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        padding: 12px 0;
+        margin: -12px 0 16px;
+        border-bottom: 1px solid var(--line);
+        z-index: 5;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 12px;
+      }
+      nav.toc a {
+        text-decoration: none;
+        color: var(--muted);
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--card);
+        border: 1px solid var(--line);
+      }
+      nav.toc a:hover { color: var(--brand); border-color: var(--brand); }
+
+      h2 {
+        font-size: 18px;
+        margin: 28px 0 12px;
+        border-left: 4px solid var(--brand);
+        padding-left: 10px;
+      }
+      h3 { font-size: 15px; margin: 18px 0 8px; color: var(--brand-dark); }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px 20px;
+        margin: 12px 0;
+      }
+      .card h3:first-child { margin-top: 0; }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      @media (max-width: 740px) {
+        .grid-2 { grid-template-columns: 1fr; }
+      }
+
+      pre, code {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      code {
+        background: #eef2ff;
+        color: #1e1b4b;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      pre {
+        background: var(--code-bg);
+        color: var(--code-ink);
+        padding: 14px 16px;
+        border-radius: 10px;
+        overflow-x: auto;
+        font-size: 12.5px;
+        line-height: 1.55;
+      }
+      pre code { background: transparent; color: inherit; padding: 0; }
+
+      .step {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        margin: 14px 0;
+      }
+      .step .num {
+        flex: 0 0 32px;
+        height: 32px;
+        width: 32px;
+        border-radius: 50%;
+        background: var(--brand);
+        color: white;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+      }
+      .step .body { flex: 1; }
+      .step h4 { margin: 2px 0 4px; font-size: 14px; }
+      .step p { margin: 4px 0; }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin: 8px 0;
+      }
+      th, td {
+        text-align: left;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: #f1f5f9;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      tr:last-child td { border-bottom: 0; }
+
+      .pill {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .pill.rec  { background: #dcfce7; color: var(--ok); }
+      .pill.alt  { background: #e0f2fe; color: #0369a1; }
+      .pill.warn { background: #fef3c7; color: var(--warn); }
+      .pill.crit { background: #fee2e2; color: var(--crit); }
+
+      .note {
+        background: var(--teal-light);
+        border-left: 4px solid var(--teal);
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin: 12px 0;
+        font-size: 12.5px;
+      }
+      .warn {
+        background: #fef9c3;
+        border-left: 4px solid var(--warn);
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin: 12px 0;
+        font-size: 12.5px;
+      }
+
+      .ascii {
+        background: #0b1220;
+        color: #93c5fd;
+        padding: 16px;
+        border-radius: 10px;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+        white-space: pre;
+        overflow-x: auto;
+      }
+
+      ul.clean { margin: 6px 0 12px 20px; padding: 0; }
+      ul.clean li { margin: 4px 0; }
+
+      .cost-tile {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin: 6px 0;
+        background: #fff;
+      }
+      .cost-tile .label { font-size: 13px; }
+      .cost-tile .value { font-weight: 700; color: var(--brand-dark); }
+
+      footer {
+        margin-top: 36px;
+        font-size: 11px;
+        color: var(--muted);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <div class="eyebrow">ECOLE School ERP · Deployment Guide</div>
+        <h1>Deploy on DigitalOcean — full walkthrough</h1>
+        <p>
+          Two clear paths (App Platform vs Docker on a Droplet), full
+          CI/CD with GitHub Actions, cost estimate, security checklist,
+          backups and monitoring. Pick a path, follow the steps, you'll
+          be live in 1–2 hours.
+        </p>
+      </section>
+
+      <nav class="toc">
+        <a href="#overview">1. Overview</a>
+        <a href="#paths">2. Pick a path</a>
+        <a href="#prereqs">3. Prerequisites</a>
+        <a href="#path-a">4. App Platform path</a>
+        <a href="#path-b">5. Droplet path</a>
+        <a href="#cicd">6. CI/CD</a>
+        <a href="#domain">7. Domain &amp; SSL</a>
+        <a href="#backups">8. Backups</a>
+        <a href="#monitoring">9. Monitoring</a>
+        <a href="#security">10. Security</a>
+        <a href="#costs">11. Costs</a>
+        <a href="#checklist">12. Go-live checklist</a>
+        <a href="#alts">13. Alternatives</a>
+      </nav>
+
+      <!-- 1. OVERVIEW -->
+      <h2 id="overview">1. Architecture overview</h2>
+      <div class="card">
+        <p>
+          ECOLE consists of <b>three runtime services</b> plus storage
+          and DNS. Every deployment path uses the same model — only the
+          hosting differs.
+        </p>
+
+        <pre class="ascii">
+                     ┌──────────────────────────┐
+                     │  Cloudflare DNS + SSL    │
+                     │  erp.yourschool.com      │
+                     └────────────┬─────────────┘
+                                  │
+            ┌──────────────────────┴──────────────────────┐
+            │                                             │
+            ▼                                             ▼
+   ┌────────────────┐                            ┌────────────────┐
+   │  Next.js (FE)  │     api.yourschool.com     │  NestJS (API)  │
+   │  Port 3001     │ ─────────────────────────▶ │  Port 3000     │
+   └────────────────┘                            └────────┬───────┘
+                                                          │
+                                          ┌───────────────┼───────────────┐
+                                          ▼               ▼               ▼
+                                 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+                                 │  Postgres    │ │   Redis      │ │  Spaces / S3 │
+                                 │  (15+)       │ │  (optional)  │ │  or Cloudinary│
+                                 └──────────────┘ └──────────────┘ └──────────────┘</pre>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Tech</th>
+              <th>Why we need it</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>API server</td>
+              <td>NestJS 11 + Prisma</td>
+              <td>Business logic, REST API, JWT auth, RBAC, WebSockets</td>
+            </tr>
+            <tr>
+              <td>Web app</td>
+              <td>Next.js 16 + React 19</td>
+              <td>Admin / parent / technician UI</td>
+            </tr>
+            <tr>
+              <td>Database</td>
+              <td>PostgreSQL 15+</td>
+              <td>All tenant data, users, tickets, audit logs</td>
+            </tr>
+            <tr>
+              <td>Cache / pub-sub</td>
+              <td>Redis (optional)</td>
+              <td>Rate limiting, WebSocket scaling, OTP store</td>
+            </tr>
+            <tr>
+              <td>File storage</td>
+              <td>Spaces or Cloudinary</td>
+              <td>Complaint photos, admin proof images</td>
+            </tr>
+            <tr>
+              <td>DNS / SSL</td>
+              <td>Cloudflare (free)</td>
+              <td>Domain routing, HTTPS, DDoS protection</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 2. PATHS -->
+      <h2 id="paths">2. Pick a path</h2>
+      <div class="grid-2">
+        <div class="card">
+          <span class="pill rec">Recommended</span>
+          <h3>A. App Platform (PaaS)</h3>
+          <p>
+            DigitalOcean's managed app hosting. You point it at a
+            GitHub branch, it builds and deploys automatically. Zero
+            server management.
+          </p>
+          <ul class="clean">
+            <li>✅ Auto-deploy on git push</li>
+            <li>✅ HTTPS, scaling, logs included</li>
+            <li>✅ Easy rollback (one click)</li>
+            <li>⚠ Slightly pricier (~$25–40/mo)</li>
+            <li>⚠ Less low-level control</li>
+          </ul>
+          <p>Best for: single-school deployments, MVPs, small teams.</p>
+        </div>
+        <div class="card">
+          <span class="pill alt">Power-user</span>
+          <h3>B. Droplet + Docker Compose</h3>
+          <p>
+            One $12–24/mo VM with Docker running all services. Manual
+            but cheaper and more flexible.
+          </p>
+          <ul class="clean">
+            <li>✅ Cheap (~$15–25/mo all-in)</li>
+            <li>✅ Full SSH access, custom CRON jobs</li>
+            <li>✅ Same setup runs on AWS / Hetzner if you ever switch</li>
+            <li>⚠ You own backups + OS updates</li>
+            <li>⚠ Deploy is SSH + git pull (or scripted)</li>
+          </ul>
+          <p>Best for: cost-sensitive deployments, multiple schools, technical comfort.</p>
+        </div>
+      </div>
+
+      <!-- 3. PREREQUISITES -->
+      <h2 id="prereqs">3. Prerequisites (both paths)</h2>
+      <div class="card">
+        <ul class="clean">
+          <li><b>DigitalOcean account</b> — sign up at <code>digitalocean.com</code>, add a payment method.</li>
+          <li><b>GitHub repository</b> — your code already lives there (frontend + backend in one repo or separate, both work).</li>
+          <li><b>Domain name</b> — e.g. <code>ecoleerp.in</code>. Buy from Namecheap / GoDaddy / Cloudflare.</li>
+          <li><b>Cloudflare account</b> (free) — for DNS + auto-SSL.</li>
+          <li><b>Cloudinary account</b> (free tier) — already integrated; or use Spaces if you prefer.</li>
+          <li><b>Local prep</b> — make sure backend compiles (<code>yarn build</code>) and the seed runs locally.</li>
+        </ul>
+      </div>
+
+      <!-- 4. PATH A -->
+      <h2 id="path-a">4. Path A — App Platform (Recommended)</h2>
+      <div class="card">
+        <h3>4.1 Provision managed Postgres</h3>
+        <div class="step"><div class="num">1</div><div class="body">
+          <h4>Create a Postgres cluster</h4>
+          <p>Cloud control panel → <b>Databases</b> → <b>Create Database Cluster</b> → PostgreSQL 15 → smallest plan (1 GB RAM, $15/mo) → same region you'll use for the app (e.g. <b>Bangalore</b> for India).</p>
+        </div></div>
+        <div class="step"><div class="num">2</div><div class="body">
+          <h4>Grab the connection string</h4>
+          <p>Connection Details → "Connection String" → copy. Looks like:</p>
+          <pre>postgresql://doadmin:&lt;PASSWORD&gt;@db-postgresql-blr1-xxxxx.b.db.ondigitalocean.com:25060/defaultdb?sslmode=require</pre>
+        </div></div>
+        <div class="step"><div class="num">3</div><div class="body">
+          <h4>Allow inbound from App Platform</h4>
+          <p>Cluster → <b>Trusted Sources</b> → Add → pick "App Platform" (DO knows its own egress IPs). No firewall headache.</p>
+        </div></div>
+
+        <h3>4.2 (Optional) Provision Redis</h3>
+        <p class="muted" style="color: var(--muted); font-size: 12px;">
+          You can skip Redis for v1 — the app falls back gracefully.
+          Add it when you need WebSocket fan-out across multiple
+          instances or strict rate limiting.
+        </p>
+        <pre>Databases → Create → Redis 7 → smallest plan ($15/mo) → same region.
+Connection string format: rediss://default:&lt;PASSWORD&gt;@&lt;host&gt;:25061</pre>
+
+        <h3>4.3 Deploy the API (backend)</h3>
+        <div class="step"><div class="num">1</div><div class="body">
+          <h4>App Platform → Create App → GitHub</h4>
+          <p>Pick your repo + branch (usually <code>main</code>). Source directory: <code>backend/school-management-system-backend</code>.</p>
+        </div></div>
+        <div class="step"><div class="num">2</div><div class="body">
+          <h4>Detect: Node.js</h4>
+          <p>Build command: <code>yarn install &amp;&amp; yarn prisma generate &amp;&amp; yarn build</code></p>
+          <p>Run command: <code>yarn prisma migrate deploy &amp;&amp; node dist/main.js</code></p>
+          <p>HTTP port: <code>3000</code></p>
+        </div></div>
+        <div class="step"><div class="num">3</div><div class="body">
+          <h4>Environment variables (the important ones)</h4>
+          <pre>NODE_ENV=production
+PORT=3000
+API_PREFIX=api
+CORS_ORIGINS=https://erp.yourschool.com
+
+DATABASE_URL=&lt;paste Postgres connection string from 4.1.2&gt;
+
+JWT_ACCESS_SECRET=&lt;openssl rand -base64 48&gt;
+JWT_REFRESH_SECRET=&lt;different openssl rand -base64 48&gt;
+JWT_ACCESS_EXPIRES_IN=2d
+JWT_REFRESH_EXPIRES_IN=7d
+
+REDIS_URL=rediss://...   # only if you provisioned 4.2
+WS_REDIS_ADAPTER=true    # if Redis is on
+
+STORAGE_DRIVER=cloudinary
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+
+SEED_SCHOOL_NAME=Your School Name
+SEED_ADMIN_EMAIL=admin@yourschool.com
+SEED_ADMIN_PASSWORD=&lt;strong password&gt;
+
+SWAGGER_ENABLED=false    # hide /docs in prod
+</pre>
+        </div></div>
+        <div class="step"><div class="num">4</div><div class="body">
+          <h4>Pick the smallest plan</h4>
+          <p>Basic XXS (512 MB, $5/mo) works for &lt; 50 concurrent users. Scale up later.</p>
+        </div></div>
+        <div class="step"><div class="num">5</div><div class="body">
+          <h4>Deploy</h4>
+          <p>Click <b>Create Resources</b>. Watch the logs. First build is ~5 min. You'll get a URL like <code>school-erp-api-xxxxx.ondigitalocean.app</code>.</p>
+        </div></div>
+        <div class="step"><div class="num">6</div><div class="body">
+          <h4>Seed the database</h4>
+          <p>App Console (the "Console" tab in App Platform) → run:</p>
+          <pre>yarn db:seed</pre>
+          <p>Creates Super Admin + Admin. Now log in via the URL above to confirm.</p>
+        </div></div>
+
+        <h3>4.4 Deploy the Web app (frontend)</h3>
+        <div class="step"><div class="num">1</div><div class="body">
+          <h4>Same App Platform — add a component OR a second app</h4>
+          <p>Both work. Easiest is a second app. Source dir: <code>admin_panel/school-management-system-frontend</code></p>
+        </div></div>
+        <div class="step"><div class="num">2</div><div class="body">
+          <h4>Detect: Next.js</h4>
+          <p>Build command: <code>yarn install &amp;&amp; yarn build</code></p>
+          <p>Run command: <code>yarn start</code></p>
+          <p>HTTP port: <code>3001</code></p>
+        </div></div>
+        <div class="step"><div class="num">3</div><div class="body">
+          <h4>Frontend env</h4>
+          <pre>NEXT_PUBLIC_API_URL=https://api.yourschool.com
+NEXT_PUBLIC_APP_NAME=ECOLE ERP</pre>
+        </div></div>
+        <div class="step"><div class="num">4</div><div class="body">
+          <h4>Deploy</h4>
+          <p>First build ~7 min (Next.js is heavier). URL: <code>school-erp-web-xxxxx.ondigitalocean.app</code>.</p>
+        </div></div>
+
+        <h3>4.5 Custom domains</h3>
+        <p>App settings → <b>Domains</b> → add <code>api.yourschool.com</code> on the API app and <code>erp.yourschool.com</code> on the web app. DO gives you DNS values; we'll wire them in <a href="#domain">section 7</a>.</p>
+      </div>
+
+      <!-- 5. PATH B -->
+      <h2 id="path-b">5. Path B — Droplet with Docker Compose</h2>
+      <div class="card">
+        <h3>5.1 Create the Droplet</h3>
+        <p>Droplets → Create → Ubuntu 24.04 → Premium Intel → 2 GB RAM ($12/mo). Pick Bangalore region. Add your SSH key. Enable backups (+20% = $2.40/mo) — strongly recommended.</p>
+
+        <h3>5.2 First-boot setup (run as root, then create a sudo user)</h3>
+        <pre># SSH in
+ssh root@&lt;droplet-ip&gt;
+
+# Update
+apt update &amp;&amp; apt upgrade -y
+
+# Create non-root user
+adduser ecole
+usermod -aG sudo ecole
+rsync --archive --chown=ecole:ecole ~/.ssh /home/ecole/
+
+# Lock down SSH (optional but recommended)
+sed -i 's/^#*PermitRootLogin .*/PermitRootLogin no/' /etc/ssh/sshd_config
+systemctl restart ssh
+
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+usermod -aG docker ecole
+
+# Install fail2ban + ufw
+apt install -y fail2ban ufw
+ufw allow OpenSSH
+ufw allow 80
+ufw allow 443
+ufw --force enable</pre>
+
+        <h3>5.3 Drop in a docker-compose.yml</h3>
+        <p>SSH as <code>ecole</code> → <code>mkdir ~/erp &amp;&amp; cd ~/erp</code> → create <code>docker-compose.yml</code>:</p>
+        <pre>services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: school_erp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user"]
+      interval: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+
+  api:
+    image: ghcr.io/your-org/school-erp-api:latest
+    restart: always
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://erp_user:${POSTGRES_PASSWORD}@postgres:5432/school_erp
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      STORAGE_DRIVER: cloudinary
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  web:
+    image: ghcr.io/your-org/school-erp-web:latest
+    restart: always
+    depends_on: [api]
+    environment:
+      NEXT_PUBLIC_API_URL: https://api.yourschool.com
+    ports:
+      - "127.0.0.1:3001:3001"
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: always
+    depends_on: [api, web]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./letsencrypt:/etc/letsencrypt:ro
+
+volumes:
+  pgdata:</pre>
+
+        <h3>5.4 Nginx reverse proxy</h3>
+        <p><code>~/erp/nginx.conf</code> — routes <code>api.</code> → API, <code>erp.</code> → web:</p>
+        <pre>server {
+  listen 80; server_name api.yourschool.com;
+  return 301 https://$host$request_uri;
+}
+server {
+  listen 443 ssl http2; server_name api.yourschool.com;
+  ssl_certificate     /etc/letsencrypt/live/api.yourschool.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/api.yourschool.com/privkey.pem;
+  client_max_body_size 10M;
+  location / {
+    proxy_pass http://api:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+server {
+  listen 80; server_name erp.yourschool.com;
+  return 301 https://$host$request_uri;
+}
+server {
+  listen 443 ssl http2; server_name erp.yourschool.com;
+  ssl_certificate     /etc/letsencrypt/live/erp.yourschool.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/erp.yourschool.com/privkey.pem;
+  location / {
+    proxy_pass http://web:3001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}</pre>
+
+        <h3>5.5 Issue SSL with certbot</h3>
+        <pre># Stop nginx briefly so port 80 is free
+docker compose down
+sudo apt install -y certbot
+sudo certbot certonly --standalone \
+  -d api.yourschool.com -d erp.yourschool.com \
+  --agree-tos --email you@yourschool.com --no-eff-email
+sudo mv /etc/letsencrypt ~/erp/letsencrypt
+docker compose up -d</pre>
+        <p>Renewal: <code>0 4 * * 0 root certbot renew --quiet &amp;&amp; cd ~/erp &amp;&amp; docker compose restart nginx</code></p>
+
+        <h3>5.6 .env on the server</h3>
+        <pre>POSTGRES_PASSWORD=&lt;strong random&gt;
+JWT_ACCESS_SECRET=&lt;openssl rand -base64 48&gt;
+JWT_REFRESH_SECRET=&lt;different rand&gt;
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...</pre>
+
+        <h3>5.7 First boot</h3>
+        <pre>cd ~/erp
+docker compose pull
+docker compose up -d
+# Wait ~30s for postgres to be ready, then:
+docker compose exec api yarn prisma migrate deploy
+docker compose exec api yarn db:seed
+docker compose logs -f api</pre>
+        <p>Open <code>https://erp.yourschool.com</code> — login with the seed admin.</p>
+      </div>
+
+      <!-- 6. CI/CD -->
+      <h2 id="cicd">6. CI / CD with GitHub Actions</h2>
+      <div class="card">
+        <h3>Path A (App Platform)</h3>
+        <p>
+          Built in. Settings → <b>Auto-deploy</b> on push to <code>main</code> is on by default. To add real CI (lint + tests before deploy):
+        </p>
+        <pre># .github/workflows/ci.yml
+name: CI
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend/school-management-system-backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: yarn }
+      - run: yarn install --frozen-lockfile
+      - run: yarn prisma generate
+      - run: yarn build
+      - run: yarn lint
+  frontend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: admin_panel/school-management-system-frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: yarn }
+      - run: yarn install --frozen-lockfile
+      - run: yarn build</pre>
+        <p>If CI passes, App Platform auto-deploys. If CI fails, deploy never starts.</p>
+
+        <h3>Path B (Droplet) — full deploy pipeline</h3>
+        <p>Two stages: <b>build &amp; push Docker images</b>, then <b>SSH to droplet &amp; restart</b>.</p>
+        <pre># .github/workflows/deploy.yml
+name: Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build &amp; push API
+        uses: docker/build-push-action@v5
+        with:
+          context: backend/school-management-system-backend
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/school-erp-api:latest
+      - name: Build &amp; push Web
+        uses: docker/build-push-action@v5
+        with:
+          context: admin_panel/school-management-system-frontend
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/school-erp-web:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and roll
+        uses: appleboy/ssh-action@v1
+        with:
+          host:     ${{ secrets.DROPLET_HOST }}
+          username: ecole
+          key:      ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            cd ~/erp
+            docker compose pull
+            docker compose up -d
+            docker compose exec -T api yarn prisma migrate deploy
+            docker system prune -f</pre>
+        <p>Add three secrets in GitHub → Settings → Secrets and variables → Actions:</p>
+        <ul class="clean">
+          <li><code>DROPLET_HOST</code> — your droplet IP</li>
+          <li><code>DROPLET_SSH_KEY</code> — paste the private key matching the one on the droplet</li>
+          <li>(<code>GITHUB_TOKEN</code> is provided automatically)</li>
+        </ul>
+
+        <h3>Dockerfiles you need</h3>
+        <p><b>backend/Dockerfile</b>:</p>
+        <pre>FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
+COPY . .
+RUN yarn prisma generate
+RUN yarn build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/package.json ./
+EXPOSE 3000
+CMD ["sh", "-c", "yarn prisma migrate deploy &amp;&amp; node dist/main.js"]</pre>
+
+        <p><b>frontend/Dockerfile</b>:</p>
+        <pre>FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
+COPY . .
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN yarn build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=build /app ./
+EXPOSE 3001
+CMD ["yarn", "start", "-p", "3001"]</pre>
+      </div>
+
+      <!-- 7. DOMAIN -->
+      <h2 id="domain">7. Domain &amp; SSL (Cloudflare)</h2>
+      <div class="card">
+        <ol class="clean">
+          <li>Add your domain to Cloudflare (free plan).</li>
+          <li>Update nameservers at your registrar to Cloudflare's. Wait ~10 min.</li>
+          <li>In Cloudflare DNS:
+            <ul>
+              <li><b>Path A</b>: add a CNAME <code>api</code> → <code>school-erp-api-xxxxx.ondigitalocean.app</code> (proxied, orange cloud). Same for <code>erp</code>.</li>
+              <li><b>Path B</b>: add A records <code>api</code> &amp; <code>erp</code> → your droplet IP (proxied).</li>
+            </ul>
+          </li>
+          <li>SSL/TLS → <b>Full (strict)</b>.</li>
+          <li>Done. HTTPS auto-issued.</li>
+        </ol>
+      </div>
+
+      <!-- 8. BACKUPS -->
+      <h2 id="backups">8. Backups</h2>
+      <div class="card">
+        <ul class="clean">
+          <li><b>Postgres (Path A)</b> — automatic daily backups included with managed DB. 7-day retention by default. Can restore via UI.</li>
+          <li><b>Postgres (Path B)</b> — set up a nightly <code>pg_dump</code> cron uploading to Spaces:</li>
+        </ul>
+        <pre># /etc/cron.daily/erp-backup.sh
+#!/bin/sh
+set -e
+TS=$(date +%Y%m%d-%H%M)
+docker compose -f /home/ecole/erp/docker-compose.yml exec -T postgres \
+  pg_dump -U erp_user school_erp | gzip > /tmp/erp-$TS.sql.gz
+aws --endpoint=https://blr1.digitaloceanspaces.com s3 cp \
+  /tmp/erp-$TS.sql.gz s3://your-backup-bucket/postgres/erp-$TS.sql.gz
+rm /tmp/erp-$TS.sql.gz</pre>
+        <ul class="clean">
+          <li><b>Droplet snapshots</b> — enable automated weekly snapshots ($2.40/mo). Full disk image, one-click restore.</li>
+          <li><b>Code</b> — already on GitHub.</li>
+          <li><b>Uploads</b> — if using Cloudinary, they handle it. If using Spaces, enable versioning.</li>
+        </ul>
+      </div>
+
+      <!-- 9. MONITORING -->
+      <h2 id="monitoring">9. Monitoring &amp; alerts</h2>
+      <div class="card">
+        <ul class="clean">
+          <li><b>Uptime</b> — <a href="https://uptimerobot.com">UptimeRobot</a> (free) pings <code>https://api.yourschool.com/api/health</code> every 5 min, emails you on failure.</li>
+          <li><b>App logs (Path A)</b> — built-in App Platform Insights. Real-time + 7 days history.</li>
+          <li><b>App logs (Path B)</b> — <code>docker compose logs -f --tail=100</code>. For long-term, ship to <a href="https://betterstack.com/logs">Better Stack</a> (free 1 GB/mo).</li>
+          <li><b>Error tracking</b> — Sentry (free 5k events/mo). Add <code>@sentry/nextjs</code> on FE and <code>@sentry/node</code> on BE.</li>
+          <li><b>Health endpoint</b> — already exposed at <code>/api/health</code>. Add Postgres + Redis pings inside it.</li>
+          <li><b>DB monitoring</b> — managed Postgres has the "Insights" tab (slow queries, connection pool usage).</li>
+        </ul>
+      </div>
+
+      <!-- 10. SECURITY -->
+      <h2 id="security">10. Security checklist</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th style="width: 40%">Item</th><th>How</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Strong JWT secrets</td><td><code>openssl rand -base64 48</code> for each. Never commit. Rotate annually.</td></tr>
+            <tr><td>Postgres SSL only</td><td>Already enforced by managed DB. For Path B set <code>sslmode=require</code> in DATABASE_URL.</td></tr>
+            <tr><td>CORS locked down</td><td><code>CORS_ORIGINS=https://erp.yourschool.com</code> (not <code>*</code>).</td></tr>
+            <tr><td>Swagger hidden in prod</td><td><code>SWAGGER_ENABLED=false</code>.</td></tr>
+            <tr><td>Rate limiting</td><td>Already on via <code>@nestjs/throttler</code>. Tune limits in <code>app.module.ts</code>.</td></tr>
+            <tr><td>Upload throttling</td><td>Already 30/min single, 10/min burst.</td></tr>
+            <tr><td>Helmet headers</td><td>Already enabled in <code>main.ts</code>.</td></tr>
+            <tr><td>SSH key auth only</td><td>Path B — disable password login (<code>PasswordAuthentication no</code>).</td></tr>
+            <tr><td>fail2ban</td><td>Path B — installed in §5.2.</td></tr>
+            <tr><td>UFW firewall</td><td>Path B — only 22, 80, 443 open.</td></tr>
+            <tr><td>2FA on DigitalOcean</td><td>Account settings → Security → enable.</td></tr>
+            <tr><td>Cloudflare WAF</td><td>Free plan blocks bots, OWASP rules. Enable "Bot Fight Mode".</td></tr>
+            <tr><td>Daily backups</td><td>See §8.</td></tr>
+            <tr><td>HTTPS-only cookies</td><td>If you add cookie auth later, set <code>secure</code> + <code>sameSite=lax</code>.</td></tr>
+            <tr><td>Audit log</td><td>Already there — <code>AuditLog</code> table records every privileged action.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 11. COSTS -->
+      <h2 id="costs">11. Monthly cost estimate (INR ≈ USD × 84)</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Path A — App Platform</h3>
+          <div class="cost-tile"><span class="label">API app (Basic XXS)</span><span class="value">$5</span></div>
+          <div class="cost-tile"><span class="label">Web app (Basic XS)</span><span class="value">$12</span></div>
+          <div class="cost-tile"><span class="label">Postgres (smallest)</span><span class="value">$15</span></div>
+          <div class="cost-tile"><span class="label">Redis (optional)</span><span class="value">$15</span></div>
+          <div class="cost-tile"><span class="label">Bandwidth (light)</span><span class="value">included</span></div>
+          <div class="cost-tile" style="background: #ecfdf5;">
+            <span class="label"><b>Total without Redis</b></span>
+            <span class="value">~$32 / mo</span>
+          </div>
+          <div class="cost-tile" style="background: #ecfdf5;">
+            <span class="label"><b>Total with Redis</b></span>
+            <span class="value">~$47 / mo</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Path B — Droplet</h3>
+          <div class="cost-tile"><span class="label">Droplet (2GB Premium)</span><span class="value">$14</span></div>
+          <div class="cost-tile"><span class="label">Droplet backups (+20%)</span><span class="value">$3</span></div>
+          <div class="cost-tile"><span class="label">Spaces (250 GB)</span><span class="value">$5</span></div>
+          <div class="cost-tile"><span class="label">Snapshots</span><span class="value">$1-2</span></div>
+          <div class="cost-tile" style="background: #ecfdf5;">
+            <span class="label"><b>Total</b></span>
+            <span class="value">~$23 / mo</span>
+          </div>
+          <p style="font-size: 12px; color: var(--muted);">
+            All-in-one on a 2GB box works for &lt; 200 users. Bump to 4GB ($24/mo) for 500+ users.
+          </p>
+        </div>
+      </div>
+
+      <!-- 12. CHECKLIST -->
+      <h2 id="checklist">12. Go-live checklist</h2>
+      <div class="card">
+        <table>
+          <thead><tr><th>Step</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>DigitalOcean account + payment + 2FA</td><td>☐</td></tr>
+            <tr><td>GitHub repo with backend + frontend</td><td>☐</td></tr>
+            <tr><td>Domain bought + Cloudflare DNS configured</td><td>☐</td></tr>
+            <tr><td>Postgres provisioned (managed or in-container)</td><td>☐</td></tr>
+            <tr><td>Redis provisioned (optional)</td><td>☐</td></tr>
+            <tr><td>Cloudinary account + credentials in env</td><td>☐</td></tr>
+            <tr><td>JWT secrets generated (32+ chars each)</td><td>☐</td></tr>
+            <tr><td>API deployed → reachable at api.* domain</td><td>☐</td></tr>
+            <tr><td>Web deployed → reachable at erp.* domain</td><td>☐</td></tr>
+            <tr><td><code>yarn prisma migrate deploy</code> ran successfully</td><td>☐</td></tr>
+            <tr><td><code>yarn db:seed</code> ran — Super Admin + Admin exist</td><td>☐</td></tr>
+            <tr><td>Logged in as Super Admin via web URL</td><td>☐</td></tr>
+            <tr><td>Created at least one department, one technician</td><td>☐</td></tr>
+            <tr><td>Raised + assigned + resolved a test ticket end-to-end</td><td>☐</td></tr>
+            <tr><td>HTTPS green on both domains</td><td>☐</td></tr>
+            <tr><td>CORS_ORIGINS set (not <code>*</code>)</td><td>☐</td></tr>
+            <tr><td>SWAGGER_ENABLED=false</td><td>☐</td></tr>
+            <tr><td>UptimeRobot monitor configured</td><td>☐</td></tr>
+            <tr><td>Sentry DSN added (optional)</td><td>☐</td></tr>
+            <tr><td>Backup verified — restore tested in staging</td><td>☐</td></tr>
+            <tr><td>Postman collection exported &amp; shared with team</td><td>☐</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 13. ALTERNATIVES -->
+      <h2 id="alts">13. Other ideas worth considering</h2>
+      <div class="card">
+        <ul class="clean">
+          <li>
+            <b>Vercel for the frontend, DO for the API.</b> Vercel's free tier hosts Next.js perfectly. You'd only need a $15/mo Postgres + tiny droplet or App Platform for the API. Cheapest viable production combo.
+          </li>
+          <li>
+            <b>Hetzner Cloud + Coolify</b> — €4/mo for 2 vCPU + 4 GB RAM. Coolify (open-source Heroku) auto-deploys from GitHub. Aggressive value for money but Bangalore latency varies.
+          </li>
+          <li>
+            <b>Neon Postgres serverless</b> — generous free tier, auto-pause, branching. Pair with App Platform or Vercel for near-zero cost on small schools.
+          </li>
+          <li>
+            <b>Cloudflare Tunnel</b> — keep the actual server private (no public IP) and expose only via Cloudflare. Great if you want hybrid (school's on-prem server but accessible from the internet).
+          </li>
+          <li>
+            <b>Multi-tenant on a single deployment</b> — the schema already has <code>schoolId</code> on every model. You can host 10+ schools on the same Path A or B deployment by creating one School row per tenant. Cost stays flat, revenue scales.
+          </li>
+          <li>
+            <b>Read replicas</b> for Postgres when the school grows past 5k students — managed DB gives you a one-click standby for $7/mo.
+          </li>
+          <li>
+            <b>CDN for static assets</b> — already free via Cloudflare proxy. For heavier media, push uploads to Spaces with CDN enabled.
+          </li>
+          <li>
+            <b>Mobile app later</b> — the API is already JWT-based and CORS-aware. A React Native app can hit the same endpoints.
+          </li>
+        </ul>
+      </div>
+
+      <footer>
+        ECOLE School ERP · DigitalOcean Deployment Guide · Generated 1 Jun 2026
+      </footer>
+    </div>
+  </body>
+</html>

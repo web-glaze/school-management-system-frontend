@@ -55,12 +55,16 @@ export default function DashboardPage() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        // Pick the right endpoint by role. Users only ever see their own
-        // complaints; everyone else sees the full list they're allowed to
-        // view (the backend enforces tenant + role filters).
-        const url = canAccess(role, "tickets.list")
-          ? `${API_URL}/api/complaints`
-          : `${API_URL}/api/complaints/my`;
+        // Pick the right endpoint by role:
+        //   technician → tickets assigned to them
+        //   admin / manager / superadmin → full list
+        //   regular user → only their own complaints
+        const url =
+          role === "technician"
+            ? `${API_URL}/api/complaints/assigned-to-me`
+            : canAccess(role, "tickets.list")
+              ? `${API_URL}/api/complaints`
+              : `${API_URL}/api/complaints/my`;
 
         const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` },

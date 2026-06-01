@@ -82,6 +82,13 @@ const ALL_NAV: NavEntry[] = [
     match: (p) => p === "/maintenance/tickets/create",
   },
   {
+    title: "Assigned to Me",
+    url: "/maintenance/assigned",
+    icon: Inbox,
+    access: "assigned-tickets",
+    match: (p) => p === "/maintenance/assigned",
+  },
+  {
     title: "My Complaints",
     url: "/maintenance/my-complaints",
     icon: Inbox,

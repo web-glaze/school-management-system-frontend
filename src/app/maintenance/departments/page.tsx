@@ -1,5 +1,6 @@
 "use client";
 import { logError } from "@/lib/api-helpers";
+import Link from "next/link";
 
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -360,9 +361,13 @@ export default function DepartmentPage() {
 
                         <TableCell className="py-4 pl-6 align-top">
                           <div className="space-y-1 max-w-[260px]">
-                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                            {/* Click-through to the team detail page */}
+                            <Link
+                              href={`/maintenance/departments/${department.id}`}
+                              className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors hover:underline"
+                            >
                               {department.name}
-                            </p>
+                            </Link>
                           </div>
                         </TableCell>
 

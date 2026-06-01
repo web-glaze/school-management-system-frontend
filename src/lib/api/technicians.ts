@@ -52,6 +52,11 @@ export interface UpsertTechnicianDto {
   departmentId?: string;
   position?: TechnicianPosition;
   reportsToId?: string | null;
+  /**
+   * Provide together with email to also create a User login account
+   * with role TECHNICIAN. Optional — leave out for a non-login profile.
+   */
+  password?: string;
 }
 
 export const technicians = {
@@ -69,5 +74,15 @@ export const technicians = {
   },
   remove(id: string) {
     return request.delete<void>(`/api/technicians/${id}`);
+  },
+  /**
+   * Set / reset the login password for the technician's linked User
+   * (matched by email). Creates the User if it doesn't yet exist.
+   */
+  setPassword(id: string, newPassword: string) {
+    return request.patch<{ ok: true; userId: string }>(
+      `/api/technicians/${id}/password`,
+      { newPassword },
+    );
   },
 };

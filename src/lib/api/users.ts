@@ -15,9 +15,16 @@ export interface User {
   userCode?: string;
   email: string;
   name?: string;
+  phone?: string;
   role?: string;
   status?: string;
   createdAt: string;
+  // Optional department association — populated by the user-management
+  // endpoint so the Users page can group users by department.
+  departmentId?: string | null;
+  department?: { id: string; name: string } | null;
+  // Roles list as returned by /api/user-management (UserRole join).
+  userRoles?: Array<{ role: { id: string; name: string } }>;
 }
 
 export const users = {
@@ -32,6 +39,8 @@ export const users = {
     email: string;
     password: string;
     role?: string;
+    phone?: string;
+    departmentId?: string | null;
   }) {
     return request.post<User>("/api/user-management", dto);
   },

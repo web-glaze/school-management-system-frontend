@@ -10,6 +10,24 @@
 
 import { request } from "./client";
 
+export interface TeamMemberStats {
+  open: number;
+  inProgress: number;
+  resolved: number;
+  total: number;
+}
+
+export interface DepartmentTeamMember {
+  id: string;
+  name: string;
+  position?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  createdAt: string;
+  reportsToId?: string | null;
+  stats: TeamMemberStats;
+}
+
 export interface Department {
   id: string;
   name: string;
@@ -17,19 +35,26 @@ export interface Department {
   // Hierarchy
   parentId?: string | null;
   parent?: { id: string; name: string } | null;
-  children?: Array<{ id: string; name: string }>;
+  children?: Array<{
+    id: string;
+    name: string;
+    _count?: { technicians?: number };
+  }>;
   // Head of department
   headTechnicianId?: string | null;
   headTechnician?: {
     id: string;
     name: string;
     position?: string | null;
+    email?: string | null;
   } | null;
   // Counts the backend may include with the list
   _count?: {
     technicians?: number;
     children?: number;
   };
+  // Only on findOne — full team with per-tech ticket stats.
+  technicians?: DepartmentTeamMember[];
 }
 
 export interface UpsertDepartmentDto {

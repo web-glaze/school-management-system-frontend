@@ -34,6 +34,7 @@ export type AccessKey =
   | "tickets.assign" // assign technician
   | "tickets.update" // change status / priority / description
   | "my-complaints" // /maintenance/my-complaints
+  | "assigned-tickets" // /maintenance/assigned — technician inbox
   | "departments" // /maintenance/departments — CRUD
   | "technicians" // /maintenance/technician — CRUD
   | "locations" // /maintenance/location — CRUD
@@ -84,10 +85,10 @@ const ACCESS: Record<Role, AccessKey[]> = {
   ],
   technician: [
     "overview",
-    "tickets.list",
-    "tickets.detail",
-    "tickets.update",
+    "tickets.detail", // can open a ticket they're assigned to
+    "tickets.update", // can change status / remark
     "my-complaints",
+    "assigned-tickets", // the technician's primary inbox
   ],
   user: ["overview", "tickets.create", "my-complaints"],
 };

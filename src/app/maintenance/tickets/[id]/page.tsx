@@ -27,6 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 import { Button } from "@/components/ui/button";
+import { TransferTicketDialog } from "@/components/maintenance/TransferTicketDialog";
 
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -257,11 +258,18 @@ export default function TicketManagementPage() {
             </div>
           </div>
 
-          <Button onClick={saveChanges} disabled={saving} className="h-11 px-6">
-            <Save className="size-4 mr-2" />
-
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Transfer to another technician — opens a dialog with reason */}
+            <TransferTicketDialog
+              ticketId={id as string}
+              currentTechnicianId={complaint.assignedTechnician?.id}
+              onTransferred={() => fetchData()}
+            />
+            <Button onClick={saveChanges} disabled={saving} className="h-11 px-6">
+              <Save className="size-4 mr-2" />
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">

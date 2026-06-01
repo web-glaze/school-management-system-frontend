@@ -53,6 +53,7 @@ export type {
   ComplaintItem,
   CreateComplaintDto,
   CreateComplaintItemDto,
+  TicketTransfer,
   UpdateComplaintDto,
 } from "./complaints";
 export type { Department } from "./departments";
