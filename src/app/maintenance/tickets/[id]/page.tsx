@@ -1,22 +1,10 @@
 "use client";
 
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { complaintService, technicianService, departmentService } from "@/services/api";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import {
-  ArrowLeft,
-  Calendar,
-  Clock3,
-  MapPin,
-  Save,
-  Ticket,
-  User,
-  Wrench,
-  ImageIcon,
-  Paperclip,
-} from "lucide-react";
-
+import { ArrowLeft, Save, Upload, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,8 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -39,8 +27,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Field, FieldGroup } from "@/components/ui/field";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Technician {
   id: string;
@@ -54,143 +40,92 @@ interface Department {
 
 interface Complaint {
   id: string;
-  ticketCode: string; 
+  ticketCode: string;
   description: string;
   locationType?: string;
   subLocation?: string;
-  location?: { name: string };    
-  subDeptLocation?: { name: string }; 
+  location?: { name: string };
+  subDeptLocation?: { name: string };
   priority: string;
   status: string;
-  imageUrl?: string | null;       
-  adminImageUrl?: string | null;  
+  imageUrl?: string | null;
+  adminImageUrl?: string | null;
   createdAt: string;
-  user?: {
-    email: string;
-  };
-  assignedTechnician?: {
-    id: string;
-    name: string;
-  };
-  department?: {
-    id: string;
-    name: string;
-  };
+  user?: { email: string };
+  assignedTechnician?: { id: string; name: string };
+  department?: { id: string; name: string };
 }
 
 export default function TicketManagementPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [technicianId, setTechnicianId] = useState("");
-  const [adminImageUrl, setAdminImageUrl] = useState(""); 
+  const [adminImageUrl, setAdminImageUrl] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [departments, setDepartments] = useState<Department[]>([]);
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      // Combined parallel data fetches to eliminate redeclaring variables
-      const [complaintResponse, technicianResponse, departmentResponse] = await Promise.all([
-        axios.get(`${API_URL}/api/complaints/${id}`, { headers }),
-        axios.get(`${API_URL}/api/technicians`, { headers }),
-        axios.get(`${API_URL}/api/departments`, { headers }),
+      const [cRes, tRes, dRes] = await Promise.all([
+        complaintService.getById(id),
+        technicianService.getAll(),
+        departmentService.getAll(),
       ]);
 
-      const complaintData = complaintResponse.data.data || complaintResponse.data;
-      const technicianData = Array.isArray(technicianResponse.data)
-        ? technicianResponse.data
-        : technicianResponse.data.data || [];
-
-      const departmentData = Array.isArray(departmentResponse.data)
-        ? departmentResponse.data
-        : departmentResponse.data.data || [];
-
-      setComplaint(complaintData);
-      setTechnicians(technicianData);
-      setDepartments(departmentData);
-      setStatus(complaintData.status || "");
-      getPriorityBadge(complaintData.priority || "");
-      setPriority(complaintData.priority || "");
-      setTechnicianId(complaintData.assignedTechnician?.id || "");
-      setAdminImageUrl(complaintData.adminImageUrl || "");
-      setDepartmentId(complaintData.department?.id || "");
+      const cData = cRes.data.data || cRes.data;
+      setComplaint(cData);
+      setTechnicians(Array.isArray(tRes.data) ? tRes.data : tRes.data.data || []);
+      setDepartments(Array.isArray(dRes.data) ? dRes.data : dRes.data.data || []);
+      setStatus(cData.status || "");
+      setPriority(cData.priority || "");
+      setTechnicianId(cData.assignedTechnician?.id || "");
+      setAdminImageUrl(cData.adminImageUrl || "");
+      setDepartmentId(cData.department?.id || "");
     } catch (error) {
-      console.error("Error loading ticket layout context data:", error);
       toast.error("Failed to fetch administrative records.");
     } finally {
-      if (loading) setLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (id) {
-      setTimeout(() => {
-        fetchData();
-      }, 0);
-    }
+    setTimeout(()=>{
+    if (id) fetchData();},0);
   }, [id]);
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setAdminImageUrl(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const saveChanges = async () => {
+    if (!complaint) return;
     try {
-      if (!complaint) return;
       setSaving(true);
-      const token = localStorage.getItem("token");
-
-      await axios.patch(
-        `${API_URL}/api/complaints/${id}`,
-        {
-          description: complaint.description,
-          status,
-          priority,
-          technicianId: technicianId || null, 
-          adminImageUrl: adminImageUrl || null,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      if (technicianId) {
-        await axios.patch(
-          `${API_URL}/api/complaints/${id}/assign`,
-          {
-            technicianId,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-      }
-
-      if (departmentId) {
-        await axios.patch(
-          `${API_URL}/api/complaints/${id}/department`,
-          {
-            departmentId,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-      }
-
+      await complaintService.update(id, {
+        description: complaint.description,
+        status,
+        priority,
+        technicianId: technicianId || null,
+        departmentId: departmentId || null,
+        adminImageUrl: adminImageUrl || null,
+      });
       toast.success("Ticket Updated Successfully");
       await fetchData();
     } catch (error) {
-      console.error(error);
       toast.error("Failed To Update Ticket");
     } finally {
       setSaving(false);
@@ -209,33 +144,22 @@ export default function TicketManagementPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "ASSIGNED":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "IN_PROGRESS":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "RESOLVED":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "CLOSED":
-        return "bg-slate-100 text-slate-800 border-slate-200";
-      default:
-        return "";
+      case "PENDING": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "ASSIGNED": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "IN_PROGRESS": return "bg-orange-100 text-orange-800 border-orange-200";
+      case "RESOLVED": return "bg-green-100 text-green-800 border-green-200";
+      case "CLOSED": return "bg-slate-100 text-slate-800 border-slate-200";
+      default: return "";
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
-      case "LOW":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200";
-      case "MEDIUM":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "HIGH":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "URGENT":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "";
+      case "LOW": return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "MEDIUM": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "HIGH": return "bg-orange-100 text-orange-800 border-orange-200";
+      case "URGENT": return "bg-red-100 text-red-800 border-red-200";
+      default: return "";
     }
   };
 
@@ -361,6 +285,17 @@ export default function TicketManagementPage() {
                 </FieldGroup>
               </div>
 
+              <div className="space-y-2">
+                <Label>Admin Response Image</Label>
+                <div className="flex items-center gap-4">
+                  <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="mr-2 size-4" /> Upload Image
+                  </Button>
+                  <Input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
+                  {adminImageUrl && <img src={adminImageUrl} alt="Preview" className="h-16 w-16 object-cover rounded border" />}
+                </div>
+              </div>
+
               <Button
                 onClick={saveChanges}
                 disabled={saving}
@@ -407,7 +342,9 @@ export default function TicketManagementPage() {
                   <span className="text-sm text-muted-foreground">
                     Department
                   </span>
-                  <span className="font-medium">Electrical</span>
+                  <span className="font-medium">
+                    {complaint.department?.name || "Unassigned"}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -417,6 +354,19 @@ export default function TicketManagementPage() {
                   <span className="font-medium text-right">
                     {complaint.assignedTechnician?.name || "Unassigned"}
                   </span>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold">
+                    User Attachment
+                  </h4>
+                  {complaint.imageUrl ? (
+                    <img src={complaint.imageUrl} alt="User Attachment" className="w-full rounded border" />
+                  ) : (
+                    <div className="h-32 flex items-center justify-center border rounded bg-slate-50"><ImageIcon className="text-slate-300" /></div>
+                  )}
                 </div>
 
                 <Separator />
