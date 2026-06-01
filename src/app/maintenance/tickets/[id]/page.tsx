@@ -45,7 +45,6 @@ interface Complaint {
   locationType?: string;
   subLocation?: string;
   location?: { name: string };
-  subDeptLocation?: { name: string };
   priority: string;
   status: string;
   imageUrl?: string | null;
