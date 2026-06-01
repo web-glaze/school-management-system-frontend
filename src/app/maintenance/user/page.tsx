@@ -321,7 +321,7 @@ export default function UserManagementPage() {
             <button
               type="submit"
               disabled={creating}
-              className="ml-auto h-10 px-5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-60 transition flex items-center gap-2"
+              className="ml-auto h-10 px-5 rounded-lg bg-[#00AEF2] text-white text-xs font-semibold hover:bg-[#0096D6] disabled:opacity-60 transition flex items-center gap-2"
             >
               {creating ? (
                 <>
@@ -467,7 +467,7 @@ export default function UserManagementPage() {
                             disabled={
                               pwSaving === u.id || !(pwInputs[u.id]?.trim())
                             }
-                            className="h-8 px-3 rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-60 transition"
+                            className="h-8 px-3 rounded-full bg-[#00AEF2] text-white text-xs font-semibold hover:bg-[#0096D6] disabled:opacity-60 transition"
                           >
                             {pwSaving === u.id ? "Saving…" : "Change"}
                           </button>

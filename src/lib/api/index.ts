@@ -56,7 +56,12 @@ export type {
   TicketTransfer,
   UpdateComplaintDto,
 } from "./complaints";
-export type { Department } from "./departments";
+export type {
+  Department,
+  DepartmentTeamMember,
+  TeamMemberStats,
+  UpsertDepartmentDto,
+} from "./departments";
 export type { Location } from "./locations";
 export type { Permission, Role } from "./roles";
 export type { Technician, UpsertTechnicianDto } from "./technicians";

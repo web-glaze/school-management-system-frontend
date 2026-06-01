@@ -2,6 +2,7 @@
 
 import { logError } from "@/lib/api-helpers";
 import { notify } from "@/lib/notify";
+import { imageUrl as resolveImageUrl } from "@/lib/image-url";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -809,7 +810,12 @@ export default function RaiseTicketPage() {
                             <div className="space-y-2">
                               <div className="rounded-lg overflow-hidden border">
                                 <img
-                                  src={it.imageUrl}
+                                  // The upload returns a relative path like
+                                  // /uploads/general/<file>.png. The helper
+                                  // prepends NEXT_PUBLIC_API_URL so the
+                                  // browser hits the backend (port 3000)
+                                  // instead of the frontend (port 3001).
+                                  src={resolveImageUrl(it.imageUrl)}
                                   alt="Preview"
                                   className="w-full max-h-56 object-cover"
                                 />

@@ -29,12 +29,14 @@ const ALL_CARDS: Array<{
     href: "/maintenance/assigned",
     access: "assigned-tickets",
   },
-  {
-    title: "My Complaints",
-    description: "Track status and progress of your complaints.",
-    href: "/maintenance/my-complaints",
-    access: "my-complaints",
-  },
+  // Hidden from the dashboard tiles (per recent UI request). Page still
+  // works if accessed directly via URL.
+  // {
+  //   title: "My Complaints",
+  //   description: "Track status and progress of your complaints.",
+  //   href: "/maintenance/my-complaints",
+  //   access: "my-complaints",
+  // },
   {
     title: "Complaint Management",
     description: "Assign technicians and manage complaint workflow.",
@@ -87,7 +89,7 @@ export default function MaintenancePage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-[#0096D6] via-[#00AEF2] to-[#3CC8FA] rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
 
           <div className="relative z-10">
@@ -124,7 +126,7 @@ export default function MaintenancePage() {
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
               Role Access
             </p>
-            <h2 className="text-xl font-bold mt-2 text-blue-600 capitalize">
+            <h2 className="text-xl font-bold mt-2 text-[#00AEF2] capitalize">
               {role}
             </h2>
           </div>
@@ -155,12 +157,12 @@ export default function MaintenancePage() {
               <Link
                 key={card.title}
                 href={card.href}
-                className="group bg-white rounded-[2rem] p-6 shadow-lg border border-gray-100 hover:border-blue-200 hover:shadow-2xl transition duration-300 relative overflow-hidden"
+                className="group bg-white rounded-[2rem] p-6 shadow-lg border border-gray-100 hover:border-[#00AEF2]/40 hover:shadow-2xl transition duration-300 relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-40 h-40 bg-blue-50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition duration-300" />
+                <div className="absolute top-0 right-0 w-40 h-40 bg-[#00AEF2]/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition duration-300" />
 
                 <div className="relative z-10">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white text-base font-bold shadow-md">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#00AEF2] to-[#5DD3FB] flex items-center justify-center text-white text-base font-bold shadow-md">
                     {card.title.charAt(0)}
                   </div>
 
@@ -172,7 +174,7 @@ export default function MaintenancePage() {
                     {card.description}
                   </p>
 
-                  <div className="mt-5 inline-flex items-center gap-2 text-blue-600 text-xs font-semibold">
+                  <div className="mt-5 inline-flex items-center gap-2 text-[#00AEF2] text-xs font-semibold">
                     Open Module
                     <span className="group-hover:translate-x-1 transition">
                       →

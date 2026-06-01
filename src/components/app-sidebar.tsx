@@ -88,13 +88,17 @@ const ALL_NAV: NavEntry[] = [
     access: "assigned-tickets",
     match: (p) => p === "/maintenance/assigned",
   },
-  {
-    title: "My Complaints",
-    url: "/maintenance/my-complaints",
-    icon: Inbox,
-    access: "my-complaints",
-    match: (p) => p === "/maintenance/my-complaints",
-  },
+  // "My Complaints" — page still exists at /maintenance/my-complaints but
+  // we hide the sidebar entry. Reachable from the dashboard recent-activity
+  // rows or by typing the URL. Re-add this block when end-users want a
+  // dedicated nav link again.
+  // {
+  //   title: "My Complaints",
+  //   url: "/maintenance/my-complaints",
+  //   icon: Inbox,
+  //   access: "my-complaints",
+  //   match: (p) => p === "/maintenance/my-complaints",
+  // },
   {
     title: "Departments",
     url: "/maintenance/departments",
@@ -189,16 +193,17 @@ export function AppSidebar({ role, ...props }: AppSidebarProps) {
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      {/* Header */}
-      <SidebarHeader className="h-20 border-b border-sidebar-border">
+      {/* Header — slightly shorter, cleaner padding so logo doesn't feel
+          like it's floating in a tall void. */}
+      <SidebarHeader className="h-16 border-b border-sidebar-border px-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <a href="/dashboard">
-              <div className="flex items-center px-2">
+              <div className="flex items-center h-full px-1">
                 <img
                   src="/Ecole2.png"
                   alt="Ecole"
-                  width={180}
+                  width={160}
                   className="object-contain"
                 />
               </div>

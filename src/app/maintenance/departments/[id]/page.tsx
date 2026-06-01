@@ -209,7 +209,7 @@ export default function DepartmentDetailPage() {
             {/* Head of department */}
             {department.headTechnician && (
               <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 text-white flex items-center justify-center font-bold">
+                <div className="size-10 rounded-xl bg-gradient-to-br from-[#00AEF2] to-[#5DD3FB] text-white flex items-center justify-center font-bold">
                   {department.headTechnician.name?.charAt(0) ?? "H"}
                 </div>
                 <div>

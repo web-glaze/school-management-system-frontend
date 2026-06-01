@@ -129,7 +129,7 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-[#0096D6] via-[#00AEF2] to-[#3CC8FA] rounded-[2rem] p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
           <div className="relative z-10">
             <p className="uppercase tracking-[0.25em] text-[11px] text-white/80">
@@ -184,7 +184,7 @@ export default function DashboardPage() {
             </div>
             <Link
               href="/maintenance"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+              className="text-xs font-semibold text-[#00AEF2] hover:text-[#0096D6]"
             >
               Open maintenance →
             </Link>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
               </p>
               <Link
                 href="/maintenance/tickets/create"
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
+                className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#00AEF2] hover:text-[#0096D6]"
               >
                 Raise a ticket →
               </Link>

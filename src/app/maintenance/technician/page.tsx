@@ -704,7 +704,7 @@ export default function TechnicianPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => openEditDialog(technician)}
-                              className="size-9 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              className="size-9 rounded-lg text-muted-foreground hover:bg-[#00AEF2]/10 hover:text-[#00AEF2] transition-all"
                               title="Edit Technician"
                             >
                               <Pencil className="size-4" />

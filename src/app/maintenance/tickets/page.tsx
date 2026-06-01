@@ -18,7 +18,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   SlidersHorizontal,
-  Eye,
+  Pencil,
   XCircle,
   Calendar,
   Plus,
@@ -698,10 +698,10 @@ export default function ComplaintsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                              title="View Complaint"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-[#00AEF2]/10 hover:text-[#00AEF2] transition-all"
+                              title="Edit Ticket"
                             >
-                              <Eye className="size-5" />
+                              <Pencil className="size-4" />
                             </Button>
                           </Link>
 

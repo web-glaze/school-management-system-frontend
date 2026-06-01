@@ -397,7 +397,7 @@ export default function DepartmentPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => openEditDialog(department)}
-                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-[#00AEF2]/10 hover:text-[#00AEF2] transition-all"
                               title="Edit Department"
                             >
                               <Pencil className="size-5" />

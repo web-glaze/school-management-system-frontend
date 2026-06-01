@@ -33,7 +33,7 @@ export function PageHero({
   footer,
 }: PageHeroProps) {
   return (
-    <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+    <div className="bg-[#00AEF2] bg-gradient-to-r from-[#0096D6] via-[#00AEF2] to-[#3CC8FA] rounded-[2rem] p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
       <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
 
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
