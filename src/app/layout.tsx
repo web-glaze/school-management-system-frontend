@@ -23,6 +23,7 @@ export default function RootLayout({
           toastOptions={{
             classNames: {
               title: "!font-bold font-['Plus_Jakarta_Sans']",
+              description: "font-['Plus_Jakarta_Sans']",
             },
           }}
         />

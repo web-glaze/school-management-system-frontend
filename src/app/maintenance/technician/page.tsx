@@ -38,7 +38,9 @@ import {
 import {
   Calendar,
   Loader2,
+  MailIcon,
   Pencil,
+  Phone,
   Plus,
   Search,
   Trash2,
@@ -78,7 +80,6 @@ interface Technician {
     id: string;
     name: string;
     departmentCode?: string;
-    
   };
 }
 
@@ -159,12 +160,7 @@ export default function TechnicianPage() {
     }
 
     const filtered = technicians.filter((technician) =>
-      [
-        technician.name,
-        
-        technician.phone,
-        technician.department?.name,
-      ]
+      [technician.name, technician.phone, technician.department?.name]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(search.toLowerCase())),
     );
@@ -285,7 +281,7 @@ export default function TechnicianPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Technicians</h1>
             <p className="text-muted-foreground">
@@ -464,22 +460,13 @@ export default function TechnicianPage() {
               <Table>
                 <TableHeader className="bg-muted/40 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[100px]">
-                      # ID
-                    </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[180px]">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">
                       Name
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
-                      Phone Number
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">
+                      Contact
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
-                      Email
-                    </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
-                      Department
-                    </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">
                       Created At
                     </TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[80px]">
@@ -494,48 +481,42 @@ export default function TechnicianPage() {
                         key={technician.id}
                         className="hover:bg-muted/20 transition-colors"
                       >
-                        <TableCell className="py-4 pl-6 align-top">
-                          <div className="space-y-1 max-w-[20px]">
-                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              {technician.technicianCode}
-                            </p>
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="py-4 pl-6 align-top">
+                        <TableCell className="py-4 align-top">
                           <div className="space-y-1 max-w-[180px]">
-                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                            <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">
                               {technician.name}
                             </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-[120px]">
-                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              {technician.phone || "-"}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-[120px]">
-                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              {/* {technician.email || "-"} */} info@example.com
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-[120px]">
-                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                            <p className="text-sm text-foreground/50">
+                              {technician.technicianCode} |{" "}
                               {technician.department?.name || "NA"}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 align-top">
+                          <div className="space-y-1 max-w-[180px]">
+                            <p className="text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              <span className="flex gap-1">
+                                <Phone size={18} />
+                                <span>{technician.phone || "-"}</span>
+                              </span>
+                            </p>
+                            <p className="text-foreground text-sm leading-tight hover:text-primary transition-colors">
+                              <span className="flex gap-1">
+                                <MailIcon size={18} />
+                                <span>
+                                  {/* {technician.email || "-"} */}
+                                  info@example.com
+                                </span>
+                              </span>
                             </p>
                           </div>
                         </TableCell>
 
                         {/* Created At */}
-                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top">
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
-                            <span className="text-base">
+                            <span className="text-sm">
                               {new Date(technician.createdAt).toLocaleString(
                                 "en-IN",
                                 {

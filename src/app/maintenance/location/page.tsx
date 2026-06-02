@@ -11,6 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -45,6 +53,9 @@ import {
   Plus,
   Search,
   Trash2,
+  Settings,
+  MoreVertical,
+  Trash,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -64,9 +75,24 @@ export default function LocationPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+
   const [subLocationMap, setSubLocationMap] = useState<{
     [key: string]: string;
   }>({});
+
+  const [editLocationMap, setEditLocationMap] = useState<{
+    [key: string]: string;
+  }>({});
+
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(
+    null,
+  );
+
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   /* FETCH */
   const fetchLocations = async () => {
@@ -119,7 +145,43 @@ export default function LocationPage() {
     } catch (error) {
       console.log(error);
     } finally {
-      toast.success("Location created successfully");
+      toast.success("Location Created", {
+        description: `"${name}" has been added to location.`,
+      });
+    }
+  };
+
+  const updateLocation = async (
+    id: string,
+    name: string,
+    parentId?: string | null,
+  ) => {
+    if (!name) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.patch(
+        `${API_URL}/api/locations/${id}`,
+        {
+          name,
+          parentId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      toast.success("Location Updated", {
+        description: `"${name}" was updated successfully.`,
+      });
+
+      fetchLocations();
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to update location");
     }
   };
 
@@ -138,7 +200,9 @@ export default function LocationPage() {
     } catch (error) {
       console.log(error);
     } finally {
-      toast.success("Location deleted successfully");
+      toast.success("Location Deleted", {
+        description: "The location has been removed.",
+      });
     }
   };
 
@@ -178,230 +242,130 @@ export default function LocationPage() {
           <div key={location.id}>
             {/* ROW */}
             <div
-              className="
-              group
-              flex
-              items-center
-              justify-between
-              gap-4
-              rounded-xl
-              border
-              border-border/50
-              bg-card
-              px-4
-              py-3
-              hover:bg-muted/30
-              transition-all
-            "
+              className="group flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-card px-4 py-3 hover:bg-muted/30 transition-all"
               style={{
-                marginLeft: level * 22,
+                marginLeft: level * 10,
               }}
             >
               {/* LEFT */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 {/* ICON */}
-                <div
-                  className="
-                  size-9
-                  rounded-lg
-                  bg-primary/10
-                  flex
-                  items-center
-                  justify-center
-                  shrink-0
-                "
-                >
+                <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <MapPin className="size-4 text-primary" />
                 </div>
 
                 {/* CONTENT */}
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-sm text-foreground truncate">
+                  <div className="flex flex-col min-w-0 gap-1">
+                    <h3 className="font-medium text-sm truncate">
                       {location.name}
                     </h3>
 
-                    {children.length > 0 && (
-                      <span
-                        className="
-                        text-[11px]
-                        px-2
-                        py-0.5
-                        rounded-full
-                        bg-muted
-                        text-muted-foreground
-                      "
-                      >
-                        {children.length} Sub Locations
-                      </span>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Level {level}
+                      {children.length > 0 && ` • ${children.length} Children`}
+                    </p>
                   </div>
-
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {level === 0 ? "Root Location" : `Nested Level ${level}`}
-                  </p>
                 </div>
               </div>
 
               {/* RIGHT */}
               <div className="flex items-center gap-2">
-                {/* ADD SUB */}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9 gap-2">
-                      <Plus className="size-4" />
-                      Add
-                    </Button>
-                  </DialogTrigger>
+                <div className="hidden md:flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      setSelectedLocation(location);
+                      setAddDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="size-4" />
+                    Add Child
+                  </Button>
 
-                  <DialogContent className="sm:max-w-[420px]">
-                    <DialogTitle>Add Sub Location</DialogTitle>
-                    <DialogDescription>
-                      Create a child location under{" "}
-                      <span className="font-bold">{location.name}</span>
-                    </DialogDescription>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-primary"
+                    onClick={() => {
+                      setSelectedLocation(location);
 
-                    <div className="space-y-4 py-4">
-                      <Input
-                        placeholder="Sub location name"
-                        value={subLocationMap[location.id] || ""}
-                        onChange={(e) =>
-                          setSubLocationMap((prev) => ({
-                            ...prev,
-                            [location.id]: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
+                      setEditLocationMap((prev) => ({
+                        ...prev,
+                        [location.id]: location.name,
+                      }));
 
-                    <DialogFooter>
-                      <Button
-                        className="gap-2 px-5"
-                        onClick={async () => {
-                          await createLocation(
-                            subLocationMap[location.id],
-                            location.id,
-                          );
+                      setEditDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
 
-                          setSubLocationMap((prev) => ({
-                            ...prev,
-                            [location.id]: "",
-                          }));
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      setSelectedLocation(location);
+                      setDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+                <div className="md:hidden">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedLocation(location);
+                          setAddDialogOpen(true);
                         }}
                       >
-                        <Plus className="size-4" />
-                        Create Location
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 gap-2">
-                      <Pencil className="size-4" />
-                    </Button>
-                  </DialogTrigger>
+                        <Plus className="mr-2 size-4" />
+                        Add Child
+                      </DropdownMenuItem>
 
-                  <DialogContent className="sm:max-w-[420px]">
-                    <DialogTitle>Edit Location</DialogTitle>
-                    <DialogDescription>
-                      Edit the location details
-                      <span className="font-bold">{location.name}</span>
-                    </DialogDescription>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedLocation(location);
 
-                    <div className="space-y-4 py-4">
-                      <Input
-                        placeholder="Sub location name"
-                        value={subLocationMap[location.id] || ""}
-                        onChange={(e) =>
-                          setSubLocationMap((prev) => ({
+                          setEditLocationMap((prev) => ({
                             ...prev,
-                            [location.id]: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <DialogFooter>
-                      <Button
-                        className="gap-2 px-5"
-                        onClick={async () => {
-                          await createLocation(
-                            subLocationMap[location.id],
-                            location.id,
-                          );
-
-                          setSubLocationMap((prev) => ({
-                            ...prev,
-                            [location.id]: "",
+                            [location.id]: location.name,
                           }));
+
+                          setEditDialogOpen(true);
                         }}
                       >
-                        <Plus className="size-4" />
-                        Update Location
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                        <Pencil className="mr-2 size-4" />
+                        Rename
+                      </DropdownMenuItem>
 
-                {/* DELETE */}
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="
-                      text-muted-foreground
-                      hover:text-destructive
-                      hover:bg-destructive/10
-                    "
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </AlertDialogTrigger>
+                      <DropdownMenuSeparator />
 
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Location?</AlertDialogTitle>
-
-                      <AlertDialogDescription asChild>
-                        <div className="space-y-2">
-                          <div>This action cannot be undone.</div>
-
-                          {hasChildren && (
-                            <div
-                              className="
-                                rounded-lg
-                                border
-                                border-destructive/20
-                                bg-destructive/5
-                                p-3
-                                text-sm
-                                text-destructive
-                                font-medium
-                              "
-                            >
-                              This location has sub locations. Deleting it will
-                              remove all child locations too.
-                            </div>
-                          )}
-                        </div>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                      <AlertDialogAction
-                        onClick={() => deleteLocation(location.id)}
-                        className="h-11 bg-destructive text-white hover:bg-destructive/90 gap-2 px-5"
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => {
+                          setSelectedLocation(location);
+                          setDeleteDialogOpen(true);
+                        }}
                       >
-                        <Trash2 className="size-4" />
+                        <Trash2 className="mr-2 size-4" />
                         Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                {/* ADD SUB */}
               </div>
             </div>
 
@@ -419,7 +383,7 @@ export default function LocationPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Locations</h1>
             <p className="text-muted-foreground">Manage and track locations</p>
@@ -427,7 +391,7 @@ export default function LocationPage() {
           {/* CREATE ROOT */}
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 px-5">
+              <Button className="gap-2 px-4">
                 <Plus className="size-4" />
                 Add Main Location
               </Button>
@@ -552,6 +516,165 @@ export default function LocationPage() {
               renderTree()
             )}
           </div>
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <DialogContent className="sm:max-w-[420px]">
+              <DialogTitle>Add Sub Location</DialogTitle>
+
+              <DialogDescription>
+                Create a child location under{" "}
+                <span className="font-bold">{selectedLocation?.name}</span>
+              </DialogDescription>
+
+              <div className="py-4">
+                <Input
+                  placeholder="Sub location name"
+                  value={
+                    selectedLocation
+                      ? subLocationMap[selectedLocation.id] || ""
+                      : ""
+                  }
+                  onChange={(e) => {
+                    if (!selectedLocation) return;
+
+                    setSubLocationMap((prev) => ({
+                      ...prev,
+                      [selectedLocation.id]: e.target.value,
+                    }));
+                  }}
+                />
+              </div>
+
+              <DialogFooter className="flex-row justify-end gap-2">
+                <Button
+                  className="gap-2 min-w-[130px]"
+                  onClick={async () => {
+                    setLoading(true);
+                    if (!selectedLocation) return;
+
+                    await createLocation(
+                      subLocationMap[selectedLocation.id],
+                      selectedLocation.id,
+                    );
+
+                    setLoading(false);
+                    setAddDialogOpen(false);
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="size-4" />
+                      Create
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="sm:max-w-[420px]">
+              <DialogTitle>Edit Location</DialogTitle>
+
+              <DialogDescription>Update location name</DialogDescription>
+
+              <div className="py-4">
+                <Input
+                  placeholder="Location name"
+                  value={
+                    selectedLocation
+                      ? editLocationMap[selectedLocation.id] || ""
+                      : ""
+                  }
+                  onChange={(e) => {
+                    if (!selectedLocation) return;
+
+                    setEditLocationMap((prev) => ({
+                      ...prev,
+                      [selectedLocation.id]: e.target.value,
+                    }));
+                  }}
+                />
+              </div>
+
+              <DialogFooter className="flex-row justify-end gap-2">
+                <Button
+                  className="gap-2 min-w-[130px]"
+                  onClick={async () => {
+                    setLoading(true);
+                    if (!selectedLocation) return;
+
+                    await updateLocation(
+                      selectedLocation.id,
+                      editLocationMap[selectedLocation.id],
+                      selectedLocation.parentId,
+                    );
+                    setLoading(false);
+
+                    setEditDialogOpen(false);
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="size-4" />
+                      Update
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Location?</AlertDialogTitle>
+
+                <AlertDialogDescription>
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <AlertDialogFooter className="flex-row justify-end gap-2">
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                <AlertDialogAction
+                  className="gap-2 min-w-[130px]"
+                  onClick={async () => {
+                    setLoading(true);
+                    if (!selectedLocation) return;
+
+                    await deleteLocation(selectedLocation.id);
+                    setLoading(false);
+                    setDeleteDialogOpen(false);
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash className="size-4" />
+                      Delete
+                    </>
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </DashboardLayout>
