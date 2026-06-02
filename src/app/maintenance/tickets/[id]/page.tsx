@@ -148,11 +148,11 @@ export default function TicketManagementPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="space-y-3">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-8 w-64 bg-gray-300" />
+              <Skeleton className="h-4 w-40 bg-gray-300" />
             </div>
 
-            <Skeleton className="h-10 w-28 rounded-md" />
+            <Skeleton className="h-10 w-28 rounded-md bg-gray-300" />
           </div>
 
           {/* Main Grid */}
@@ -172,7 +172,7 @@ export default function TicketManagementPage() {
                 </div>
 
                 {/* Select Fields */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-col-2 gap-3">
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-20" />
                     <Skeleton className="h-10 w-full rounded-md" />
@@ -340,7 +340,7 @@ export default function TicketManagementPage() {
                   />
                 </Field>
               </FieldGroup>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-col-2 gap-3">
                 <FieldGroup>
                   <Field>
                     <Label>Status</Label>
@@ -419,7 +419,7 @@ export default function TicketManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Admin Response Image</Label>
+                <Label>Issue Resolved</Label>
                 <div className="flex items-center gap-4">
                   <Button
                     variant="outline"
@@ -507,11 +507,11 @@ export default function TicketManagementPage() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold">User Attachment</h4>
+                  <h4 className="text-sm font-semibold">Issue Image</h4>
                   {complaint.imageUrl ? (
                     <img
                       src={complaint.imageUrl}
-                      alt="User Attachment"
+                      alt="Issue Image"
                       className="w-full rounded border"
                     />
                   ) : (

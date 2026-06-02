@@ -5,12 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
-import {
-  ImagePlus,
-  RefreshCw,
-  Trash2,
-  Plus,
-} from "lucide-react";
+import { ImagePlus, RefreshCw, Trash2, Plus } from "lucide-react";
 
 import {
   Building2,
@@ -78,8 +73,9 @@ export default function RaiseTicketPage() {
   };
 
   useEffect(() => {
-    setTimeout(()=>{
-    fetchLocations();},0);
+    setTimeout(() => {
+      fetchLocations();
+    }, 0);
   }, []);
 
   const handleImageUpload = async (
@@ -586,9 +582,6 @@ export default function RaiseTicketPage() {
                   {/* Context Path Summary */}
                   <div className="flex flex-row items-center justify-between gap-3 px-4 py-3 bg-primary/[0.03] border border-primary/15 rounded-xl animate-in fade-in duration-300">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="size-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <MapPin className="size-4.5 text-primary" />
-                      </div>
                       <div className="min-w-0">
                         <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
                           Selected Location
@@ -687,7 +680,7 @@ export default function RaiseTicketPage() {
                               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                 Priority Level
                               </Label>
-                              <div className="grid grid-cols-4 gap-2">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                 {priorities.map((p) => {
                                   const Icon = p.icon;
                                   const isActive = issue.priority === p.value;
@@ -745,7 +738,7 @@ export default function RaiseTicketPage() {
                                 /* Drop Zone */
                                 <label
                                   htmlFor={`image-upload-${issue.id}`}
-                                  className="group flex flex-col items-center justify-center gap-3 h-[150px] border-2 border-dashed border-border/60 rounded-xl cursor-pointer bg-muted/20 hover:bg-primary/[0.02] hover:border-primary/40 transition-all duration-200"
+                                  className="group flex flex-col items-center justify-center gap-3 h-[120px] md:h-[150px] border-2 border-dashed border-border/60 rounded-xl cursor-pointer bg-muted/20 hover:bg-primary/[0.02] hover:border-primary/40 transition-all duration-200"
                                 >
                                   <div className="size-10 rounded-xl bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                                     <ImagePlus className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -774,7 +767,7 @@ export default function RaiseTicketPage() {
                                   <img
                                     src={issue.imageUrl}
                                     alt={`Issue ${index + 1}`}
-                                    className="w-full h-[150px] object-cover"
+                                    className="w-full h-[120px] md:h-[150px] object-cover"
                                   />
                                   {/* Overlay on hover */}
                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
