@@ -72,6 +72,7 @@ interface Department {
 interface Technician {
   id: string;
   technicianCode: string;
+  email: string;
   name: string;
   phone?: string;
   isActive: boolean;

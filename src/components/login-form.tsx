@@ -70,7 +70,7 @@ export function LoginForm({
       );
 
       // EVERYONE GOES HERE
-      router.push("/dashboard");
+      router.push("/maintenance/tickets");
     } catch (error: unknown) {
       console.log(error);
 

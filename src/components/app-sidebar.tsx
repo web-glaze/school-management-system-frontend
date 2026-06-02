@@ -3,7 +3,6 @@
 import * as React from "react";
 
 import {
-  ChartColumnBig,
   Hammer,
   LifeBuoy,
   MapPin,
@@ -37,12 +36,12 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
 
   /* SUPER ADMIN */
   const superAdminMenu = [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: ChartColumnBig,
-      isActive: pathname === "/dashboard",
-    },
+    // {
+    //   title: "Dashboard",
+    //   url: "/dashboard",
+    //   icon: ChartColumnBig,
+    //   isActive: pathname === "/dashboard",
+    // },
     {
       title: "Maintenance",
       url: "/maintenance",
@@ -54,12 +53,12 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
 
   /* ADMIN */
   const adminMenu = [
-    {
-      title: "Dashboard",
-      url: "/maintenance",
-      icon: Ticket,
-      isActive: pathname === "/maintenance" || pathname === "/maintenance/",
-    },
+    // {
+    //   title: "Dashboard",
+    //   url: "/maintenance",
+    //   icon: Ticket,
+    //   isActive: pathname === "/maintenance" || pathname === "/maintenance/",
+    // },
 
     {
       title: "Tickets",
