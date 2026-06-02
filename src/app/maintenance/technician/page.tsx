@@ -45,7 +45,15 @@ import {
   Search,
   Trash2,
   User,
+  MoreVertical,
 } from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { Field, FieldGroup } from "@/components/ui/field";
 
@@ -99,9 +107,12 @@ export default function TechnicianPage() {
   );
 
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [editingTechnician, setEditingTechnician] = useState<Technician | null>(
     null,
   );
+  const [deletingTechnician, setDeletingTechnician] =
+    useState<Technician | null>(null);
 
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -214,6 +225,20 @@ export default function TechnicianPage() {
     setEditDepartmentId(technician.department?.id || "");
 
     setEditOpen(true);
+  };
+
+  const openDeleteDialog = (technician: Technician) => {
+    setDeletingTechnician(technician);
+    setDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingTechnician) return;
+
+    await handleDelete(deletingTechnician.id);
+
+    setDeleteOpen(false);
+    setDeletingTechnician(null);
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -459,7 +484,7 @@ export default function TechnicianPage() {
           ) : (
             <div className="relative w-full overflow-x-auto">
               <Table>
-                <TableHeader className="bg-muted/40 dark:bg-muted/15 border-b border-border/60">
+                <TableHeader className="bg-gray-50 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">
                       Name
@@ -470,8 +495,8 @@ export default function TechnicianPage() {
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">
                       Created At
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[80px]">
-                      Actions
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-[50px] sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
+                      <span className="hidden md:block">Actions</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -533,199 +558,214 @@ export default function TechnicianPage() {
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className="py-4 pr-6 text-right align-top">
-                          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                        <TableCell className="py-4 text-right align-top max-w-[50px] sticky right-0 bg-card shadow-lg md:shadow-none">
+                          <div className="hidden md:flex justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => openEditDialog(technician)}
                               className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
                               title="Edit Technician"
+                              onClick={() => openEditDialog(technician)}
                             >
                               <Pencil className="size-5" />
                             </Button>
 
-                            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
-                              <div className="border-b px-6 py-5">
-                                <div className="flex items-center gap-3">
-                                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                    <Pencil className="size-5 text-primary" />
-                                  </div>
-
-                                  <div>
-                                    <DialogTitle className="text-lg">
-                                      Edit Technician
-                                    </DialogTitle>
-
-                                    <DialogDescription>
-                                      Update technician details
-                                    </DialogDescription>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <form
-                                onSubmit={handleUpdate}
-                                className="space-y-4 p-6"
-                              >
-                                <FieldGroup>
-                                  <Field>
-                                    <Label htmlFor="edit-technician-name">
-                                      Name
-                                    </Label>
-
-                                    <Input
-                                      id="edit-technician-name"
-                                      type="text"
-                                      placeholder="Technician Name"
-                                      value={editName}
-                                      onChange={(e) =>
-                                        setEditName(e.target.value)
-                                      }
-                                      required
-                                    />
-                                  </Field>
-                                </FieldGroup>
-
-                                <FieldGroup>
-                                  <Field>
-                                    <Label htmlFor="edit-technician-phone">
-                                      Phone
-                                    </Label>
-
-                                    <Input
-                                      id="edit-technician-phone"
-                                      type="tel"
-                                      placeholder="Phone Number"
-                                      value={editPhone}
-                                      onChange={(e) =>
-                                        setEditPhone(
-                                          e.target.value.replace(/\D/g, ""),
-                                        )
-                                      }
-                                      maxLength={10}
-                                    />
-                                  </Field>
-                                </FieldGroup>
-
-                                <FieldGroup>
-                                  <Field>
-                                    <Label>Department</Label>
-
-                                    <Select
-                                      onValueChange={setEditDepartmentId}
-                                      value={editDepartmentId}
-                                    >
-                                      <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select department..." />
-                                      </SelectTrigger>
-
-                                      <SelectContent position="popper">
-                                        {departments.map((dept) => (
-                                          <SelectItem
-                                            key={dept.id}
-                                            value={dept.id}
-                                          >
-                                            {dept.name}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </Field>
-                                </FieldGroup>
-
-                                <DialogFooter className="gap-2">
-                                  <DialogClose asChild>
-                                    <Button variant="outline" type="button">
-                                      Cancel
-                                    </Button>
-                                  </DialogClose>
-
-                                  <Button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="min-w-[130px] gap-2 px-5"
-                                  >
-                                    {loading ? (
-                                      <>
-                                        <Loader2 className="size-4 animate-spin" />
-                                        Updating...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Pencil className="size-4" />
-                                        Update
-                                      </>
-                                    )}
-                                  </Button>
-                                </DialogFooter>
-                              </form>
-                            </DialogContent>
-                          </Dialog>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                                title="Delete Technician"
-                              >
-                                <Trash2 className="size-5" />
-                              </Button>
-                            </AlertDialogTrigger>
-
-                            <AlertDialogContent className="sm:max-w-[420px]">
-                              <AlertDialogHeader>
-                                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
-                                  <Trash2 className="size-6 text-destructive" />
-                                </div>
-
-                                <AlertDialogTitle className="w-full text-center text-xl">
-                                  Delete Technician?
-                                </AlertDialogTitle>
-
-                                <AlertDialogDescription className="text-center">
-                                  This action cannot be undone. This will
-                                  permanently remove
-                                  <span className="font-semibold text-foreground">
-                                    {" "}
-                                    {technician.name}
-                                  </span>
-                                  .
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-
-                              <AlertDialogFooter className="mt-4">
-                                <AlertDialogCancel className="h-11">
-                                  Cancel
-                                </AlertDialogCancel>
-
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(technician.id)}
-                                  disabled={deletingId === technician.id}
-                                  className="h-11 bg-destructive text-white hover:bg-destructive/90"
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                              title="Delete Technician"
+                              onClick={() => openDeleteDialog(technician)}
+                            >
+                              <Trash2 className="size-5" />
+                            </Button>
+                          </div>
+                          <div className="md:hidden flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-9"
                                 >
-                                  {deletingId === technician.id ? (
-                                    <>
-                                      <Loader2 className="mr-2 size-4 animate-spin" />
-                                      Deleting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Trash2 className="mr-2 size-4" />
-                                      Delete Technician
-                                    </>
-                                  )}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                                  <MoreVertical className="size-5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => openEditDialog(technician)}
+                                >
+                                  <Pencil className="mr-2 size-4" />
+                                  Edit
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => openDeleteDialog(technician)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="mr-2 size-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
+              <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+                  <div className="border-b px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Pencil className="size-5 text-primary" />
+                      </div>
+
+                      <div>
+                        <DialogTitle className="text-lg">
+                          Edit Technician
+                        </DialogTitle>
+
+                        <DialogDescription>
+                          Update technician details
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleUpdate} className="space-y-4 p-6">
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="edit-technician-name">Name</Label>
+
+                        <Input
+                          id="edit-technician-name"
+                          type="text"
+                          placeholder="Technician Name"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          required
+                        />
+                      </Field>
+                    </FieldGroup>
+
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="edit-technician-phone">Phone</Label>
+
+                        <Input
+                          id="edit-technician-phone"
+                          type="tel"
+                          placeholder="Phone Number"
+                          value={editPhone}
+                          onChange={(e) =>
+                            setEditPhone(e.target.value.replace(/\D/g, ""))
+                          }
+                          maxLength={10}
+                        />
+                      </Field>
+                    </FieldGroup>
+
+                    <FieldGroup>
+                      <Field>
+                        <Label>Department</Label>
+
+                        <Select
+                          onValueChange={setEditDepartmentId}
+                          value={editDepartmentId}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select department..." />
+                          </SelectTrigger>
+
+                          <SelectContent position="popper">
+                            {departments.map((dept) => (
+                              <SelectItem key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+
+                    <DialogFooter className="gap-2">
+                      <DialogClose asChild>
+                        <Button variant="outline" type="button">
+                          Cancel
+                        </Button>
+                      </DialogClose>
+
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="min-w-[130px] gap-2 px-5"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <Pencil className="size-4" />
+                            Update
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <AlertDialogContent className="sm:max-w-[420px]">
+                  <AlertDialogHeader>
+                    <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+                      <Trash2 className="size-6 text-destructive" />
+                    </div>
+
+                    <AlertDialogTitle className="w-full text-center text-xl">
+                      Delete Technician?
+                    </AlertDialogTitle>
+
+                    <AlertDialogDescription className="text-center">
+                      This action cannot be undone. This will permanently remove
+                      <span className="font-semibold text-foreground">
+                        {" "}
+                        {deletingTechnician?.name}
+                      </span>
+                      .
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  <AlertDialogFooter className="mt-4">
+                    <AlertDialogCancel className="h-11">
+                      Cancel
+                    </AlertDialogCancel>
+
+                    <AlertDialogAction
+                      onClick={confirmDelete}
+                      disabled={!!deletingId}
+                      className="h-11 bg-destructive text-white hover:bg-destructive/90"
+                    >
+                      {deletingId ? (
+                        <>
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="mr-2 size-4" />
+                          Delete Technician
+                        </>
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
         </div>

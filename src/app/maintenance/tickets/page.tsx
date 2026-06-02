@@ -21,6 +21,9 @@ import {
   Plus,
   Pencil,
   Loader2,
+  CheckCircle,
+  Check,
+  MoreVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -56,6 +59,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -236,7 +245,7 @@ export default function ComplaintsPage() {
         </div>
 
         {/* Stats Grid Dashboard Buttons */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+        <div className="grid grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6">
           {statusStats.map((stat) => {
             const Icon = stat.icon;
             const isFilterActive = statusFilter === stat.id;
@@ -246,7 +255,7 @@ export default function ComplaintsPage() {
                 key={stat.id}
                 onClick={() => setStatusFilter(stat.id)}
                 className={cn(
-                  "group relative text-left rounded-lg p-6 bg-card border transition-all duration-300 overflow-hidden hover:shadow-md hover:-translate-y-1",
+                  "group relative text-left rounded-lg p-3 md:p-6  bg-card border transition-all duration-300 overflow-hidden hover:shadow-md hover:-translate-y-1",
                   isFilterActive
                     ? "border-primary/30 ring-1 ring-primary/20"
                     : "border-border/60 hover:border-primary/20",
@@ -262,15 +271,24 @@ export default function ComplaintsPage() {
                     <Icon className="size-5" />
                   </div>
                   {isFilterActive && (
-                    <Badge className="bg-sky-50 text-sky-600 rounded-full font-bold px-2.5 py-0.5 text-xs">
-                      Selected
-                    </Badge>
+                    <div className="bg-sky-50 text-sky-600 rounded-full font-bold size-6 md:size-8 grid place-items-center">
+                      <Check className="size-4 md:size-6" />
+                    </div>
                   )}
                 </div>
 
                 <div className="mt-5 space-y-1 relative z-10">
                   <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                    {stat.label}
+                    {stat.label === "All Complaints" ? (
+                      <>
+                        All{" "}
+                        <span className="text-muted-foreground hidden md:inline">
+                          Complaints
+                        </span>
+                      </>
+                    ) : (
+                      stat.label
+                    )}
                   </p>
                   <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
                     {loading ? (
@@ -309,7 +327,7 @@ export default function ComplaintsPage() {
                   <TabsTrigger
                     key={stat.id}
                     value={stat.id}
-                    className="rounded-full px-4 py-2 whitespace-nowrap text-sm data-[state=active]:shadow-sm"
+                    className="rounded-full px-2 md:px-4 py-2 whitespace-nowrap text-sm data-[state=active]:shadow-sm"
                   >
                     {stat.label.split(" ")[0]}
                   </TabsTrigger>
@@ -407,27 +425,21 @@ export default function ComplaintsPage() {
           ) : (
             <div className="relative w-full overflow-x-auto">
               <Table>
-                <TableHeader className="bg-muted/40 dark:bg-muted/15 border-b border-border/60">
+                <TableHeader className="bg-gray-50 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[50px]">
-                      # ID
-                    </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[220px]">
-                      Title / Description
-                    </TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[170px]">
+                      # Issue Details
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[200px] pr-7">
                       Location
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[110px]">
-                      Priority
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[150px]">
+                      Priority / Status
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[155px]">
-                      Status
-                    </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px]">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">
                       Created At
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[100px]">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-[50px] sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -439,20 +451,17 @@ export default function ComplaintsPage() {
                         key={complaint.id}
                         className="hover:bg-muted/20 transition-colors"
                       >
-                        <TableCell className="py-4 pl-6 align-top font-semibold text-sm">
-                          {complaint.ticketCode}
+                        <TableCell className="py-4 align-top font-semibold text-sm">
+                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">
+                            {complaint.title ||
+                              complaint.description.slice(0, 40)}
+                          </p>
+                          <p className="text-sm text-foreground/50">
+                            {complaint.ticketCode}
+                          </p>
                         </TableCell>
 
-                        <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-[260px]">
-                            <p className="font-semibold text-foreground text-sm leading-tight hover:text-primary transition-colors line-clamp-1">
-                              {complaint.title ||
-                                complaint.description.slice(0, 40)}
-                            </p>
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="py-4 align-top">
+                        <TableCell className="py-4 align-top pr-7">
                           <div className="space-y-0.5 font-medium leading-tight text-sm">
                             <p className="font-semibold text-foreground/90">
                               {complaint.locationType}
@@ -464,7 +473,7 @@ export default function ComplaintsPage() {
                           <Badge
                             variant="outline"
                             className={cn(
-                              "min-w-[90px] justify-center rounded-lg font-bold text-xs py-1 px-2.5",
+                              "min-w-[90px] justify-center rounded-lg font-bold text-xs py-1 px-2.5 mr-2",
                               complaint.priority === "LOW" &&
                                 "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
                               complaint.priority === "MEDIUM" &&
@@ -477,9 +486,7 @@ export default function ComplaintsPage() {
                           >
                             {complaint.priority}
                           </Badge>
-                        </TableCell>
 
-                        <TableCell className="py-4 align-top">
                           <Badge
                             variant="outline"
                             className={cn(
@@ -500,7 +507,7 @@ export default function ComplaintsPage() {
                           </Badge>
                         </TableCell>
 
-                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top">
+                        <TableCell className="py-4 text-sm font-medium text-muted-foreground align-top hidden lg:table-cell">
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <Calendar className="size-3.5 text-muted-foreground/80" />
                             <span>
@@ -518,24 +525,62 @@ export default function ComplaintsPage() {
                           </div>
                         </TableCell>
 
-                        <TableCell className="py-4 pr-6 text-right align-top space-x-1">
-                          <Link href={`/maintenance/tickets/${complaint.id}`}>
+                        <TableCell className="py-4 text-right align-top space-x-1  sticky right-0 bg-card shadow-lg md:shadow-none">
+                          <div className="hidden md:flex justify-end gap-1">
+                            <Link href={`/maintenance/tickets/${complaint.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 text-muted-foreground hover:bg-blue-600/10 hover:text-blue-600 transition-all"
+                              >
+                                <Pencil className="size-5" />
+                              </Button>
+                            </Link>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-8 text-muted-foreground hover:text-blue-600"
+                              className="size-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                              onClick={() =>
+                                setTargetDeleteComplaint(complaint)
+                              }
                             >
-                              <Pencil className="size-4" />
+                              <Trash2 className="size-5" />
                             </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => setTargetDeleteComplaint(complaint)}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
+                          </div>
+                          <div className="md:hidden flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-9"
+                                >
+                                  <MoreVertical className="size-5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    href={`/maintenance/tickets/${complaint.id}`}
+                                  >
+                                    <Pencil className="mr-2 size-4" />
+                                    Edit
+                                  </Link>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    setTargetDeleteComplaint(complaint)
+                                  }
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="mr-2 size-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -546,7 +591,6 @@ export default function ComplaintsPage() {
           )}
         </div>
 
-        {/* Global Isolated Delete Confirmation Modal */}
         <AlertDialog
           open={!!targetDeleteComplaint}
           onOpenChange={(open) => !open && setTargetDeleteComplaint(null)}
