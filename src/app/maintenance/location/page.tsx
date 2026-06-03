@@ -2,77 +2,36 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-import axios from "axios";
-
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
 import { Input } from "@/components/ui/input";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 import { Label } from "@/components/ui/label";
 
 import { Field, FieldGroup } from "@/components/ui/field";
 
-import {
-  ChevronRight,
-  Inbox,
-  Loader2,
-  MapPin,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  Settings,
-  MoreVertical,
-  Trash,
-} from "lucide-react";
+import { ChevronRight, Inbox, Loader2, MapPin, Pencil, Plus, Search, Trash2, Settings, MoreVertical, Trash } from "lucide-react";
 import { toast } from "sonner";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { useLocationStore } from "@/store/maintenanceStore";
 
 interface Location {
   id: string;
-
   name: string;
-
   parentId?: string | null;
 }
 
 export default function LocationPage() {
-  const [locations, setLocations] = useState<Location[]>([]);
+  const { locations, loading, fetchLocations, createLocation, updateLocation, deleteLocation } = useLocationStore();
+
   const [rootName, setRootName] = useState("");
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -84,125 +43,83 @@ export default function LocationPage() {
     [key: string]: string;
   }>({});
 
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(
-    null,
-  );
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  /* FETCH */
-  const fetchLocations = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/api/locations`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-      setLocations(
-        Array.isArray(response.data) ? response.data : response.data.data || [],
-      );
+  useEffect(() => {
+    fetchLocations();
+  }, []);
+
+  const handleCreateRoot = async () => {
+    if (!rootName) return;
+    try {
+      await createLocation(rootName);
+      setRootName("");
+      setOpen(false);
+      toast.success("Location Created", {
+        description: `"${rootName}" has been added to location.`,
+      });
     } catch (error) {
       console.log(error);
-    } finally {
-      setLoading(false);
+      toast.error("Failed to create location");
     }
   };
 
-  useEffect(() => {
-    setTimeout(() => {
-      fetchLocations();
-    }, 0);
-  }, []);
-
-  /* CREATE */
-  const createLocation = async (name: string, parentId?: string) => {
+  const handleCreateSub = async () => {
+    if (!selectedLocation) return;
+    const name = subLocationMap[selectedLocation.id];
     if (!name) return;
 
     try {
-      const token = localStorage.getItem("token");
-
-      await axios.post(
-        `${API_URL}/api/locations`,
-        {
-          name,
-          parentId: parentId || null,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      fetchLocations();
-    } catch (error) {
-      console.log(error);
-    } finally {
+      await createLocation(name, selectedLocation.id);
+      setAddDialogOpen(false);
       toast.success("Location Created", {
         description: `"${name}" has been added to location.`,
       });
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to create sub-location");
     }
   };
 
-  const updateLocation = async (
-    id: string,
-    name: string,
-    parentId?: string | null,
-  ) => {
+  const handleRename = async () => {
+    if (!selectedLocation) return;
+    const name = editLocationMap[selectedLocation.id];
     if (!name) return;
 
     try {
-      const token = localStorage.getItem("token");
-
-      await axios.patch(
-        `${API_URL}/api/locations/${id}`,
-        {
-          name,
-          parentId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
+      await updateLocation(selectedLocation.id, name, selectedLocation.parentId);
+      setEditDialogOpen(false);
       toast.success("Location Updated", {
         description: `"${name}" was updated successfully.`,
       });
-
-      fetchLocations();
     } catch (error) {
       console.log(error);
       toast.error("Failed to update location");
     }
   };
 
-  /* DELETE */
-  const deleteLocation = async (id: string) => {
+  const handleDelete = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedLocation) return;
+
     try {
-      const token = localStorage.getItem("token");
-
-      await axios.delete(`${API_URL}/api/locations/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      fetchLocations();
-    } catch (error) {
-      console.log(error);
-    } finally {
+      setDeletingId(selectedLocation.id);
+      await deleteLocation(selectedLocation.id);
+      setDeleteDialogOpen(false);
       toast.success("Location Deleted", {
         description: "The location has been removed.",
       });
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to delete location");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -226,9 +143,7 @@ export default function LocationPage() {
   const renderTree = (parentId: string | null = null, level = 0) => {
     return getChildren(parentId)
       .filter((location) => {
-        const selfMatch = location.name
-          .toLowerCase()
-          .includes(search.toLowerCase());
+        const selfMatch = location.name.toLowerCase().includes(search.toLowerCase());
 
         const childMatch = hasMatchingChild(location.id);
 
@@ -257,9 +172,7 @@ export default function LocationPage() {
                 {/* CONTENT */}
                 <div className="min-w-0">
                   <div className="flex flex-col min-w-0 gap-1">
-                    <h3 className="font-medium text-sm truncate">
-                      {location.name}
-                    </h3>
+                    <h3 className="font-medium text-sm truncate">{location.name}</h3>
 
                     <p className="text-xs text-muted-foreground">
                       Level {level}
@@ -370,11 +283,7 @@ export default function LocationPage() {
             </div>
 
             {/* CHILDREN */}
-            {children.length > 0 && (
-              <div className="mt-2 space-y-2">
-                {renderTree(location.id, level + 1)}
-              </div>
-            )}
+            {children.length > 0 && <div className="mt-2 space-y-2">{renderTree(location.id, level + 1)}</div>}
           </div>
         );
       });
@@ -405,13 +314,9 @@ export default function LocationPage() {
                   </div>
 
                   <div>
-                    <DialogTitle className="text-lg">
-                      Create Main Location
-                    </DialogTitle>
+                    <DialogTitle className="text-lg">Create Main Location</DialogTitle>
 
-                    <DialogDescription>
-                      Add a new main campus location
-                    </DialogDescription>
+                    <DialogDescription>Add a new main campus location</DialogDescription>
                   </div>
                 </div>
               </div>
@@ -421,13 +326,7 @@ export default function LocationPage() {
                   <Field>
                     <Label htmlFor="location-name">Location Name</Label>
 
-                    <Input
-                      id="location-name"
-                      placeholder="Main Building, Block A..."
-                      value={rootName}
-                      onChange={(e) => setRootName(e.target.value)}
-                      className="mt-2"
-                    />
+                    <Input id="location-name" placeholder="Main Building, Block A..." value={rootName} onChange={(e) => setRootName(e.target.value)} className="mt-2" />
                   </Field>
                 </FieldGroup>
 
@@ -438,17 +337,8 @@ export default function LocationPage() {
 
                   <Button
                     className="gap-2 min-w-[130px]"
-                    onClick={async () => {
-                      setLoading(true);
-
-                      await createLocation(rootName);
-
-                      setRootName("");
-
-                      setLoading(false);
-
-                      setOpen(false);
-                    }}
+                    disabled={loading}
+                    onClick={handleCreateRoot}
                   >
                     {loading ? (
                       <>
@@ -474,13 +364,7 @@ export default function LocationPage() {
             <div className="relative w-full lg:w-[350px] group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
 
-              <Input
-                type="text"
-                placeholder="Search locations..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-11"
-              />
+              <Input type="text" placeholder="Search locations..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
           </div>
 
@@ -491,192 +375,146 @@ export default function LocationPage() {
                 <Inbox className="size-6 stroke-[1.5]" />
               </div>
 
-              <h3 className="text-lg font-bold text-foreground">
-                No locations created yet.
-              </h3>
+              <h3 className="text-lg font-bold text-foreground">No locations created yet.</h3>
 
-              <p className="text-muted-foreground mt-1.5 max-w-sm">
-                Start by creating your first main location.
-              </p>
+              <p className="text-muted-foreground mt-1.5 max-w-sm">Start by creating your first main location.</p>
             </div>
           )}
 
           {/* TREE */}
           <div className="space-y-4">
-            {loading ? (
+            {loading && locations.length === 0 ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-28 rounded-xl bg-muted animate-pulse"
-                  />
+                  <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
                 ))}
               </div>
             ) : (
               renderTree()
             )}
           </div>
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-            <DialogContent className="sm:max-w-[420px]">
-              <DialogTitle>Add Sub Location</DialogTitle>
-
-              <DialogDescription>
-                Create a child location under{" "}
-                <span className="font-bold">{selectedLocation?.name}</span>
-              </DialogDescription>
-
-              <div className="py-4">
-                <Input
-                  placeholder="Sub location name"
-                  value={
-                    selectedLocation
-                      ? subLocationMap[selectedLocation.id] || ""
-                      : ""
-                  }
-                  onChange={(e) => {
-                    if (!selectedLocation) return;
-
-                    setSubLocationMap((prev) => ({
-                      ...prev,
-                      [selectedLocation.id]: e.target.value,
-                    }));
-                  }}
-                />
-              </div>
-
-              <DialogFooter className="flex-row justify-end gap-2">
-                <Button
-                  className="gap-2 min-w-[130px]"
-                  onClick={async () => {
-                    setLoading(true);
-                    if (!selectedLocation) return;
-
-                    await createLocation(
-                      subLocationMap[selectedLocation.id],
-                      selectedLocation.id,
-                    );
-
-                    setLoading(false);
-                    setAddDialogOpen(false);
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="size-4" />
-                      Create
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-            <DialogContent className="sm:max-w-[420px]">
-              <DialogTitle>Edit Location</DialogTitle>
-
-              <DialogDescription>Update location name</DialogDescription>
-
-              <div className="py-4">
-                <Input
-                  placeholder="Location name"
-                  value={
-                    selectedLocation
-                      ? editLocationMap[selectedLocation.id] || ""
-                      : ""
-                  }
-                  onChange={(e) => {
-                    if (!selectedLocation) return;
-
-                    setEditLocationMap((prev) => ({
-                      ...prev,
-                      [selectedLocation.id]: e.target.value,
-                    }));
-                  }}
-                />
-              </div>
-
-              <DialogFooter className="flex-row justify-end gap-2">
-                <Button
-                  className="gap-2 min-w-[130px]"
-                  onClick={async () => {
-                    setLoading(true);
-                    if (!selectedLocation) return;
-
-                    await updateLocation(
-                      selectedLocation.id,
-                      editLocationMap[selectedLocation.id],
-                      selectedLocation.parentId,
-                    );
-                    setLoading(false);
-
-                    setEditDialogOpen(false);
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="size-4" />
-                      Update
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <AlertDialog
-            open={deleteDialogOpen}
-            onOpenChange={setDeleteDialogOpen}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Location?</AlertDialogTitle>
-
-                <AlertDialogDescription>
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-
-              <AlertDialogFooter className="flex-row justify-end gap-2">
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                <AlertDialogAction
-                  className="gap-2 min-w-[130px]"
-                  onClick={async () => {
-                    setLoading(true);
-                    if (!selectedLocation) return;
-
-                    await deleteLocation(selectedLocation.id);
-                    setLoading(false);
-                    setDeleteDialogOpen(false);
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash className="size-4" />
-                      Delete
-                    </>
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
+
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogTitle>Add Sub Location</DialogTitle>
+
+          <DialogDescription>
+            Create a child location under <span className="font-bold">{selectedLocation?.name}</span>
+          </DialogDescription>
+
+          <div className="py-4">
+            <Input
+              placeholder="Sub location name"
+              value={selectedLocation ? subLocationMap[selectedLocation.id] || "" : ""}
+              onChange={(e) => {
+                if (!selectedLocation) return;
+
+                setSubLocationMap((prev) => ({
+                  ...prev,
+                  [selectedLocation.id]: e.target.value,
+                }));
+              }}
+            />
+          </div>
+
+          <DialogFooter className="flex-row justify-end gap-2">
+            <Button
+              className="gap-2 min-w-[130px]"
+              disabled={loading}
+              onClick={handleCreateSub}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="size-4" />
+                  Create
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogTitle>Edit Location</DialogTitle>
+
+          <DialogDescription>Update location name</DialogDescription>
+
+          <div className="py-4">
+            <Input
+              placeholder="Location name"
+              value={selectedLocation ? editLocationMap[selectedLocation.id] || "" : ""}
+              onChange={(e) => {
+                if (!selectedLocation) return;
+
+                setEditLocationMap((prev) => ({
+                  ...prev,
+                  [selectedLocation.id]: e.target.value,
+                }));
+              }}
+            />
+          </div>
+
+          <DialogFooter className="flex-row justify-end gap-2">
+            <Button
+              className="gap-2 min-w-[130px]"
+              disabled={loading}
+              onClick={handleRename}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Plus className="size-4" />
+                  Update
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Location?</AlertDialogTitle>
+
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="flex-row justify-end gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction
+              className="gap-2 min-w-[130px]"
+              disabled={!!deletingId}
+              onClick={handleDelete}
+            >
+              {deletingId ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash className="mr-2 size-4" />
+                  Delete
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

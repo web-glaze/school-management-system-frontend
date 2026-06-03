@@ -1,7 +1,6 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import {
   ClipboardList,
@@ -65,27 +64,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-interface Complaint {
-  id: string;
-  title: string;
-  description: string;
-  locationType: string;
-  subLocation: string;
-  priority: string;
-  status: string;
-  managerRemark?: string;
-  createdAt: string;
-  user?: { email: string };
-  assignedTechnician?: { id: string; name: string };
-  ticketCode?: string;
-}
+import { useComplaintStore, Complaint } from "@/store/maintenanceStore";
 
 export default function ComplaintsPage() {
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { complaints, loading, fetchComplaints, deleteComplaint } = useComplaintStore();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("NEWEST");
@@ -93,41 +76,16 @@ export default function ComplaintsPage() {
   const [pageSize, setPageSize] = useState(10);
 
   // Isolated state to handle targeting a specific ticket for deletion safely
-  const [targetDeleteComplaint, setTargetDeleteComplaint] =
-    useState<Complaint | null>(null);
+  const [targetDeleteComplaint, setTargetDeleteComplaint] = useState<Complaint | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const complaintsRes = await axios.get(`${API_URL}/api/complaints`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setComplaints(
-        Array.isArray(complaintsRes.data)
-          ? complaintsRes.data
-          : complaintsRes.data.data || [],
-      );
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch tickets");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    setTimeout(() => {
-      fetchData();
-    }, 0);
+    fetchComplaints();
   }, []);
 
   // Reset page when filters, sorting or page size changes
   useEffect(() => {
-    setTimeout(() => {
-      setCurrentPage(1);
-    }, 0);
+    setCurrentPage(1);
   }, [search, statusFilter, sortBy, pageSize]);
 
   // Client side filtration and sorting
@@ -167,17 +125,10 @@ export default function ComplaintsPage() {
     if (!targetDeleteComplaint) return;
     setIsDeleting(true);
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `${API_URL}/api/complaints/${targetDeleteComplaint.id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      await deleteComplaint(targetDeleteComplaint.id);
 
       toast.success("Ticket deleted successfully");
       setTargetDeleteComplaint(null);
-      fetchData();
     } catch (error) {
       console.error(error);
       toast.error("Something went wrong while deleting");
@@ -374,7 +325,7 @@ export default function ComplaintsPage() {
           </div>
 
           {/* Table / Skeleton UI Data rendering */}
-          {loading ? (
+          {loading && complaints.length === 0 ? (
             <div className="p-6 space-y-4">
               <div className="flex gap-4 border-b border-border/50 pb-3">
                 {[1, 2, 3, 4, 5, 6].map((i) => (

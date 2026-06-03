@@ -2,11 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  complaintService,
-  technicianService,
-  departmentService,
-} from "@/services/api";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ArrowLeft, Save, Upload, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +27,13 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useComplaintStore,
+  useTechnicianStore,
+  useDepartmentStore,
+  Complaint,
+} from "@/store/maintenanceStore";
+import { complaintService } from "@/services/maintenance.service";
 
 interface Technician {
   id: string;
@@ -43,34 +45,18 @@ interface Department {
   name: string;
 }
 
-interface Complaint {
-  id: string;
-  ticketCode: string;
-  description: string;
-  locationType?: string;
-  subLocation?: string;
-  location?: { name: string };
-  priority: string;
-  status: string;
-  imageUrl?: string | null;
-  adminImageUrl?: string | null;
-  createdAt: string;
-  user?: { email: string };
-  assignedTechnician?: { id: string; name: string };
-  department?: { id: string; name: string };
-}
-
 export default function TicketManagementPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { technicians, fetchTechnicians } = useTechnicianStore();
+  const { departments, fetchDepartments } = useDepartmentStore();
+  const { updateComplaint, loading: saving } = useComplaintStore();
+
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [complaint, setComplaint] = useState<Complaint | null>(null);
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [technicianId, setTechnicianId] = useState("");
@@ -79,20 +65,15 @@ export default function TicketManagementPage() {
 
   const fetchData = async () => {
     try {
-      const [cRes, tRes, dRes] = await Promise.all([
-        complaintService.getById(id),
-        technicianService.getAll(),
-        departmentService.getAll(),
+      const cRes = await complaintService.getById(id);
+      const cData = cRes.data.data || cRes.data;
+
+      await Promise.all([
+        fetchTechnicians(),
+        fetchDepartments(),
       ]);
 
-      const cData = cRes.data.data || cRes.data;
       setComplaint(cData);
-      setTechnicians(
-        Array.isArray(tRes.data) ? tRes.data : tRes.data.data || [],
-      );
-      setDepartments(
-        Array.isArray(dRes.data) ? dRes.data : dRes.data.data || [],
-      );
       setStatus(cData.status || "");
       setPriority(cData.priority || "");
       setTechnicianId(cData.assignedTechnician?.id || "");
@@ -106,9 +87,7 @@ export default function TicketManagementPage() {
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      if (id) fetchData();
-    }, 0);
+    if (id) fetchData();
   }, [id]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,8 +102,7 @@ export default function TicketManagementPage() {
   const saveChanges = async () => {
     if (!complaint) return;
     try {
-      setSaving(true);
-      await complaintService.update(id, {
+      await updateComplaint(id, {
         description: complaint.description,
         status,
         priority,
@@ -136,8 +114,6 @@ export default function TicketManagementPage() {
       await fetchData();
     } catch (error) {
       toast.error("Failed To Update Ticket");
-    } finally {
-      setSaving(false);
     }
   };
 

@@ -1,39 +1,30 @@
-import axios from 'axios';
+// services/api.ts
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api`,
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("token")
+      : null;
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
-interface ComplaintData {
-  description?: string;
-  status?: string;
-  priority?: string;
-  technicianId?: string | null;
-  departmentId?: string | null;
-  adminImageUrl?: string | null;
-  imageUrl?: string | null;
-  [key: string]: unknown;
-}
+export default apiClient;
 
-export const complaintService = {
-  getById: (id: string) => apiClient.get(`/complaints/${id}`),
-  update: (id: string, data: ComplaintData) => apiClient.patch(`/complaints/${id}`, data),
-};
+export const authService = {
+  login: (credentials: { identifier: string; password: string }) =>
+    apiClient.post('/auth/login', credentials),
 
-export const technicianService = {
-  getAll: () => apiClient.get('/technicians'),
-};
-
-export const departmentService = {
-  getAll: () => apiClient.get('/departments'),
+  getProfile: () =>
+    apiClient.get('/auth/profile'),
 };
