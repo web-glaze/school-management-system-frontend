@@ -89,7 +89,7 @@ interface TechnicianState {
   loading: boolean;
 
   fetchTechnicians: () => Promise<void>;
-  createTechnician: (name: string, phone: string, email: string, departmentId: string) => Promise<void>;
+  createTechnician: (name: string, phone: string, email: string , departmentId: string) => Promise<void>;
   updateTechnician: (id: string, name: string, phone: string, email: string, departmentId: string) => Promise<void>;
   deleteTechnician: (id: string) => Promise<void>;
 }

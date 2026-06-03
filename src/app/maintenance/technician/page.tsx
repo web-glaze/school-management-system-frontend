@@ -24,9 +24,9 @@ import { useTechnicianStore, useDepartmentStore } from "@/store/maintenanceStore
 interface Technician {
   id: string;
   technicianCode: string;
-  email: string;
+  email?: string | null;
   name: string;
-  phone?: string;
+  phone?: string | null;
   isActive: boolean;
   createdAt: string;
   department?: {
@@ -188,7 +188,7 @@ export default function TechnicianPage() {
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="technician-email">Email</Label>
-                    <Input id="technician-email" type="email" placeholder="Enter Your Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input id="technician-email" type="email" placeholder="Enter Your Email" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </Field>
                 </FieldGroup>
 
