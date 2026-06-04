@@ -31,8 +31,8 @@ export const useStore = create<GlobalState>((set) => ({
   logout: () => {
     if (typeof window !== "undefined") {
       localStorage.clear();
-      set({ user: null });
     }
+      set({ user: null });
   },
 }));
 
@@ -90,5 +90,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem("user");
     }
     set({ user: null });
+    useStore.getState().setUser(null);
   },
 }));
