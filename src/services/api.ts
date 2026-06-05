@@ -1,6 +1,5 @@
-// services/api.ts
-
 import axios from "axios";
+import { useAuthStore } from "@/store/authStore";
 
 const apiClient = axios.create({
   baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api`,
@@ -22,13 +21,14 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        window.location.href = "/login";
+        useAuthStore.getState().logout();
+        window.location.replace("/login");
       }
       return new Promise(() => {});
     }
+
     return Promise.reject(error);
   }
 );
@@ -37,8 +37,7 @@ export default apiClient;
 
 export const authService = {
   login: (credentials: { identifier: string; password: string }) =>
-    apiClient.post('/auth/login', credentials),
+    apiClient.post("/auth/login", credentials),
 
-  getProfile: () =>
-    apiClient.get('/auth/profile'),
+  getProfile: () => apiClient.get("/auth/profile"),
 };

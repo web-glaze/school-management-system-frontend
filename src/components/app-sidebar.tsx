@@ -2,30 +2,13 @@
 
 import * as React from "react";
 
-import {
-  Hammer,
-  LifeBuoy,
-  MapPin,
-  Send,
-  Ticket,
-  VectorSquare,
-} from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
 
-const user =
-  typeof window !== "undefined"
-    ? JSON.parse(localStorage.getItem("user") || "{}")
-    : {};
+const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   role?: "superadmin" | "admin" | "manager" | "user";
@@ -46,8 +29,7 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
       title: "Maintenance",
       url: "/maintenance",
       icon: Ticket,
-      isActive:
-        pathname === "/maintenance" || pathname.startsWith("/maintenance/"),
+      isActive: pathname === "/maintenance" || pathname.startsWith("/maintenance/"),
     },
   ];
 
@@ -126,8 +108,8 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
 
   const data = {
     user: {
-      name: "",
-      email: user.mail,
+      name: user.name || "",
+      email: user.email || "",
       avatar: "",
     },
 
@@ -155,12 +137,7 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
           <SidebarMenuItem>
             <a href="/dashboard">
               <div className="flex items-center px-2">
-                <img
-                  src="/Ecole2.png"
-                  alt="Ecole"
-                  width={180}
-                  className="object-contain"
-                />
+                <img src="/Ecole2.png" alt="Ecole" width={180} className="object-contain" />
               </div>
             </a>
           </SidebarMenuItem>

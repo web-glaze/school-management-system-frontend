@@ -11,7 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface User {
   id: string;
-
+  userName: string;
   email: string;
 
   userRoles: {
@@ -25,6 +25,8 @@ export default function UserPage() {
   const [users, setUsers] = useState<User[]>([]);
 
   const [name, setName] = useState("");
+
+   const [userName, setUserName] = useState("");
 
   const [email, setEmail] = useState("");
 
@@ -76,6 +78,7 @@ export default function UserPage() {
         `${API_URL}/api/user-management`,
         {
           name,
+          userName,
           email,
           password,
           role,
@@ -88,6 +91,7 @@ export default function UserPage() {
       );
 
       setName("");
+      setUserName("");
       setEmail("");
       setPassword("");
       setRole("TEACHER");
@@ -102,14 +106,14 @@ export default function UserPage() {
     }
   };
 
-  const changePassword = async (userId: string, newPassword: string) => {
+  const changePassword = async (userName: string, newPassword: string) => {
     if (!newPassword) return;
 
     try {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `${API_URL}/api/user-management/${userId}/password`,
+        `${API_URL}/api/user-management/${userName}/password`,
         {
           newPassword,
         },
@@ -124,7 +128,7 @@ export default function UserPage() {
 
       setPasswordMap((prev) => ({
         ...prev,
-        [userId]: "",
+        [userName]: "",
       }));
     } catch (error) {
       console.log(error);
@@ -179,6 +183,15 @@ export default function UserPage() {
               placeholder="Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              required
+              className="h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
+            />
+
+            <input
+              type="text"
+              placeholder="Set User Name"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
               required
               className="h-14 rounded-2xl border border-gray-200 px-5 outline-none focus:border-blue-400"
             />
@@ -250,7 +263,8 @@ export default function UserPage() {
               >
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">
-                    {user.email}
+                    {user.userName}
+                    <p>{user.email}</p>
                   </h3>
 
                   <div className="flex flex-wrap gap-3 mt-3">

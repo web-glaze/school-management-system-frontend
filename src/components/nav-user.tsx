@@ -165,7 +165,7 @@ export function NavUser({
             <DropdownMenuSeparator />
 
             {/* Settings */}
-            <DropdownMenuGroup>
+            {/* <DropdownMenuGroup>
 
               <DropdownMenuItem
                 onClick={() =>
@@ -184,7 +184,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator /> */}
 
             {/* Logout */}
             <DropdownMenuItem
@@ -197,7 +197,6 @@ export function NavUser({
                 focus:text-red-500
               "
             >
-
               <LogOut className="h-4 w-4" />
 
               <span>

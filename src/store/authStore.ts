@@ -22,7 +22,6 @@ interface AuthState {
   logout: () => void;
 }
 
-
 export const useStore = create<GlobalState>((set) => ({
   user: null,
 
@@ -32,7 +31,7 @@ export const useStore = create<GlobalState>((set) => ({
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
-      set({ user: null });
+    set({ user: null });
   },
 }));
 
@@ -44,7 +43,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ loading: true });
       const response = await authService.login(credentials);
-      
+
       const user = response.data?.data?.user;
       const accessToken = response.data?.data?.accessToken;
       const roles = user?.roles || [];
@@ -61,8 +60,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         role = "manager";
       }
 
-      const userData: UserData = {
+      const userData = {
         id: user.id,
+        name: user.name,
         email: user.email,
         role,
         roles,

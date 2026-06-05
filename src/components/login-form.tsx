@@ -7,20 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useAuthStore } from "@/store/useStore";
+import { useAuthStore } from "@/store/authStore";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"form">) {
   const router = useRouter();
   const { login, loading } = useAuthStore();
-
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const result = await login({ identifier: email, password });
-
+  e.preventDefault();
+  const result = await login({ identifier , password });
     if (result.success) {
       toast.success("Welcome back!");
       router.push("/maintenance/tickets");
@@ -40,8 +36,10 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"form">)
     <form onSubmit={handleLogin} className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" type="email" placeholder="Enter Your Email" required className="bg-background" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+          <FieldLabel htmlFor="identifier">
+            Email / Username
+          </FieldLabel>
+          <Input id="identifier" type="text" placeholder="Enter Email or Username"value={identifier}onChange={(e) => setIdentifier(e.target.value)}/>
         </Field>
 
         <Field>
