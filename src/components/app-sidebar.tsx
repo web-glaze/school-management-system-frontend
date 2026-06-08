@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare,Users,Scroll } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -68,6 +68,21 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
       icon: MapPin,
       isActive: pathname === "/maintenance/location",
     },
+
+     {
+      title: "Users",
+      url: "/maintenance/user",
+      icon: Scroll,
+      isActive: pathname === "/maintenance/user",
+    },
+
+     {
+      title: "Roles",
+      url: "/maintenance/roles",
+      icon: Users,
+      isActive: pathname === "/maintenance/roles",
+    },
+
   ];
 
   /* MANAGER */
@@ -93,6 +108,12 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
       url: "/maintenance",
       icon: Ticket,
       isActive: pathname === "/maintenance" || pathname === "/maintenance/",
+    },
+    {
+      title: "Tickets",
+      url: "/maintenance/tickets",
+      icon: Ticket,
+      isActive: pathname === "/maintenance/tickets",
     },
   ];
 
