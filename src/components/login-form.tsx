@@ -15,8 +15,8 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"form">)
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  const result = await login({ identifier , password });
+    e.preventDefault();
+    const result = await login({ identifier, password });
     if (result.success) {
       toast.success("Welcome back!");
       router.push("/maintenance/tickets");
@@ -36,16 +36,20 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"form">)
     <form onSubmit={handleLogin} className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="identifier">
-            Email / Username
-          </FieldLabel>
-          <Input id="identifier" type="text" placeholder="Enter Email or Username"value={identifier}onChange={(e) => setIdentifier(e.target.value)}/>
+          <FieldLabel htmlFor="identifier">Email / Username</FieldLabel>
+          <Input id="identifier" type="text" placeholder="Enter Email or Username" value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
         </Field>
 
         <Field>
           <FieldLabel htmlFor="password">Password</FieldLabel>
           <Input id="password" type="password" placeholder="Enter Your Password" required className="bg-background" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
         </Field>
+
+        <div className="flex justify-end">
+          <Button type="button" variant="link" className="h-auto p-0" onClick={() => router.push("/forgot-password")}>
+            Forgot Password?
+          </Button>
+        </div>
 
         <Field>
           <Button type="submit" disabled={loading} className="w-full">
