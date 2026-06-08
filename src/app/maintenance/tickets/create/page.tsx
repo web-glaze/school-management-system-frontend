@@ -310,137 +310,133 @@ export default function RaiseTicketPage() {
               </div>
             ) : (
               /* ─── STEP 2 ─── */
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
 
                 {/* Selected location banner */}
-                <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-                      <MapPin className="size-4 text-emerald-600" />
+                <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                      <MapPin className="size-3.5 text-emerald-600" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Selected Location</p>
-                      <p className="text-sm font-bold text-foreground truncate mt-0.5">{locationPath}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600/70">Location</p>
+                      <p className="text-sm font-bold text-foreground truncate leading-tight">{locationPath}</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" type="button" onClick={() => setStep(1)} className="shrink-0 text-xs gap-1.5 h-8 px-3 hover:border-primary/40 hover:text-primary font-semibold">
+                  <button type="button" onClick={() => setStep(1)} className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-muted-foreground hover:text-primary transition-colors px-2.5 py-1.5 rounded-lg hover:bg-white">
                     <RefreshCw className="size-3" /> Change
-                  </Button>
+                  </button>
                 </div>
 
                 {/* Issues section */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Layers className="size-3.5 text-primary" />
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-md bg-primary/10 flex items-center justify-center">
+                        <Layers className="size-3 text-primary" />
                       </div>
-                      <div>
-                        <p className="text-sm font-extrabold text-foreground leading-none">Issues</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Add one or more issues at this location</p>
-                      </div>
+                      <p className="text-sm font-extrabold text-foreground">Issues</p>
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">— Add one or more at this location</span>
                     </div>
-                    <Button type="button" size="sm" onClick={addIssue} className="gap-1.5 h-8 px-3.5 text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 border-0 shadow-none rounded-lg">
+                    <button type="button" onClick={addIssue} className="flex items-center gap-1.5 h-8 px-3.5 text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors">
                       <Plus className="size-3.5" /> Add Issue
-                    </Button>
+                    </button>
                   </div>
 
                   {issues.map((issue, index) => (
-                    <div key={issue.id} className="rounded-2xl bg-slate-50 border border-slate-200/80 p-4 space-y-3">
+                    <div key={issue.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
-                      {/* Issue header */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <span className="size-6 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shadow-sm">{index + 1}</span>
-                          <span className="text-sm font-bold text-foreground">Issue #{index + 1}</span>
+                      {/* Issue header strip */}
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <span className="size-5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center">{index + 1}</span>
+                          <span className="text-xs font-bold text-foreground">Issue #{index + 1}</span>
                         </div>
                         {issues.length > 1 && (
-                          <button type="button" onClick={() => removeIssue(issue.id)} className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-600 transition-colors px-2.5 py-1 rounded-lg hover:bg-rose-50 font-semibold">
+                          <button type="button" onClick={() => removeIssue(issue.id)} className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-600 transition-colors px-2 py-0.5 rounded-lg hover:bg-rose-50 font-semibold">
                             <Trash2 className="size-3" /> Remove
                           </button>
                         )}
                       </div>
 
-                      {/* Quick Templates — full-width chip row */}
-                      <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3">
-                        <div className="flex items-center gap-1.5 mb-2.5">
-                          <Sparkles className="size-3.5 text-primary" />
-                          <span className="text-xs font-bold text-foreground">Quick Templates</span>
-                          <span className="text-[10px] text-muted-foreground ml-1">— tap to auto-fill description</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {TEMPLATES.map((t) => (
-                            <button
-                              key={t.label}
-                              type="button"
-                              onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, description: t.text } : i)))}
-                              className={[
-                                "flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold transition-all",
-                                issue.description === t.text
-                                  ? "bg-primary text-white shadow-md scale-[0.97]"
-                                  : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 hover:ring-primary/40 hover:text-primary hover:shadow-md",
-                              ].join(" ")}
-                            >
-                              {issue.description === t.text && <Check className="size-3 stroke-[3]" />}
-                              {t.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      <div className="p-4 space-y-3.5">
 
-                      {/* 2 cards — Details + Photo */}
-                      <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-3 items-stretch">
+                        {/* Quick Templates */}
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Sparkles className="size-3 text-primary/70" />
+                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Quick Templates</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {TEMPLATES.map((t) => (
+                              <button
+                                key={t.label}
+                                type="button"
+                                onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, description: t.text } : i)))}
+                                className={[
+                                  "flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-semibold transition-all",
+                                  issue.description === t.text
+                                    ? "bg-primary text-white shadow-sm"
+                                    : "bg-slate-50 text-slate-600 border border-slate-200 hover:border-primary/40 hover:text-primary hover:bg-sky-50/60",
+                                ].join(" ")}
+                              >
+                                {issue.description === t.text && <Check className="size-2.5 stroke-[3]" />}
+                                {t.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                        {/* Card: Description + Priority + Assign */}
-                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3">
-                          <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100">
-                            <FileText className="size-3.5 text-primary" />
-                            <span className="text-xs font-bold text-foreground">Issue Details</span>
+                        {/* Description */}
+                        <Textarea
+                          placeholder="Describe the issue in detail…"
+                          value={issue.description}
+                          rows={4}
+                          className="resize-none text-sm leading-relaxed placeholder:text-muted-foreground/40 bg-slate-50/80 border border-slate-200 focus-visible:ring-primary/30 focus-visible:bg-white rounded-xl transition-colors w-full"
+                          onChange={(e) => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, description: e.target.value } : i)))}
+                        />
+
+                        {/* Priority */}
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Priority</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {priorities.map((p) => {
+                              const Icon = p.icon;
+                              const isActive = issue.priority === p.value;
+                              return (
+                                <button
+                                  key={p.value}
+                                  type="button"
+                                  onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, priority: p.value } : i)))}
+                                  className={[
+                                    "flex items-center gap-1 h-7 px-3 rounded-full text-[11px] font-bold transition-all select-none border",
+                                    isActive ? `${p.activeBg} ${p.color} border-transparent shadow-sm` : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:border-slate-300",
+                                  ].join(" ")}
+                                >
+                                  <Icon className="size-3" />
+                                  {p.label}
+                                  {isActive && <Check className="size-3 stroke-[3]" />}
+                                </button>
+                              );
+                            })}
                           </div>
-                          <Textarea
-                            placeholder="Describe the issue in detail..."
-                            value={issue.description}
-                            rows={5}
-                            className="resize-none text-sm leading-relaxed placeholder:text-muted-foreground/40 bg-slate-50 border border-slate-200 focus-visible:ring-primary/30 focus-visible:bg-white rounded-lg flex-1 transition-colors"
-                            onChange={(e) => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, description: e.target.value } : i)))}
-                          />
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Priority</p>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {priorities.map((p) => {
-                                const Icon = p.icon;
-                                const isActive = issue.priority === p.value;
-                                return (
-                                  <button
-                                    key={p.value}
-                                    type="button"
-                                    onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, priority: p.value } : i)))}
-                                    className={[
-                                      "flex items-center gap-1 h-7 px-3 rounded-full text-[11px] font-bold transition-all select-none border",
-                                      isActive ? `${p.activeBg} ${p.color} border-transparent shadow-sm` : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-primary/8 hover:text-primary hover:border-primary/30",
-                                    ].join(" ")}
-                                  >
-                                    <Icon className="size-3" />
-                                    {p.label}
-                                    {isActive && <Check className="size-3 stroke-[3]" />}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
+                        </div>
+
+                        {/* Bottom row: Technician + Photo upload */}
+                        <div className={`grid gap-3 ${canAssignTechnician ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+
                           {canAssignTechnician && (
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-1">
+                            <div>
+                              <div className="flex items-center gap-1 mb-1.5">
                                 <UserCog className="size-3 text-primary/70" />
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Technician</p>
-                                <span className="text-[10px] text-muted-foreground/50">(optional)</span>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Technician <span className="normal-case font-normal">(optional)</span></p>
                               </div>
                               <select
                                 value={issue.technicianId}
                                 onChange={(e) => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, technicianId: e.target.value } : i)))}
-                                className="w-full h-9 rounded-lg bg-slate-50 border border-slate-200 px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                                className="w-full h-10 rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
                               >
-                                <option value="">-- Select technician --</option>
+                                <option value="">— Select technician —</option>
                                 {technicians.map((t) => (
                                   <option key={t.id} value={t.id}>
                                     {t.name}{t.technicianCode ? ` (${t.technicianCode})` : ""}
@@ -449,58 +445,50 @@ export default function RaiseTicketPage() {
                               </select>
                             </div>
                           )}
-                        </div>
 
-                        {/* Card: Photo Upload */}
-                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col gap-2.5">
-                          <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100">
-                            <ImagePlus className="size-3.5 text-primary" />
-                            <span className="text-xs font-bold text-foreground">Attach Photo</span>
+                          {/* Photo upload box */}
+                          <div>
+                            <div className="flex items-center gap-1 mb-1.5">
+                              <ImagePlus className="size-3 text-primary/70" />
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Photo <span className="normal-case font-normal">(optional)</span></p>
+                            </div>
+                            {!issue.imageUrl ? (
+                              <label
+                                htmlFor={`img-${issue.id}`}
+                                className="group flex flex-col items-center justify-center gap-2 w-full h-[100px] rounded-xl border-2 border-dashed border-slate-200 cursor-pointer bg-slate-50/60 hover:border-primary/40 hover:bg-sky-50/50 transition-all"
+                              >
+                                <div className="size-9 rounded-xl bg-slate-100 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+                                  <ImagePlus className="size-4 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+                                </div>
+                                <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">Click to attach a photo</span>
+                                <Input id={`img-${issue.id}`} type="file" accept="image/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
+                              </label>
+                            ) : (
+                              <div className="relative w-full h-[100px] rounded-xl overflow-hidden group border border-emerald-200">
+                                <img src={issue.imageUrl} alt="" className="w-full h-full object-cover object-top" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <label htmlFor={`img-rep-${issue.id}`} className="flex items-center gap-1 text-xs font-semibold text-white bg-white/20 hover:bg-white/30 px-2.5 py-1.5 rounded-lg cursor-pointer">
+                                    <RefreshCw className="size-3" /> Replace
+                                    <Input id={`img-rep-${issue.id}`} type="file" accept="image/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
+                                  </label>
+                                  <button type="button" onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, imageUrl: "" } : i)))} className="flex items-center gap-1 text-xs font-semibold text-white bg-red-500/70 hover:bg-red-500 px-2.5 py-1.5 rounded-lg">
+                                    <Trash2 className="size-3" /> Remove
+                                  </button>
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 bg-black/40 backdrop-blur-sm flex items-center gap-1">
+                                  <CheckCircle2 className="size-3 text-white/80" />
+                                  <p className="text-xs text-white/90 font-medium">Photo attached</p>
+                                </div>
+                              </div>
+                            )}
+                            {uploading && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1.5">
+                                <Loader2 className="size-3 animate-spin text-primary" /> Uploading…
+                              </div>
+                            )}
                           </div>
-                          {!issue.imageUrl ? (
-                            <label
-                              htmlFor={`img-${issue.id}`}
-                              className="group flex flex-col items-center justify-center gap-3 flex-1 border-2 border-dashed border-primary/20 rounded-xl cursor-pointer bg-sky-50/50 hover:bg-primary/5 hover:border-primary/40 transition-all min-h-[160px]"
-                            >
-                              <div className="size-11 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                <ImagePlus className="size-5 text-primary/70 group-hover:text-primary transition-colors" />
-                              </div>
-                              <div className="text-center px-3">
-                                <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">Click to upload</p>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">PNG, JPG, WEBP · 10MB</p>
-                              </div>
-                              <Input id={`img-${issue.id}`} type="file" accept="image/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
-                            </label>
-                          ) : (
-                            <div className="relative rounded-xl overflow-hidden group flex-1 min-h-[160px] shadow-sm">
-                              <img src={issue.imageUrl} alt="" className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <label htmlFor={`img-rep-${issue.id}`} className="flex items-center gap-1 text-xs font-semibold text-white bg-white/20 hover:bg-white/30 px-2.5 py-1.5 rounded-lg cursor-pointer">
-                                  <RefreshCw className="size-3" /> Replace
-                                  <Input id={`img-rep-${issue.id}`} type="file" accept="image/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, imageUrl: "" } : i)))}
-                                  className="flex items-center gap-1 text-xs font-semibold text-white bg-red-500/70 hover:bg-red-500 px-2.5 py-1.5 rounded-lg"
-                                >
-                                  <Trash2 className="size-3" /> Delete
-                                </button>
-                              </div>
-                              <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 bg-black/40 backdrop-blur-sm">
-                                <p className="text-xs text-white/90 font-medium flex items-center gap-1">
-                                  <CheckCircle2 className="size-3" /> Photo attached
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                          {uploading && (
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Loader2 className="size-3.5 animate-spin text-primary" /> Uploading...
-                            </div>
-                          )}
-                        </div>
 
+                        </div>
                       </div>
                     </div>
                   ))}

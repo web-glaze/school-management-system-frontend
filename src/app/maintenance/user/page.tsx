@@ -67,6 +67,7 @@ export default function UserManagementPage() {
 
   const [pwInputs, setPwInputs] = useState<Record<string, string>>({});
   const [pwSaving, setPwSaving] = useState<string | null>(null);
+  const [searchReady, setSearchReady] = useState(false);
 
   const fetchAll = async () => {
     try {
@@ -104,9 +105,18 @@ export default function UserManagementPage() {
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      fetchAll();
-    }, 0);
+    fetchAll();
+    // Chrome autofills after ~200ms — force-clear everything after it fires
+    const t1 = setTimeout(() => setSearchReady(true), 200);
+    const t2 = setTimeout(() => {
+      setSearch("");
+      setName("");
+      setUserName("");
+      setEmail("");
+      setPassword("");
+      setPhone("");
+    }, 500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -244,13 +254,16 @@ export default function UserManagementPage() {
             </div>
             <h2 className="text-sm font-extrabold text-foreground">Create New User</h2>
           </div>
-          <form onSubmit={handleCreate} className="p-5 space-y-3">
+          <form onSubmit={handleCreate} autoComplete="off" className="p-5 space-y-3">
+            {/* Hidden decoy inputs absorb browser autofill before the real fields */}
+            <input type="text" style={{ display: "none" }} autoComplete="username" />
+            <input type="password" style={{ display: "none" }} autoComplete="new-password" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required className={`${fieldBase} w-full`} />
-              <input type="text" placeholder="Username" value={userName} onChange={(e) => setUserName(e.target.value)} required className={`${fieldBase} w-full`} />
-              <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className={`${fieldBase} w-full`} />
-              <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} maxLength={15} className={`${fieldBase} w-full`} />
-              <input type="password" placeholder="Password (min 8)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required className={`${fieldBase} w-full`} />
+              <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="off" className={`${fieldBase} w-full`} />
+              <input type="text" placeholder="Username" value={userName} onChange={(e) => setUserName(e.target.value)} required autoComplete="off" className={`${fieldBase} w-full`} />
+              <input type="text" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="off" className={`${fieldBase} w-full`} />
+              <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} maxLength={15} autoComplete="off" className={`${fieldBase} w-full`} />
+              <input type="password" placeholder="Password (min 8)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required autoComplete="new-password" className={`${fieldBase} w-full`} />
               <select value={role} onChange={(e) => setRole(e.target.value)} required className={`${selectField} w-full`}>
                 <option value="" disabled>Select role…</option>
                 {(roles.length > 0 ? roles.map((r) => r.name) : FALLBACK_ROLES)
@@ -280,6 +293,10 @@ export default function UserManagementPage() {
               placeholder="Search by name, email, role or department…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              readOnly={!searchReady}
+              onFocus={() => setSearchReady(true)}
+              autoComplete="off"
+              name="search-query"
               className="w-full h-9 pl-10 pr-9 rounded-lg bg-muted/30 text-sm border-0 outline-none focus:ring-1 focus:ring-primary/30 focus:bg-white transition"
             />
             {search && (
