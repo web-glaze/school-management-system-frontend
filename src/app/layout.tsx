@@ -14,19 +14,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col font-['Plus_Jakarta_Sans']">
-        <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
-        <Toaster
-          position="top-right"
-          richColors
-          toastOptions={{
-            classNames: {
-              title: "!font-bold font-['Plus_Jakarta_Sans']",
-              description: "font-['Plus_Jakarta_Sans']",
-            },
-          }}
-        />
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col font-['Plus_Jakarta_Sans']" suppressHydrationWarning>
+        <TooltipProvider delayDuration={0}>
+          {children}
+          <Toaster
+            position="top-right"
+            richColors
+            expand={true}
+            toastOptions={{
+              classNames: {
+                title: "!font-bold font-['Plus_Jakarta_Sans']",
+                description: "font-['Plus_Jakarta_Sans']",
+              },
+            }}
+          />
+        </TooltipProvider>
       </body>
     </html>
   );

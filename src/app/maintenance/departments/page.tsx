@@ -116,11 +116,11 @@ export default function DepartmentPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
+      <div className="space-y-6">
+        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Departments</h1>
-            <p className="text-muted-foreground">Manage and track departments</p>
+            <p className="text-muted-foreground text-sm">Manage maintenance departments</p>
           </div>
           <Dialog open={addDepartmentOpen} onOpenChange={setAddDepartmentOpen}>
             <DialogTrigger asChild>
@@ -176,11 +176,11 @@ export default function DepartmentPage() {
             </DialogContent>
           </Dialog>
         </div>
-        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full lg:w-[350px] group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input type="text" placeholder="Search by department name..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+        <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
+            <div className="relative flex-1 max-w-sm group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input type="text" placeholder="Search by department name..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9 text-sm bg-muted/30 border-0 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-primary/30" />
             </div>
           </div>
           {loading && departments.length === 0 ? (
@@ -210,76 +210,56 @@ export default function DepartmentPage() {
           ) : (
             <div className="relative w-full overflow-x-auto">
               <Table>
-                <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[180px]">Title</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[50px]">Actions</TableHead>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent bg-slate-50/80 border-b border-slate-200/80">
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 px-5 text-slate-500 min-w-[200px]">Department</TableHead>
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 text-slate-500 min-w-[160px] hidden lg:table-cell">Created At</TableHead>
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 pr-5 text-slate-500 text-right min-w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-border/30">
-                  {filteredDepartments.map((department) => {
-                    return (
-                      <TableRow key={department.id} className="hover:bg-muted/20 transition-colors">
-                        <TableCell className="py-4 pl-6 align-top">
-                          <div className="space-y-1 max-w-[180px]">
-                            <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{department.name}</p>
-                            <p className="text-sm text-foreground/50">{department.departmentCode}</p>
+                <TableBody>
+                  {filteredDepartments.map((department, index) => (
+                    <TableRow key={department.id} className="hover:bg-primary/[0.025] transition-colors border-b border-slate-100 group">
+                      <TableCell className="py-4 px-5 align-middle">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
+                            <Building2 className="size-4 text-primary" />
                           </div>
-                        </TableCell>
-
-                        {/* Created At */}
-                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="size-5 text-muted-foreground/80" />
-                            <span className="text-sm">
-                              {new Date(department.createdAt).toLocaleString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
+                          <div>
+                            <p className="font-bold text-foreground text-sm group-hover:text-primary transition-colors">{department.name}</p>
+                            <p className="text-[11px] text-muted-foreground/60 font-semibold mt-0.5">{department.departmentCode}</p>
                           </div>
-                        </TableCell>
-
-                        {/* Actions */}
-                        <TableCell className="py-4 pr-6 text-right align-top max-w-[50px]">
-                          <div className="hidden md:flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit Department" onClick={() => openEditDialog(department)}>
-                              <Pencil className="size-5" />
-                            </Button>
-
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" title="Delete Department" onClick={() => openDeleteDialog(department)}>
-                              <Trash2 className="size-5" />
-                            </Button>
-                          </div>
-                          <div className="md:hidden flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-9">
-                                  <MoreVertical className="size-5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditDialog(department)}>
-                                  <Pencil className="mr-2 size-4" />
-                                  Edit
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem onClick={() => openDeleteDialog(department)} className="text-destructive">
-                                  <Trash2 className="mr-2 size-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 align-middle hidden lg:table-cell">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                          <Calendar className="size-3.5 shrink-0" />
+                          <span>{new Date(department.createdAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 pr-5 text-right align-middle">
+                        <div className="hidden md:flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:bg-blue-50 hover:text-blue-600 transition-all" onClick={() => openEditDialog(department)}>
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-all" onClick={() => openDeleteDialog(department)}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                        <div className="md:hidden flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="size-8"><MoreVertical className="size-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditDialog(department)}><Pencil className="mr-2 size-4" />Edit</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openDeleteDialog(department)} className="text-destructive"><Trash2 className="mr-2 size-4" />Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

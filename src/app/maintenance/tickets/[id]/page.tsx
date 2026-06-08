@@ -275,7 +275,7 @@ export default function TicketManagementPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8 mx-auto max-w-7xl w-full">
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
               Ticket #{complaint.ticketCode}

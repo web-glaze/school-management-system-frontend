@@ -157,7 +157,7 @@ export default function LocationPage() {
           <div key={location.id}>
             {/* ROW */}
             <div
-              className="group flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-card px-4 py-3 hover:bg-muted/30 transition-all"
+              className="group flex items-center justify-between gap-4 rounded-xl shadow-sm/50 bg-card px-4 py-3 hover:bg-muted/30 transition-all"
               style={{
                 marginLeft: level * 10,
               }}
@@ -291,11 +291,11 @@ export default function LocationPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
+      <div className="space-y-6">
+        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Locations</h1>
-            <p className="text-muted-foreground">Manage and track locations</p>
+            <p className="text-muted-foreground text-sm">Manage and track locations</p>
           </div>
           {/* CREATE ROOT */}
           <Dialog open={open} onOpenChange={setOpen}>
@@ -358,7 +358,7 @@ export default function LocationPage() {
           </Dialog>
         </div>
         {/* TOP BAR */}
-        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-5">
+        <div className="bg-card rounded-md p-5 md:p-6 shadow-sm/60 space-y-5">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             {/* SEARCH */}
             <div className="relative w-full lg:w-[350px] group">

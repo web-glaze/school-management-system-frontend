@@ -145,11 +145,11 @@ export default function TechnicianPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
+      <div className="space-y-6">
+        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Technicians</h1>
-            <p className="text-muted-foreground">Manage and track technicians</p>
+            <p className="text-muted-foreground text-sm">Manage and track technicians</p>
           </div>
           <Dialog open={addTechnicianOpen} onOpenChange={setAddTechnicianOpen}>
             <DialogTrigger asChild>
@@ -235,11 +235,11 @@ export default function TechnicianPage() {
             </DialogContent>
           </Dialog>
         </div>
-        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full lg:w-[350px] group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input type="text" placeholder="Search technicians..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+        <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
+            <div className="relative flex-1 max-w-sm group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input type="text" placeholder="Search technicians..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9 text-sm bg-muted/30 border-0 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-primary/30" />
             </div>
           </div>
           {loading && technicians.length === 0 ? (
@@ -269,97 +269,71 @@ export default function TechnicianPage() {
           ) : (
             <div className="relative w-full overflow-x-auto">
               <Table>
-                <TableHeader className="bg-gray-50 border-b border-border/60">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">Name</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">Contact</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-[50px] sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
-                      <span className="hidden md:block">Actions</span>
-                    </TableHead>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent bg-slate-50/80 border-b border-slate-200/80">
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 px-5 text-slate-500 min-w-[200px]">Technician</TableHead>
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 text-slate-500 min-w-[200px]">Contact</TableHead>
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 text-slate-500 min-w-[140px] hidden lg:table-cell">Created At</TableHead>
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 pr-5 text-slate-500 text-right min-w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-border/30">
-                  {filteredTechnicians.map((technician) => {
-                    return (
-                      <TableRow key={technician.id} className="hover:bg-muted/20 transition-colors">
-                        <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-[180px]">
-                            <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{technician.name}</p>
-                            <p className="text-sm text-foreground/50">
-                              {technician.technicianCode} | {technician.department?.name || "NA"}
+                <TableBody>
+                  {filteredTechnicians.map((technician) => (
+                    <TableRow key={technician.id} className="hover:bg-primary/[0.025] transition-colors border-b border-slate-100 group">
+                      <TableCell className="py-4 px-5 align-middle">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+                            <User className="size-4 text-violet-600" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-foreground text-sm group-hover:text-primary transition-colors">{technician.name}</p>
+                            <p className="text-[11px] text-muted-foreground/60 font-semibold mt-0.5">
+                              {technician.technicianCode}{technician.department?.name ? ` · ${technician.department.name}` : ""}
                             </p>
                           </div>
-                        </TableCell>
-                        <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-[180px]">
-                            <p className="text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              <span className="flex gap-1">
-                                <Phone size={18} />
-                                <span>{technician.phone || "-"}</span>
-                              </span>
-                            </p>
-                            <p className="text-foreground text-sm leading-tight hover:text-primary transition-colors">
-                              <span className="flex gap-1">
-                                <MailIcon size={18} />
-                                <span>{technician.email || "-"}</span>
-                              </span>
-                            </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 align-middle">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs text-foreground/70 font-medium">
+                            <Phone className="size-3.5 shrink-0 text-muted-foreground/50" />
+                            <span>{technician.phone || "—"}</span>
                           </div>
-                        </TableCell>
-
-                        {/* Created At */}
-                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="size-5 text-muted-foreground/80" />
-                            <span className="text-sm">
-                              {new Date(technician.createdAt).toLocaleString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
+                          <div className="flex items-center gap-1.5 text-xs text-foreground/70 font-medium">
+                            <MailIcon className="size-3.5 shrink-0 text-muted-foreground/50" />
+                            <span>{technician.email || "—"}</span>
                           </div>
-                        </TableCell>
-
-                        {/* Actions */}
-                        <TableCell className="py-4 text-right align-top max-w-[50px] sticky right-0 bg-card shadow-lg md:shadow-none">
-                          <div className="hidden md:flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit Technician" onClick={() => openEditDialog(technician)}>
-                              <Pencil className="size-5" />
-                            </Button>
-
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" title="Delete Technician" onClick={() => openDeleteDialog(technician)}>
-                              <Trash2 className="size-5" />
-                            </Button>
-                          </div>
-                          <div className="md:hidden flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-9">
-                                  <MoreVertical className="size-5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditDialog(technician)}>
-                                  <Pencil className="mr-2 size-4" />
-                                  Edit
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem onClick={() => openDeleteDialog(technician)} className="text-destructive">
-                                  <Trash2 className="mr-2 size-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 align-middle hidden lg:table-cell">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                          <Calendar className="size-3.5 shrink-0" />
+                          <span>{new Date(technician.createdAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 pr-5 text-right align-middle">
+                        <div className="hidden md:flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:bg-blue-50 hover:text-blue-600 transition-all" onClick={() => openEditDialog(technician)}>
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-all" onClick={() => openDeleteDialog(technician)}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                        <div className="md:hidden flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="size-8"><MoreVertical className="size-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditDialog(technician)}><Pencil className="mr-2 size-4" />Edit</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openDeleteDialog(technician)} className="text-destructive"><Trash2 className="mr-2 size-4" />Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

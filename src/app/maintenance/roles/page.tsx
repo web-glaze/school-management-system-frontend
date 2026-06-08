@@ -339,7 +339,7 @@ export default function RolesPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60">
+        <div className="bg-card rounded-md p-5 md:p-6 shadow-sm/60">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-start gap-3">
               <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -435,7 +435,7 @@ export default function RolesPage() {
                       <select
                         value={copyFromRoleId}
                         onChange={(e) => setCopyFromRoleId(e.target.value)}
-                        className="mt-1 w-full h-10 px-3 rounded-lg border border-gray-200 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none bg-white pr-8 appearance-none bg-[length:14px_14px] bg-no-repeat bg-[right_0.6rem_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22%23667085%22><path fill-rule=%22evenodd%22 d=%22M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 011.08 1.04l-4.24 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z%22/></svg>')]"
+                        className="mt-1 w-full h-10 px-3 rounded-lg shadow-sm text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none bg-white pr-8 appearance-none bg-[length:14px_14px] bg-no-repeat bg-[right_0.6rem_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22%23667085%22><path fill-rule=%22evenodd%22 d=%22M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 011.08 1.04l-4.24 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z%22/></svg>')]"
                       >
                         <option value="">Start blank (no permissions)</option>
                         {roles.map((r) => (
@@ -494,7 +494,7 @@ export default function RolesPage() {
             ))}
           </div>
         ) : roles.length === 0 ? (
-          <div className="bg-card rounded-md border border-border/60 p-10 text-center">
+          <div className="bg-card rounded-md shadow-sm/60 p-10 text-center">
             <Shield className="size-10 text-muted-foreground/60 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
               No roles found. Seed your database first.
@@ -510,7 +510,7 @@ export default function RolesPage() {
               return (
                 <div
                   key={role.id}
-                  className="bg-card rounded-md border border-border/60 overflow-hidden"
+                  className="bg-card rounded-md shadow-sm/60 overflow-hidden"
                 >
                   {/* Clickable header — toggles expand. Stops at the
                       action buttons on the right so clicking Save/Delete

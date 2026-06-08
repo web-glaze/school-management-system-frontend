@@ -99,7 +99,7 @@ export default function MyComplaintsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Hero */}
         <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
@@ -125,13 +125,13 @@ export default function MyComplaintsPage() {
             placeholder="Search complaints..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-blue-400 w-full lg:w-96"
+            className="shadow-sm rounded-2xl px-5 py-4 outline-none focus:border-blue-400 w-full lg:w-96"
           />
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:border-blue-400"
+            className="shadow-sm rounded-2xl px-5 py-4 outline-none focus:border-blue-400"
           >
             <option value="ALL">All Status</option>
 

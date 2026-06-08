@@ -15,11 +15,17 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"form">)
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  const result = await login({ identifier , password });
+    e.preventDefault();
+    const result = await login({ identifier, password });
     if (result.success) {
       toast.success("Welcome back!");
-      router.push("/maintenance/tickets");
+      const stored = JSON.parse(localStorage.getItem("user") || "{}");
+      const role = (stored.role || "user").toLowerCase();
+      if (role === "admin" || role === "superadmin") {
+        router.push("/dashboard");
+      } else {
+        router.push("/maintenance/tickets");
+      }
     } else {
       const errMsg = result.error || "";
       if (errMsg.toLowerCase().includes("password")) {

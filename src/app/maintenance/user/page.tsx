@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import axios from "axios";
-import { Loader2, Plus, Search, ShieldCheck, Trash2, Users as UsersIcon } from "lucide-react";
+import { Loader2, Plus, Search, ShieldCheck, Trash2, Users as UsersIcon, X } from "lucide-react";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -223,7 +223,7 @@ export default function UserManagementPage() {
     },
   ];
 
-  const fieldBase = "h-10 px-3 rounded-lg border border-gray-200 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition";
+  const fieldBase = "h-10 px-3 rounded-lg shadow-sm text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition";
 
   const selectField = fieldBase + " bg-white pr-8 appearance-none";
 
@@ -236,62 +236,61 @@ export default function UserManagementPage() {
           <p className="text-xs text-gray-500 mt-0.5">Create login accounts. Only Super Admin &amp; Admin sit in the System card; everyone else belongs to a department.</p>
         </div>
 
-        {/* Create form — fields + compact Create button on the right */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-            <Plus className="size-4 text-primary" />
-            Create New ID
-          </h2>
-          <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
-            <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required className={`${fieldBase} flex-1 min-w-[140px]`} />
-            <input type="text" placeholder="Username" value={userName} onChange={(e) => setUserName(e.target.value)} required className={`${fieldBase} flex-1 min-w-[140px]`} />
-            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className={`${fieldBase} flex-1 min-w-[180px]`} />
-            <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} maxLength={15} className={`${fieldBase} w-36`} />
-            <input type="text" placeholder="Password (min 8)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required className={`${fieldBase} w-40`} />
-            <select value={role} onChange={(e) => setRole(e.target.value)} required className={`${selectField} w-36`}>
-              {(roles.length > 0 ? roles.map((r) => r.name) : FALLBACK_ROLES)
-                // Don't let admin accidentally clone Super Admin here.
-                .filter((n) => !["SUPER_ADMIN"].includes(n))
-                .map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-            </select>
-            <button type="submit" disabled={creating} className="ml-auto h-10 px-5 rounded-lg bg-[#00AEF2] text-white text-xs font-semibold hover:bg-[#0096D6] disabled:opacity-60 transition flex items-center gap-2">
-              {creating ? (
-                <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Creating…
-                </>
-              ) : (
-                <>
-                  <Plus className="size-3.5" />
-                  Create User
-                </>
-              )}
-            </button>
+        {/* Create form */}
+        <div className="bg-card rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100 bg-slate-50/60">
+            <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Plus className="size-3.5 text-primary" />
+            </div>
+            <h2 className="text-sm font-extrabold text-foreground">Create New User</h2>
+          </div>
+          <form onSubmit={handleCreate} className="p-5 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required className={`${fieldBase} w-full`} />
+              <input type="text" placeholder="Username" value={userName} onChange={(e) => setUserName(e.target.value)} required className={`${fieldBase} w-full`} />
+              <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className={`${fieldBase} w-full`} />
+              <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} maxLength={15} className={`${fieldBase} w-full`} />
+              <input type="password" placeholder="Password (min 8)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required className={`${fieldBase} w-full`} />
+              <select value={role} onChange={(e) => setRole(e.target.value)} required className={`${selectField} w-full`}>
+                <option value="" disabled>Select role…</option>
+                {(roles.length > 0 ? roles.map((r) => r.name) : FALLBACK_ROLES)
+                  .filter((n) => !["SUPER_ADMIN"].includes(n))
+                  .map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+              </select>
+            </div>
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Roles are loaded from <span className="font-semibold text-foreground">/maintenance/roles</span>
+              </p>
+              <button type="submit" disabled={creating} className="h-9 px-5 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 disabled:opacity-60 transition flex items-center gap-2 shrink-0">
+                {creating ? <><Loader2 className="size-3.5 animate-spin" />Creating…</> : <><Plus className="size-3.5" />Create User</>}
+              </button>
+            </div>
           </form>
-
-          {/* Helpful hint — explains the dynamic dropdowns */}
-          <p className="text-[11px] text-gray-500 mt-3 leading-relaxed">
-            Roles are loaded dynamically from the Roles page. Create or update roles in
-            <span className="font-semibold text-gray-700"> /maintenance/roles </span>
-            and they will appear here automatically.
-          </p>
         </div>
 
         {/* Search */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="bg-card rounded-xl border border-slate-100 shadow-sm px-4 py-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Search by name, email, role or department…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 pl-9 pr-3 rounded-lg border border-gray-200 text-xs focus:border-primary outline-none"
+              className="w-full h-9 pl-10 pr-9 rounded-lg bg-muted/30 text-sm border-0 outline-none focus:ring-1 focus:ring-primary/30 focus:bg-white transition"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 size-5 rounded-full bg-muted hover:bg-slate-200 flex items-center justify-center transition"
+              >
+                <X className="size-3 text-muted-foreground" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -320,59 +319,54 @@ export default function UserManagementPage() {
                   </span>
                 </div>
 
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-slate-100">
                   {bucket.users.map((u) => {
                     const roleNames = (u.userRoles ?? []).map((r) => r.role.name);
                     const isSystemUser = roleNames.includes("SUPER_ADMIN") || roleNames.includes("ADMIN");
+                    const initials = (u.name || u.email || "?").slice(0, 2).toUpperCase();
                     return (
-                      <li key={u.id} className="px-5 py-3 flex flex-col xl:flex-row xl:items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-bold text-gray-800 truncate">{u.userName || u.email}</p>
-                            {roleNames.map((r) => (
-                              <span key={r} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                                {r}
-                              </span>
-                            ))}
+                      <li key={u.id} className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-primary/[0.02] transition-colors group">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary font-black text-xs">
+                            {initials}
                           </div>
-                          <p className="text-[11px] text-gray-500 mt-0.5">
-                            {u.name ? `${u.name} · ` : ""}
-                            {u.email ?? "no email"} · {u.userCode ?? "—"} · joined{" "}
-                            {new Date(u.createdAt).toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </p>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">{u.userName || u.email}</p>
+                              {roleNames.map((r) => (
+                                <span key={r} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                  {r}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                              {u.email} · {u.userCode ?? "—"} · joined {new Date(u.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2 shrink-0">
                           <input
-                            type="text"
+                            type="password"
                             placeholder="New password"
                             value={pwInputs[u.id] ?? ""}
-                            onChange={(e) =>
-                              setPwInputs((prev) => ({
-                                ...prev,
-                                [u.id]: e.target.value,
-                              }))
-                            }
-                            className="h-8 px-3 rounded-full border border-gray-200 text-xs w-40 outline-none focus:border-primary"
+                            onChange={(e) => setPwInputs((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                            className="h-8 px-3 rounded-lg border border-slate-200 bg-slate-50 text-xs w-36 outline-none focus:ring-1 focus:ring-primary/30 focus:bg-white transition"
                           />
                           <button
                             onClick={() => changePassword(u.id)}
                             disabled={pwSaving === u.id || !pwInputs[u.id]?.trim()}
-                            className="h-8 px-3 rounded-full bg-[#00AEF2] text-white text-xs font-semibold hover:bg-[#0096D6] disabled:opacity-60 transition"
+                            className="h-8 px-3.5 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 disabled:opacity-50 transition shrink-0"
                           >
                             {pwSaving === u.id ? "Saving…" : "Change"}
                           </button>
-                          {/* System users can't be deleted from the UI —
-                              you can't accidentally remove your own admin. */}
-                          {!isSystemUser && (
-                            <button onClick={() => deleteUser(u.id)} className="size-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition" title="Delete user">
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => !isSystemUser && deleteUser(u.id)}
+                            className={`size-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition shrink-0 ${isSystemUser ? "invisible pointer-events-none" : ""}`}
+                            title="Delete user"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
                         </div>
                       </li>
                     );

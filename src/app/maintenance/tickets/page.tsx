@@ -23,6 +23,7 @@ import {
   CheckCircle,
   Check,
   MoreVertical,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -182,21 +182,21 @@ export default function ComplaintsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex items-center justify-between mb-10">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Tickets</h1>
-            <p className="text-muted-foreground">Manage and track tickets</p>
+            <p className="text-muted-foreground text-sm">Manage and track maintenance tickets</p>
           </div>
           <Link href="/maintenance/tickets/create">
-            <Button className="bg-primary text-white hover:bg-primary/90">
-              <Plus size={18} className="mr-2" /> Create Ticket
+            <Button className="gap-2">
+              <Plus size={16} /> Create Ticket
             </Button>
           </Link>
         </div>
 
         {/* Stats Grid Dashboard Buttons */}
-        <div className="grid grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 md:gap-3">
           {statusStats.map((stat) => {
             const Icon = stat.icon;
             const isFilterActive = statusFilter === stat.id;
@@ -206,16 +206,14 @@ export default function ComplaintsPage() {
                 key={stat.id}
                 onClick={() => setStatusFilter(stat.id)}
                 className={cn(
-                  "group relative text-left rounded-lg p-3 md:p-6  bg-card border transition-all duration-300 overflow-hidden hover:shadow-md hover:-translate-y-1",
-                  isFilterActive
-                    ? "border-primary/30 ring-1 ring-primary/20"
-                    : "border-border/60 hover:border-primary/20",
+                  "group relative text-left rounded-xl p-3 md:p-4 bg-card shadow-sm transition-all duration-200 overflow-hidden hover:shadow-md",
+                  isFilterActive ? "ring-2 ring-primary/30 shadow-md" : "",
                 )}
               >
                 <div className="flex justify-between items-start relative z-10">
                   <div
                     className={cn(
-                      "p-3 rounded-lg border transition-transform duration-300 group-hover:scale-110",
+                      "p-2 md:p-3 rounded-lg bg-muted/50 transition-transform duration-300 group-hover:scale-110",
                       stat.colorClass,
                     )}
                   >
@@ -228,7 +226,7 @@ export default function ComplaintsPage() {
                   )}
                 </div>
 
-                <div className="mt-5 space-y-1 relative z-10">
+                <div className="mt-2 md:mt-4 space-y-0.5 relative z-10">
                   <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                     {stat.label === "All Complaints" ? (
                       <>
@@ -241,7 +239,7 @@ export default function ComplaintsPage() {
                       stat.label
                     )}
                   </p>
-                  <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
+                  <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">
                     {loading ? (
                       <span className="inline-block w-8 h-8 rounded bg-muted animate-pulse" />
                     ) : (
@@ -255,44 +253,60 @@ export default function ComplaintsPage() {
         </div>
 
         {/* Filtering & Controls Section */}
-        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full lg:w-[350px] group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+        <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+
+          {/* Status filter tabs row */}
+          <div className="flex items-center overflow-x-auto no-scrollbar border-b border-border/40">
+            {statusStats.map((stat) => {
+              const Icon = stat.icon;
+              const isActive = statusFilter === stat.id;
+              return (
+                <button
+                  key={stat.id}
+                  onClick={() => setStatusFilter(stat.id)}
+                  className={cn(
+                    "relative flex items-center gap-2 px-5 py-3.5 text-sm font-semibold whitespace-nowrap transition-all duration-200 flex-1 justify-center border-b-2",
+                    isActive
+                      ? "text-primary border-primary bg-primary/[0.04]"
+                      : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  <Icon className={cn("size-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground/60")} />
+                  <span className="hidden sm:inline">{stat.label}</span>
+                  <span className="sm:hidden">{stat.label.split(" ")[0]}</span>
+                  <span className={cn(
+                    "inline-flex items-center justify-center min-w-[20px] h-5 rounded-full text-[11px] font-bold px-1.5 transition-colors",
+                    isActive
+                      ? "bg-primary text-white"
+                      : "bg-muted text-muted-foreground"
+                  )}>
+                    {stat.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search + Sort + Rows */}
+          <div className="flex flex-col sm:flex-row gap-2.5 items-start sm:items-center justify-between p-3.5">
+            <div className="relative w-full sm:w-[280px] group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 type="text"
                 placeholder="Search by title, location, email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-11"
+                className="pl-10 h-9 text-sm bg-muted/30 border-0 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-primary/30"
               />
             </div>
 
-            <Tabs
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              className="w-full lg:w-auto"
-            >
-              <TabsList className="w-full lg:w-auto rounded-full bg-muted/60 p-1 overflow-x-auto no-scrollbar">
-                {statusStats.map((stat) => (
-                  <TabsTrigger
-                    key={stat.id}
-                    value={stat.id}
-                    className="rounded-full px-2 md:px-4 py-2 whitespace-nowrap text-sm data-[state=active]:shadow-sm"
-                  >
-                    {stat.label.split(" ")[0]}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
-            <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-              <div className="relative group/sel">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-muted-foreground">
                   <SlidersHorizontal className="size-3.5" />
                 </div>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full max-w-40 pl-8">
+                  <SelectTrigger className="w-[145px] pl-8 h-9 text-sm">
                     <SelectValue placeholder="Sort Tickets" />
                   </SelectTrigger>
                   <SelectContent>
@@ -305,29 +319,27 @@ export default function ComplaintsPage() {
                 </Select>
               </div>
 
-              <div>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(val) => setPageSize(Number(val))}
-                >
-                  <SelectTrigger className="w-[110px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5 rows</SelectItem>
-                    <SelectItem value="10">10 rows</SelectItem>
-                    <SelectItem value="25">25 rows</SelectItem>
-                    <SelectItem value="50">50 rows</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => setPageSize(Number(val))}
+              >
+                <SelectTrigger className="w-[100px] h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 rows</SelectItem>
+                  <SelectItem value="10">10 rows</SelectItem>
+                  <SelectItem value="25">25 rows</SelectItem>
+                  <SelectItem value="50">50 rows</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Table / Skeleton UI Data rendering */}
           {loading && complaints.length === 0 ? (
             <div className="p-6 space-y-4">
-              <div className="flex gap-4 border-b border-border/50 pb-3">
+              <div className="flex gap-4 pb-3">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div
                     key={i}
@@ -338,7 +350,7 @@ export default function ComplaintsPage() {
               {[1, 2, 3, 4, 5].map((row) => (
                 <div
                   key={row}
-                  className="flex gap-4 py-2 border-b border-border/20"
+                  className="flex gap-4 py-2"
                 >
                   {[1, 2, 3, 4, 5, 6].map((c) => (
                     <div
@@ -376,166 +388,133 @@ export default function ComplaintsPage() {
           ) : (
             <div className="relative w-full overflow-x-auto">
               <Table>
-                <TableHeader className="bg-gray-50 border-b border-border/60">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[170px]">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent bg-slate-50/80 border-b border-slate-200/80">
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 px-5 text-slate-500 min-w-[200px]">
                       # Issue Details
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[200px] pr-7">
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 text-slate-500 min-w-[160px]">
                       Location
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[150px]">
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 text-slate-500 min-w-[170px]">
                       Priority / Status
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 text-slate-500 min-w-[130px] hidden lg:table-cell">
                       Created At
                     </TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-[50px] sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
+                    <TableHead className="font-extrabold text-[11px] uppercase tracking-widest py-3.5 text-slate-500 text-right min-w-[80px]">
                       Actions
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-border/30">
-                  {paginatedComplaints.map((complaint, index) => {
-                    return (
-                      <TableRow
-                        key={complaint.id}
-                        className="hover:bg-muted/20 transition-colors"
-                      >
-                        <TableCell className="py-4 align-top font-semibold text-sm">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">
-                            {complaint.title ||
-                              complaint.description.slice(0, 40)}
-                          </p>
-                          <p className="text-sm text-foreground/50">
-                            {complaint.ticketCode}
-                          </p>
-                        </TableCell>
-
-                        <TableCell className="py-4 align-top pr-7">
-                          <div className="space-y-0.5 font-medium leading-tight text-sm">
-                            <p className="font-semibold text-foreground/90">
-                              {complaint.locationType}
+                <TableBody>
+                  {paginatedComplaints.map((complaint, index) => (
+                    <TableRow
+                      key={complaint.id}
+                      className="hover:bg-primary/[0.025] transition-colors border-b border-slate-100 group"
+                    >
+                      <TableCell className="py-4 px-5 align-middle">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0 text-primary font-black text-xs">
+                            {String(index + 1).padStart(2, "0")}
+                          </div>
+                          <div>
+                            <p className="font-bold text-foreground text-sm leading-tight group-hover:text-primary transition-colors">
+                              {complaint.title || complaint.description.slice(0, 40)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground/60 font-semibold mt-0.5">
+                              {complaint.ticketCode}
                             </p>
                           </div>
-                        </TableCell>
+                        </div>
+                      </TableCell>
 
-                        <TableCell className="py-4 align-top">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "min-w-[90px] justify-center rounded-lg font-bold text-xs py-1 px-2.5 mr-2",
-                              complaint.priority === "LOW" &&
-                                "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
-                              complaint.priority === "MEDIUM" &&
-                                "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",
-                              complaint.priority === "HIGH" &&
-                                "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:text-orange-400",
-                              complaint.priority === "URGENT" &&
-                                "border-rose-200 bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400",
-                            )}
-                          >
+                      <TableCell className="py-4 align-middle">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="size-3.5 text-muted-foreground/50 shrink-0" />
+                          <span className="text-sm font-semibold text-foreground/80 leading-tight">
+                            {complaint.locationType}
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="py-4 align-middle">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={cn(
+                            "inline-flex items-center h-6 px-2.5 rounded-full text-[11px] font-bold tracking-wide",
+                            complaint.priority === "LOW" && "bg-emerald-100 text-emerald-700",
+                            complaint.priority === "MEDIUM" && "bg-amber-100 text-amber-700",
+                            complaint.priority === "HIGH" && "bg-orange-100 text-orange-700",
+                            complaint.priority === "URGENT" && "bg-rose-100 text-rose-700",
+                          )}>
                             {complaint.priority}
-                          </Badge>
-
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "min-w-[100px] justify-center rounded-lg font-bold text-xs py-1 px-2.5",
-                              complaint.status === "PENDING" &&
-                                "border-slate-200 bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-                              complaint.status === "ASSIGNED" &&
-                                "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400",
-                              complaint.status === "IN_PROGRESS" &&
-                                "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",
-                              complaint.status === "RESOLVED" &&
-                                "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
-                              complaint.status === "CLOSED" &&
-                                "border-zinc-200 bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-400",
-                            )}
-                          >
+                          </span>
+                          <span className={cn(
+                            "inline-flex items-center h-6 px-2.5 rounded-full text-[11px] font-bold tracking-wide",
+                            complaint.status === "PENDING" && "bg-slate-100 text-slate-600",
+                            complaint.status === "ASSIGNED" && "bg-blue-100 text-blue-700",
+                            complaint.status === "IN_PROGRESS" && "bg-amber-100 text-amber-700",
+                            complaint.status === "RESOLVED" && "bg-emerald-100 text-emerald-700",
+                            complaint.status === "CLOSED" && "bg-zinc-100 text-zinc-600",
+                          )}>
                             {complaint.status.replace("_", " ")}
-                          </Badge>
-                        </TableCell>
+                          </span>
+                        </div>
+                      </TableCell>
 
-                        <TableCell className="py-4 text-sm font-medium text-muted-foreground align-top hidden lg:table-cell">
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Calendar className="size-3.5 text-muted-foreground/80" />
-                            <span>
-                              {new Date(complaint.createdAt).toLocaleString(
-                                "en-IN",
-                                {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
-                              )}
-                            </span>
-                          </div>
-                        </TableCell>
+                      <TableCell className="py-4 align-middle hidden lg:table-cell">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                          <Calendar className="size-3.5 shrink-0" />
+                          <span>
+                            {new Date(complaint.createdAt).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </TableCell>
 
-                        <TableCell className="py-4 text-right align-top space-x-1  sticky right-0 bg-card shadow-lg md:shadow-none">
-                          <div className="hidden md:flex justify-end gap-1">
-                            <Link href={`/maintenance/tickets/${complaint.id}`}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-10 text-muted-foreground hover:bg-blue-600/10 hover:text-blue-600 transition-all"
-                              >
-                                <Pencil className="size-5" />
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                              onClick={() =>
-                                setTargetDeleteComplaint(complaint)
-                              }
-                            >
-                              <Trash2 className="size-5" />
+                      <TableCell className="py-4 text-right align-middle sticky right-0 bg-card">
+                        <div className="hidden md:flex justify-end gap-1">
+                          <Link href={`/maintenance/tickets/${complaint.id}`}>
+                            <Button variant="ghost" size="icon"
+                              className="size-8 rounded-lg text-muted-foreground hover:bg-blue-50 hover:text-blue-600 transition-all">
+                              <Pencil className="size-4" />
                             </Button>
-                          </div>
-                          <div className="md:hidden flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-9"
-                                >
-                                  <MoreVertical className="size-5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem asChild>
-                                  <Link
-                                    href={`/maintenance/tickets/${complaint.id}`}
-                                  >
-                                    <Pencil className="mr-2 size-4" />
-                                    Edit
-                                  </Link>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    setTargetDeleteComplaint(complaint)
-                                  }
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="mr-2 size-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          </Link>
+                          <Button variant="ghost" size="icon"
+                            className="size-8 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-all"
+                            onClick={() => setTargetDeleteComplaint(complaint)}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                        <div className="md:hidden flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="size-8">
+                                <MoreVertical className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/maintenance/tickets/${complaint.id}`}>
+                                  <Pencil className="mr-2 size-4" /> Edit
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setTargetDeleteComplaint(complaint)}
+                                className="text-destructive">
+                                <Trash2 className="mr-2 size-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -588,104 +567,59 @@ export default function ComplaintsPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Pagination Footers Controls */}
+        {/* Pagination */}
         {filteredAndSortedComplaints.length > 0 && (
-          <div className="bg-card rounded-lg p-5 border border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-sm font-medium text-muted-foreground">
+          <div className="bg-card rounded-xl px-5 py-3.5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-muted-foreground">
               Showing{" "}
-              <span className="font-semibold text-foreground">
-                {(currentPage - 1) * pageSize + 1}
-              </span>{" "}
-              to{" "}
-              <span className="font-semibold text-foreground">
-                {Math.min(
-                  currentPage * pageSize,
-                  filteredAndSortedComplaints.length,
-                )}
-              </span>{" "}
-              of{" "}
-              <span className="font-semibold text-foreground">
-                {filteredAndSortedComplaints.length}
-              </span>{" "}
-              complaints
-            </div>
+              <span className="text-foreground font-bold">{(currentPage - 1) * pageSize + 1}</span>
+              {" – "}
+              <span className="text-foreground font-bold">{Math.min(currentPage * pageSize, filteredAndSortedComplaints.length)}</span>
+              {" of "}
+              <span className="text-foreground font-bold">{filteredAndSortedComplaints.length}</span>
+              {" tickets"}
+            </p>
 
             <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="size-8"
-              >
+              <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}
+                className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none">
                 <ChevronsLeft className="size-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                disabled={currentPage === 1}
-                className="size-8"
-              >
+              </button>
+              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}
+                className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none">
                 <ChevronLeft className="size-4" />
-              </Button>
+              </button>
 
               <div className="flex items-center gap-1 px-1">
                 {Array.from({ length: totalPages }).map((_, idx) => {
                   const pageNum = idx + 1;
-                  if (
-                    Math.abs(currentPage - pageNum) > 1 &&
-                    pageNum !== 1 &&
-                    pageNum !== totalPages
-                  ) {
-                    if (pageNum === 2 || pageNum === totalPages - 1) {
-                      return (
-                        <span
-                          key={pageNum}
-                          className="text-muted-foreground/60 text-xs px-1 select-none"
-                        >
-                          ..
-                        </span>
-                      );
-                    }
+                  if (Math.abs(currentPage - pageNum) > 1 && pageNum !== 1 && pageNum !== totalPages) {
+                    if (pageNum === 2 || pageNum === totalPages - 1)
+                      return <span key={pageNum} className="text-muted-foreground/50 text-xs px-0.5 select-none">…</span>;
                     return null;
                   }
                   return (
-                    <Button
-                      key={pageNum}
-                      variant={currentPage === pageNum ? "default" : "outline"}
-                      onClick={() => setCurrentPage(pageNum)}
+                    <button key={pageNum} onClick={() => setCurrentPage(pageNum)}
                       className={cn(
-                        "size-8 font-bold text-xs",
-                        currentPage === pageNum ? "bg-sky-600 text-white" : "",
-                      )}
-                    >
+                        "size-8 rounded-lg text-xs font-bold transition-all",
+                        currentPage === pageNum
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}>
                       {pageNum}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
 
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(p + 1, totalPages))
-                }
-                disabled={currentPage === totalPages}
-                className="size-8"
-              >
+              <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
+                className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none">
                 <ChevronRight className="size-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="size-8"
-              >
+              </button>
+              <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}
+                className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none">
                 <ChevronsRight className="size-4" />
-              </Button>
+              </button>
             </div>
           </div>
         )}
