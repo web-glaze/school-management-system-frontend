@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import apiClient from "@/services/api";
 import {
   ChevronDown,
   ChevronRight,
@@ -28,8 +28,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import toast from "react-hot-toast";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
  * Backend shape (see roles.service.ts):
@@ -107,12 +105,10 @@ export default function RolesPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
 
       const [rolesRes, permsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/roles`, { headers }),
-        axios.get(`${API_URL}/api/roles/permissions`, { headers }),
+        apiClient.get("/roles"),
+        apiClient.get("/roles/permissions"),
       ]);
 
       const rolesData: Role[] = Array.isArray(rolesRes.data)
@@ -150,7 +146,7 @@ export default function RolesPage() {
   };
 
   useEffect(() => {
-    setTimeout(() => fetchData(), 0);
+    fetchData();
   }, []);
 
   /**
@@ -166,15 +162,10 @@ export default function RolesPage() {
     }
     try {
       setCreatingRole(true);
-      const token = localStorage.getItem("token");
-      const createdRes = await axios.post(
-        `${API_URL}/api/roles`,
-        {
-          name,
-          description: newRoleDescription.trim() || undefined,
-        },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const createdRes = await apiClient.post("/roles", {
+        name,
+        description: newRoleDescription.trim() || undefined,
+      });
 
       // If admin picked "Copy permissions from <existing role>", apply
       // that source role's permission set to the new role right away.
@@ -193,11 +184,7 @@ export default function RolesPage() {
             if (pid) permissionIds.push(pid);
           }
           if (permissionIds.length > 0) {
-            await axios.patch(
-              `${API_URL}/api/roles/${newId}/permissions`,
-              { permissionIds },
-              { headers: { Authorization: `Bearer ${token}` } },
-            );
+            await apiClient.patch(`/roles/${newId}/permissions`, { permissionIds });
           }
         }
       }
@@ -247,10 +234,7 @@ export default function RolesPage() {
     }
     try {
       setDeletingRoleId(role.id);
-      const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/api/roles/${role.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiClient.delete(`/roles/${role.id}`);
       toast.success(`Deleted ${role.name}`);
       await fetchData();
     } catch (error) {
@@ -291,15 +275,10 @@ export default function RolesPage() {
   const saveRole = async (role: Role) => {
     try {
       setSavingRoleId(role.id);
-      const token = localStorage.getItem("token");
 
       const permissionIds = Array.from(pending[role.id] ?? new Set<string>());
 
-      await axios.patch(
-        `${API_URL}/api/roles/${role.id}/permissions`,
-        { permissionIds },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await apiClient.patch(`/roles/${role.id}/permissions`, { permissionIds });
 
       toast.success(`Saved ${role.name}`);
       await fetchData();

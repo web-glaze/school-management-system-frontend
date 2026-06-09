@@ -2,17 +2,13 @@ import { create } from "zustand";
 import { authService } from "@/services/api";
 import axios from "axios";
 
-interface GlobalState {
-  user: any | null;
-  setUser: (user: any) => void;
-  logout: () => void;
-}
-
 interface UserData {
   id: string;
+  name: string;
   email: string;
   role: string;
   roles: string[];
+  permissions: string[];
 }
 
 interface AuthState {
@@ -21,19 +17,6 @@ interface AuthState {
   login: (credentials: { identifier: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
-
-export const useStore = create<GlobalState>((set) => ({
-  user: null,
-
-  setUser: (user) => set({ user }),
-
-  logout: () => {
-    if (typeof window !== "undefined") {
-      localStorage.clear();
-    }
-    set({ user: null });
-  },
-}));
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "null") : null,
@@ -47,10 +30,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user = response.data?.data?.user;
       const accessToken = response.data?.data?.accessToken;
       const roles = user?.roles || [];
+      const permissions: string[] = user?.permissions || [];
 
       if (!user || !accessToken) throw new Error("Invalid response structural signature");
 
-      // Role Parsing Logic
+      // Role Parsing Logic — human-friendly label for UI display
       let role = "user";
       if (roles.includes("SUPER_ADMIN")) {
         role = "superadmin";
@@ -60,12 +44,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         role = "manager";
       }
 
-      const userData = {
+      const userData: UserData = {
         id: user.id,
         name: user.name,
         email: user.email,
         role,
         roles,
+        permissions,
       };
 
       if (typeof window !== "undefined") {
@@ -90,6 +75,5 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem("user");
     }
     set({ user: null });
-    useStore.getState().setUser(null);
   },
 }));

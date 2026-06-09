@@ -15,14 +15,12 @@
  * Password reset stays per-row; same endpoint as before.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import axios from "axios";
+import apiClient from "@/services/api";
 import { Loader2, Plus, Search, ShieldCheck, Trash2, Users as UsersIcon, X } from "lucide-react";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /** Roles that the admin can pick from the dropdown — sourced from the
  *  Roles & Permissions page. We hardcode the labels here only as a
@@ -73,16 +71,10 @@ export default function UserManagementPage() {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
       const [usersRes, rolesRes] = await Promise.all([
-        axios.get(`${API_URL}/api/users`, { headers }),
-        axios
-          .get(`${API_URL}/api/roles`, { headers })
+        apiClient.get("/users"),
+        apiClient
+          .get("/roles")
           .then((r) => (Array.isArray(r.data) ? r.data : (r.data?.data ?? [])))
           .catch(() => [] as RawRole[]),
       ]);
@@ -125,24 +117,14 @@ export default function UserManagementPage() {
     try {
       setCreating(true);
 
-      const token = localStorage.getItem("token");
-
-      await axios.post(
-        `${API_URL}/api/users`,
-        {
-          name,
-          userName,
-          email,
-          phone: phone || undefined,
-          password,
-          role,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiClient.post("/users", {
+        name,
+        userName,
+        email,
+        phone: phone || undefined,
+        password,
+        role,
+      });
 
       setName("");
       setUserName("");
@@ -172,19 +154,7 @@ export default function UserManagementPage() {
     try {
       setPwSaving(userId);
 
-      const token = localStorage.getItem("token");
-
-      await axios.patch(
-        `${API_URL}/api/users/${userId}/password`,
-        {
-          newPassword,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiClient.patch(`/users/${userId}/password`, { newPassword });
 
       setPwInputs((prev) => ({
         ...prev,
@@ -204,13 +174,7 @@ export default function UserManagementPage() {
     if (!confirm("Delete this user?")) return;
 
     try {
-      const token = localStorage.getItem("token");
-
-      await axios.delete(`${API_URL}/api/users/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await apiClient.delete(`/users/${id}`);
 
       toast.success("User deleted");
 
