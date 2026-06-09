@@ -66,6 +66,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         email: user.email,
         role,
         roles,
+        permissions: user.permissions || [],
       };
 
       if (typeof window !== "undefined") {

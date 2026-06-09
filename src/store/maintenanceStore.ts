@@ -36,7 +36,7 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
     }
   },
 
-  createDepartment: async (name) => {await useDepartmentStore
+  createDepartment: async (name) => {
     try {
       set({ loading: true });
       await departmentService.create(name);
@@ -89,7 +89,7 @@ interface TechnicianState {
   loading: boolean;
 
   fetchTechnicians: () => Promise<void>;
-  createTechnician: (name: string, phone: string, email: string , departmentId: string) => Promise<void>;
+  createTechnician: (name: string, phone: string, email: string, departmentId: string) => Promise<void>;
   updateTechnician: (id: string, name: string, phone: string, email: string, departmentId: string) => Promise<void>;
   deleteTechnician: (id: string) => Promise<void>;
 }
@@ -222,8 +222,22 @@ export interface Complaint {
   assignedTechnician?: { id: string; name: string };
   department?: { id: string; name: string };
   ticketCode?: string;
-  imageUrl?: string | null;
-  adminImageUrl?: string | null;
+  attachments?: {
+    id: string;
+    url: string;
+    type: "IMAGE" | "VIDEO";
+    owner: "USER" | "ADMIN";
+    createdAt?: string;
+  }[];
+
+  activities?: {
+    id: string;
+    action: string;
+    message?: string;
+    oldValue?: string;
+    newValue?: string;
+    createdAt: string;
+  }[];
 }
 
 interface ComplaintState {

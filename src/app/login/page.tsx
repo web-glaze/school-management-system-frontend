@@ -12,21 +12,13 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             {/* Logo */}
             <Link href="/" className="mb-10">
-              <img
-                src="/Ecole2.png"
-                alt="Logo"
-                className="h-20 object-contain"
-              />
+              <img src="/Ecole2.png" alt="Logo" className="h-20 object-contain" />
             </Link>
 
             <div className="my-10">
-              <h2 className="text-3xl font-bold tracking-tight text-black">
-                Welcome back!
-              </h2>
+              <h2 className="text-3xl font-bold tracking-tight text-black">Welcome back!</h2>
 
-              <p className="text-lg">
-                Please enter your credentials to sign in
-              </p>
+              <p className="text-lg">Please enter your credentials to sign in</p>
             </div>
 
             <LoginForm />
@@ -38,23 +30,13 @@ export default function LoginPage() {
         <div className="hidden lg:flex p-5">
           <div className="relative flex h-full p-5 w-full flex-col items-center justify-center rounded-[28px] bg-[#e8f8fe] overflow-hidden">
             {/* Illustration */}
-            <img
-              src="/login-hero.svg"
-              alt="Dashboard Preview"
-              className="object-contain mb-14"
-              width={450}
-            />
+            <img src="/login-hero.svg" alt="Dashboard Preview" className="object-contain mb-14" width={450} />
 
             {/* Content */}
             <div className="max-w-xl text-center">
-              <h1 className="text-4xl font-bold text-black leading-tight">
-                Manage Your School Smarter
-              </h1>
+              <h1 className="text-4xl font-bold text-black leading-tight">Manage Your School Smarter</h1>
 
-              <p className="mt-6 text-lg text-black/90 leading-8">
-                Track students, manage staff, streamline operations, and create
-                a better learning experience — all from one dashboard.
-              </p>
+              <p className="mt-6 text-lg text-black/90 leading-8">Track students, manage staff, streamline operations, and create a better learning experience — all from one dashboard.</p>
             </div>
           </div>
         </div>

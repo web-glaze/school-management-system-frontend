@@ -1,131 +1,62 @@
 "use client";
 
 import * as React from "react";
-
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare,Users,Scroll } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
 
+
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname();
 const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
 
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  role?: "superadmin" | "admin" | "manager" | "user";
-}
+const permissions = user.permissions || [];
 
-export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
-  const pathname = usePathname();
-
-  /* SUPER ADMIN */
-  const superAdminMenu = [
-    // {
-    //   title: "Dashboard",
-    //   url: "/dashboard",
-    //   icon: ChartColumnBig,
-    //   isActive: pathname === "/dashboard",
-    // },
-    {
-      title: "Maintenance",
-      url: "/maintenance",
-      icon: Ticket,
-      isActive: pathname === "/maintenance" || pathname.startsWith("/maintenance/"),
-    },
-  ];
-
-  /* ADMIN */
-  const adminMenu = [
-    // {
-    //   title: "Dashboard",
-    //   url: "/maintenance",
-    //   icon: Ticket,
-    //   isActive: pathname === "/maintenance" || pathname === "/maintenance/",
-    // },
-
-    {
+  const navItems = [
+    permissions.includes("ticket.read") && {
       title: "Tickets",
       url: "/maintenance/tickets",
       icon: Ticket,
-      isActive: pathname === "/maintenance/tickets",
+      isActive: pathname.startsWith("/maintenance/tickets"),
     },
 
-    {
+    permissions.includes("department.read") && {
       title: "Departments",
       url: "/maintenance/departments",
       icon: VectorSquare,
       isActive: pathname === "/maintenance/departments",
     },
-    {
+
+    permissions.includes("technician.read") && {
       title: "Technicians",
       url: "/maintenance/technician",
       icon: Hammer,
       isActive: pathname === "/maintenance/technician",
     },
 
-    {
+    permissions.includes("location.read") && {
       title: "Locations",
       url: "/maintenance/location",
       icon: MapPin,
       isActive: pathname === "/maintenance/location",
     },
 
-     {
+    permissions.includes("user.read") && {
       title: "Users",
       url: "/maintenance/user",
       icon: Scroll,
       isActive: pathname === "/maintenance/user",
     },
 
-     {
+    permissions.includes("role.read") && {
       title: "Roles",
       url: "/maintenance/roles",
       icon: Users,
       isActive: pathname === "/maintenance/roles",
     },
-
-  ];
-
-  /* MANAGER */
-  const managerMenu = [
-    {
-      title: "Maintenance",
-      url: "/maintenance",
-      icon: Ticket,
-      isActive: pathname === "/maintenance" || pathname === "/maintenance/",
-    },
-    {
-      title: "Tickets",
-      url: "/maintenance/tickets",
-      icon: Ticket,
-      isActive: pathname === "/maintenance/tickets",
-    },
-  ];
-
-  /* USER */
-  const userMenu = [
-    {
-      title: "Maintenance",
-      url: "/maintenance",
-      icon: Ticket,
-      isActive: pathname === "/maintenance" || pathname === "/maintenance/",
-    },
-    {
-      title: "Tickets",
-      url: "/maintenance/tickets",
-      icon: Ticket,
-      isActive: pathname === "/maintenance/tickets",
-    },
-  ];
-
-  let navItems = userMenu;
-
-  if (role === "superadmin") {
-    navItems = superAdminMenu;
-  } else if (role === "admin") {
-    navItems = adminMenu;
-  } else if (role === "manager") {
-    navItems = managerMenu;
-  }
+  ].filter(Boolean);
 
   const data = {
     user: {

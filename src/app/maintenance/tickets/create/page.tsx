@@ -30,23 +30,51 @@ export default function RaiseTicketPage() {
   }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, issueId: number) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+
+    if (!files.length) return;
 
     try {
       setUploading(true);
+
       const formData = new FormData();
-      formData.append("file", file);
-      const response = await apiClient.post("/uploads/image", formData, {
+
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await apiClient.post("/uploads/media", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      const uploadedUrl = response.data.data.url;
-      setIssues((prev) => prev.map((issue) => (issue.id === issueId ? { ...issue, imageUrl: uploadedUrl } : issue)));
-      toast.success("Image uploaded successfully");
+
+      const uploadedFiles = response.data?.data?.files ?? [];      
+
+      console.log("UPLOAD RESPONSE", response.data);
+      console.log("FILES", uploadedFiles);
+
+      setIssues((prev) =>
+        prev.map((issue) =>
+          issue.id === issueId
+            ? {
+                ...issue,
+                attachments: [
+                  ...issue.attachments,
+                  ...uploadedFiles.map((file: any) => ({
+                    url: file.url,
+                    type: file.type,
+                  })),
+                ],
+              }
+            : issue
+        )
+      );
+
+      toast.success(`${uploadedFiles.length} file(s) uploaded successfully`);
     } catch (error) {
-      toast.error("Failed to upload image");
+      console.error(error);
+      toast.error("Failed to upload files");
     } finally {
       setUploading(false);
     }
@@ -153,7 +181,7 @@ export default function RaiseTicketPage() {
         validIssues.map((issue) => ({
           description: issue.description,
           priority: issue.priority,
-          imageUrl: issue.imageUrl,
+          attachments: issue.attachments,
           locationType: locationPath,
           subLocation: selectedPath[selectedPath.length - 1],
         }))
@@ -209,8 +237,11 @@ export default function RaiseTicketPage() {
     {
       id: 1,
       description: "",
-      imageUrl: "",
       priority: "MEDIUM",
+      attachments: [] as {
+        url: string;
+        type: "IMAGE" | "VIDEO";
+      }[],
     },
   ]);
   const addIssue = () => {
@@ -219,8 +250,8 @@ export default function RaiseTicketPage() {
       {
         id: Date.now(),
         description: "",
-        imageUrl: "",
         priority: "MEDIUM",
+        attachments: [],
       },
     ]);
   };
@@ -481,7 +512,7 @@ export default function RaiseTicketPage() {
                             <div className="space-y-2">
                               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Attach Photo</Label>
 
-                              {!issue.imageUrl ? (
+                              {issue.attachments.length === 0 ? (
                                 <label
                                   htmlFor={`image-upload-${issue.id}`}
                                   className="group flex flex-col items-center justify-center gap-3 h-[120px] md:h-[150px] border-2 border-dashed border-border/60 rounded-xl cursor-pointer bg-muted/20 hover:bg-primary/[0.02] hover:border-primary/40 transition-all duration-200"
@@ -493,22 +524,35 @@ export default function RaiseTicketPage() {
                                     <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">Click to upload photo</p>
                                     <p className="text-[11px] text-muted-foreground mt-0.5">PNG, JPG, WEBP up to 10MB</p>
                                   </div>
-                                  <Input id={`image-upload-${issue.id}`} type="file" accept="image/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
+                                  <Input id={`image-upload-${issue.id}`} type="file" multiple accept="image/*,video/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
                                 </label>
                               ) : (
                                 <div className="relative rounded-xl overflow-hidden border border-border/60 group">
-                                  <img src={issue.imageUrl} alt={`Issue ${index + 1}`} className="w-full h-[120px] md:h-[150px] object-cover" />
-
+                                  {issue.attachments?.map((file, idx) => (
+                                    <div key={idx}>
+                                      {file.type === "IMAGE" ? (
+                                        <img src={file.url} alt={`Attachment ${idx}`} className="w-full h-[150px] object-cover rounded-lg" />
+                                      ) : (
+                                        <video src={file.url} controls className="w-full h-[150px] object-cover rounded-lg" />
+                                      )}
+                                    </div>
+                                  ))}
                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
                                     <label htmlFor={`image-replace-${issue.id}`} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-2 rounded-lg cursor-pointer transition-all">
                                       <RefreshCw className="size-3.5" />
                                       Replace
-                                      <Input id={`image-replace-${issue.id}`} type="file" accept="image/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
+                                      <Input id={`image-replace-${issue.id}`} type="file" accept="image/*,video/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
+                                    </label>
+
+                                    <label htmlFor={`image-add-${issue.id}`} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-primary/70 hover:bg-primary/90 px-3 py-2 rounded-lg transition-all cursor-pointer">
+                                      <Plus className="size-3.5" />
+                                      Add More
+                                      <Input id={`image-add-${issue.id}`} type="file" multiple accept="image/*,video/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
                                     </label>
 
                                     <button
                                       type="button"
-                                      onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, imageUrl: "" } : i)))}
+                                      onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, attachments: [] } : i)))}
                                       className="flex items-center gap-1.5 text-xs font-semibold text-white bg-red-500/70 hover:bg-red-500/90 px-3 py-2 rounded-lg transition-all"
                                     >
                                       <Trash2 className="size-3.5" />

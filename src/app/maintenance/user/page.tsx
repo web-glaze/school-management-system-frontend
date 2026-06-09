@@ -316,7 +316,7 @@ export default function UserManagementPage() {
                   </span>
                   <h3 className="text-sm font-bold text-gray-800">{bucket.name}</h3>
                   <span className="text-[11px] text-gray-500">
-                    ({bucket.users.length} {bucket.users.length === 1 ? "user" : "users"})
+                    ({bucket.users.length} {bucket.users.length === 1 ? "user" : "users"})  
                   </span>
                 </div>
 
