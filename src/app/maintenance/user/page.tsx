@@ -16,11 +16,20 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import axios from "axios";
-import { Loader2, Plus, Search, ShieldCheck, Trash2, Users as UsersIcon } from "lucide-react";
-
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Building2, Loader2, Plus, Search, ShieldCheck, Trash2, Users as UsersIcon, Calendar, Inbox, Pencil, MoreVertical } from "lucide-react";
+import { Field, FieldGroup } from "@/components/ui/field";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -58,12 +67,27 @@ export default function UserManagementPage() {
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
 
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [editUserOpen, setEditUserOpen] = useState(false);
+  const [deleteUserOpen, setDeleteUserOpen] = useState(false);
+
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const [name, setName] = useState("");
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("");
+
+  const [editName, setEditName] = useState("");
+  const [editUserName, setEditUserName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editRole, setEditRole] = useState("");
 
   const [pwInputs, setPwInputs] = useState<Record<string, string>>({});
   const [pwSaving, setPwSaving] = useState<string | null>(null);
@@ -139,6 +163,7 @@ export default function UserManagementPage() {
       setEmail("");
       setPassword("");
       setPhone("");
+      setAddUserOpen(false);
 
       toast.success("User created");
 
@@ -149,6 +174,10 @@ export default function UserManagementPage() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
   };
 
   const changePassword = async (userId: string) => {
@@ -190,9 +219,7 @@ export default function UserManagementPage() {
     }
   };
 
-  const deleteUser = async (id: string) => {
-    if (!confirm("Delete this user?")) return;
-
+  const handleDelete = async (id: string) => {
     try {
       const token = localStorage.getItem("token");
 
@@ -223,166 +250,404 @@ export default function UserManagementPage() {
     },
   ];
 
+  const openEditDialog = (user: User) => {
+    setEditingUser(user);
+
+    setEditName(user.name || "");
+    setEditUserName(user.userName || "");
+    setEditEmail(user.email || "");
+    setEditPhone(user.phone || "");
+    setEditRole(user.userRoles[0].role.name);
+
+    setEditUserOpen(true);
+  };
+
+  const openDeleteDialog = (user: User) => {
+    setDeletingUser(user);
+    setDeleteUserOpen(true);
+  };
+
   const fieldBase = "h-10 px-3 rounded-lg border border-gray-200 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition";
 
   const selectField = fieldBase + " bg-white pr-8 appearance-none";
 
   return (
     <DashboardLayout>
-      <div className="space-y-5">
-        {/* Simple header — same scale as the rest of the app, no hero card */}
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">User Management</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Create login accounts. Only Super Admin &amp; Admin sit in the System card; everyone else belongs to a department.</p>
-        </div>
+      <div className="space-y-8">
+        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">User Management</h1>
+            <p className="text-muted-foreground">Maintain system users</p>
+          </div>
+          <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 px-5">
+                <Plus className="size-4" />
+                Add User
+              </Button>
+            </DialogTrigger>
 
-        {/* Create form — fields + compact Create button on the right */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-            <Plus className="size-4 text-primary" />
-            Create New ID
-          </h2>
-          <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
-            <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required className={`${fieldBase} flex-1 min-w-[140px]`} />
-            <input type="text" placeholder="Username" value={userName} onChange={(e) => setUserName(e.target.value)} required className={`${fieldBase} flex-1 min-w-[140px]`} />
-            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className={`${fieldBase} flex-1 min-w-[180px]`} />
-            <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} maxLength={15} className={`${fieldBase} w-36`} />
-            <input type="text" placeholder="Password (min 8)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required className={`${fieldBase} w-40`} />
-            <select value={role} onChange={(e) => setRole(e.target.value)} required className={`${selectField} w-36`}>
-              {(roles.length > 0 ? roles.map((r) => r.name) : FALLBACK_ROLES)
-                // Don't let admin accidentally clone Super Admin here.
-                .filter((n) => !["SUPER_ADMIN"].includes(n))
-                .map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-            </select>
-            <button type="submit" disabled={creating} className="ml-auto h-10 px-5 rounded-lg bg-[#00AEF2] text-white text-xs font-semibold hover:bg-[#0096D6] disabled:opacity-60 transition flex items-center gap-2">
-              {creating ? (
+            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+              <div className="border-b px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Building2 className="size-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg">Add User</DialogTitle>
+                    <DialogDescription>Add a new user</DialogDescription>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleCreate} className="space-y-4 p-6">
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="full-name">Full Name</Label>
+                    <Input id="full-name" placeholder="Juan Dela Cruz" value={name} onChange={(e) => setName(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="username">Username</Label>
+                    <Input id="username" placeholder="juandc" value={userName} onChange={(e) => setUserName(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" placeholder="juandc@school.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" placeholder="09123456789" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <Field>
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={role} onValueChange={setRole}>
+                      <SelectTrigger className="w-36">
+                        <SelectValue placeholder="Select Role" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {(roles.length > 0 ? roles.map((r) => r.name) : FALLBACK_ROLES)
+                          .filter((n) => n !== "SUPER_ADMIN")
+                          .map((n) => (
+                            <SelectItem key={n} value={n}>
+                              {n}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </FieldGroup>
+
+                <DialogFooter className="gap-2">
+                  <DialogClose asChild>
+                    <Button variant="outline" type="button">
+                      Cancel
+                    </Button>
+                  </DialogClose>
+
+                  <Button type="submit" disabled={loading} className="min-w-[130px] gap-2 px-5">
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="size-4" />
+                        Create
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full lg:w-[350px] group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+            </div>
+          </div>
+
+          {/* Grouped list */}
+          {loading ? (
+            <div className="bg-white rounded-2xl border border-gray-100 p-10 flex items-center justify-center">
+              <Loader2 className="size-5 animate-spin text-gray-400" />
+            </div>
+          ) : grouped.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+              <UsersIcon className="size-8 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-gray-700">No users yet</p>
+              <p className="text-xs text-gray-500 mt-1">Use the form above to add your first user.</p>
+            </div>
+          ) : (
+            <div className="relative w-full overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-gray-50 border-b border-border/60">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">Name</TableHead>
+
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">Role</TableHead>
+
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">Created At</TableHead>
+
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-[50px] sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
+                      <span className="hidden md:block">Actions</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody className="divide-y divide-border/30">
+                  {grouped.flatMap((bucket) =>
+                    bucket.users.map((u) => {
+                      const roleNames = (u.userRoles ?? []).map((r) => r.role.name);
+                      const isSystemUser = roleNames.includes("SUPER_ADMIN") || roleNames.includes("ADMIN");
+
+                      return (
+                        <TableRow key={u.id} className="hover:bg-muted/20 transition-colors">
+                          <TableCell className="py-4 align-top">
+                            <div className="space-y-1 max-w-[250px]">
+                              <p className="font-semibold text-foreground">{u.userName || u.email}</p>
+
+                              <p className="text-sm text-muted-foreground">
+                                {u.name ? `${u.name} · ` : ""}
+                                {u.email ?? "No Email"}
+                              </p>
+
+                              <p className="text-xs text-muted-foreground">{u.userCode ?? "—"}</p>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="py-4 align-top">
+                            <div className="flex flex-wrap gap-1">
+                              {roleNames.map((role) => (
+                                <Badge key={role} variant="secondary">
+                                  {role}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="py-4 hidden lg:table-cell">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="size-4" />
+                              {new Date(u.createdAt).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="py-4 text-right align-top sticky right-0 bg-card shadow-lg md:shadow-none">
+                            <div className="hidden md:flex justify-end gap-2">
+                              {/* <Input
+                                type="text"
+                                placeholder="New password"
+                                value={pwInputs[u.id] ?? ""}
+                                onChange={(e) =>
+                                  setPwInputs((prev) => ({
+                                    ...prev,
+                                    [u.id]: e.target.value,
+                                  }))
+                                }
+                                className="h-9 w-40"
+                              />
+
+                              <Button size="sm" onClick={() => changePassword(u.id)} disabled={pwSaving === u.id || !pwInputs[u.id]?.trim()}>
+                                {pwSaving === u.id ? "Saving..." : "Change"}
+                              </Button> */}
+
+                              <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit User" onClick={() => openEditDialog(u)}>
+                                <Pencil className="size-5" />
+                              </Button>
+
+                              {!isSystemUser && (
+                                <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" title="Delete User" onClick={() => openDeleteDialog(u)}>
+                                  <Trash2 className="size-5" />
+                                </Button>
+                              )}
+                            </div>
+
+                            {/* Mobile */}
+                            <div className="md:hidden flex justify-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="size-5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => openEditDialog(u)}>
+                                    <Pencil className="mr-2 size-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+
+                                  {!isSystemUser && (
+                                    <DropdownMenuItem onClick={() => handleDelete(u.id)} className="text-destructive">
+                                      <Trash2 className="mr-2 size-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+        <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+          <div className="border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Building2 className="size-5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg">Edit User</DialogTitle>
+                <DialogDescription>Update user details</DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleUpdate} className="space-y-4 p-6">
+            <FieldGroup>
+              <Field>
+                <Label htmlFor="full-name">Full Name</Label>
+                <Input id="full-name" placeholder="Juan Dela Cruz" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <Label htmlFor="username">Username</Label>
+                <Input id="username" placeholder="juandc" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} required />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" placeholder="juandc@school.edu" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" placeholder="09123456789" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} required />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" placeholder="••••••••" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} required />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <Label htmlFor="role">Role</Label>
+                <Select value={editRole} onValueChange={setEditRole}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {(roles.length > 0 ? roles.map((r) => r.name) : FALLBACK_ROLES)
+                      .filter((n) => n !== "SUPER_ADMIN")
+                      .map((n) => (
+                        <SelectItem key={n} value={n}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </FieldGroup>
+
+            <DialogFooter className="gap-2">
+              <DialogClose asChild>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
+              </DialogClose>
+
+              <Button type="submit" disabled={loading} className="min-w-[130px] gap-2 px-5">
+                {loading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-4" />
+                    Update
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteUserOpen} onOpenChange={setDeleteUserOpen}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader>
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+              <Trash2 className="size-6 text-destructive" />
+            </div>
+
+            <AlertDialogTitle className="w-full text-center text-xl">Delete User?</AlertDialogTitle>
+
+            <AlertDialogDescription className="text-center">
+              This action cannot be undone. This will permanently remove
+              <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
+
+            <AlertDialogAction onClick={() => handleDelete(deletingUser?.id!)} disabled={!!deletingId} className="h-11 bg-destructive text-white hover:bg-destructive/90">
+              {deletingId ? (
                 <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Creating…
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Deleting...
                 </>
               ) : (
                 <>
-                  <Plus className="size-3.5" />
-                  Create User
+                  <Trash2 className="mr-2 size-4" />
+                  Delete User
                 </>
               )}
-            </button>
-          </form>
-
-          {/* Helpful hint — explains the dynamic dropdowns */}
-          <p className="text-[11px] text-gray-500 mt-3 leading-relaxed">
-            Roles are loaded dynamically from the Roles page. Create or update roles in
-            <span className="font-semibold text-gray-700"> /maintenance/roles </span>
-            and they will appear here automatically.
-          </p>
-        </div>
-
-        {/* Search */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, email, role or department…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 pl-9 pr-3 rounded-lg border border-gray-200 text-xs focus:border-primary outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Grouped list */}
-        {loading ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-10 flex items-center justify-center">
-            <Loader2 className="size-5 animate-spin text-gray-400" />
-          </div>
-        ) : grouped.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-            <UsersIcon className="size-8 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-gray-700">No users yet</p>
-            <p className="text-xs text-gray-500 mt-1">Use the form above to add your first user.</p>
-          </div>
-        ) : (
-          <div className="space-y-5">
-            {grouped.map((bucket) => (
-              <div key={bucket.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
-                  <span className="size-7 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
-                    <ShieldCheck className="size-4" />
-                  </span>
-                  <h3 className="text-sm font-bold text-gray-800">{bucket.name}</h3>
-                  <span className="text-[11px] text-gray-500">
-                    ({bucket.users.length} {bucket.users.length === 1 ? "user" : "users"})
-                  </span>
-                </div>
-
-                <ul className="divide-y divide-gray-100">
-                  {bucket.users.map((u) => {
-                    const roleNames = (u.userRoles ?? []).map((r) => r.role.name);
-                    const isSystemUser = roleNames.includes("SUPER_ADMIN") || roleNames.includes("ADMIN");
-                    return (
-                      <li key={u.id} className="px-5 py-3 flex flex-col xl:flex-row xl:items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-bold text-gray-800 truncate">{u.userName || u.email}</p>
-                            {roleNames.map((r) => (
-                              <span key={r} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                                {r}
-                              </span>
-                            ))}
-                          </div>
-                          <p className="text-[11px] text-gray-500 mt-0.5">
-                            {u.name ? `${u.name} · ` : ""}
-                            {u.email ?? "no email"} · {u.userCode ?? "—"} · joined{" "}
-                            {new Date(u.createdAt).toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="text"
-                            placeholder="New password"
-                            value={pwInputs[u.id] ?? ""}
-                            onChange={(e) =>
-                              setPwInputs((prev) => ({
-                                ...prev,
-                                [u.id]: e.target.value,
-                              }))
-                            }
-                            className="h-8 px-3 rounded-full border border-gray-200 text-xs w-40 outline-none focus:border-primary"
-                          />
-                          <button
-                            onClick={() => changePassword(u.id)}
-                            disabled={pwSaving === u.id || !pwInputs[u.id]?.trim()}
-                            className="h-8 px-3 rounded-full bg-[#00AEF2] text-white text-xs font-semibold hover:bg-[#0096D6] disabled:opacity-60 transition"
-                          >
-                            {pwSaving === u.id ? "Saving…" : "Change"}
-                          </button>
-                          {/* System users can't be deleted from the UI —
-                              you can't accidentally remove your own admin. */}
-                          {!isSystemUser && (
-                            <button onClick={() => deleteUser(u.id)} className="size-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition" title="Delete user">
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
