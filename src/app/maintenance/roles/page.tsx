@@ -2,30 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import {
-  ChevronDown,
-  ChevronRight,
-  Loader2,
-  Plus,
-  Save,
-  Shield,
-  ShieldCheck,
-  Trash2,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Plus, Save, Search, Shield, ShieldCheck, Trash2 } from "lucide-react";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import toast from "react-hot-toast";
 
@@ -100,8 +83,7 @@ export default function RolesPage() {
       else next.add(id);
       return next;
     });
-  const expandAll = () =>
-    setExpandedRoles(new Set(roles.map((r) => r.id)));
+  const expandAll = () => setExpandedRoles(new Set(roles.map((r) => r.id)));
   const collapseAll = () => setExpandedRoles(new Set());
 
   const fetchData = async () => {
@@ -110,17 +92,10 @@ export default function RolesPage() {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [rolesRes, permsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/roles`, { headers }),
-        axios.get(`${API_URL}/api/roles/permissions`, { headers }),
-      ]);
+      const [rolesRes, permsRes] = await Promise.all([axios.get(`${API_URL}/api/roles`, { headers }), axios.get(`${API_URL}/api/roles/permissions`, { headers })]);
 
-      const rolesData: Role[] = Array.isArray(rolesRes.data)
-        ? rolesRes.data
-        : rolesRes.data?.data ?? [];
-      const permsData: Permission[] = Array.isArray(permsRes.data)
-        ? permsRes.data
-        : permsRes.data?.data ?? [];
+      const rolesData: Role[] = Array.isArray(rolesRes.data) ? rolesRes.data : (rolesRes.data?.data ?? []);
+      const permsData: Permission[] = Array.isArray(permsRes.data) ? permsRes.data : (permsRes.data?.data ?? []);
 
       setRoles(rolesData);
       setPermissions(permsData);
@@ -173,7 +148,7 @@ export default function RolesPage() {
           name,
           description: newRoleDescription.trim() || undefined,
         },
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       // If admin picked "Copy permissions from <existing role>", apply
@@ -193,20 +168,12 @@ export default function RolesPage() {
             if (pid) permissionIds.push(pid);
           }
           if (permissionIds.length > 0) {
-            await axios.patch(
-              `${API_URL}/api/roles/${newId}/permissions`,
-              { permissionIds },
-              { headers: { Authorization: `Bearer ${token}` } },
-            );
+            await axios.patch(`${API_URL}/api/roles/${newId}/permissions`, { permissionIds }, { headers: { Authorization: `Bearer ${token}` } });
           }
         }
       }
 
-      toast.success(
-        copyFromRoleId
-          ? `Role "${name}" created with copied permissions`
-          : `Role "${name}" created`,
-      );
+      toast.success(copyFromRoleId ? `Role "${name}" created with copied permissions` : `Role "${name}" created`);
       setNewRoleName("");
       setNewRoleDescription("");
       setCopyFromRoleId("");
@@ -238,11 +205,7 @@ export default function RolesPage() {
       toast.error("System roles cannot be deleted");
       return;
     }
-    if (
-      !confirm(
-        `Delete role "${role.name}"? Users with this role will lose its permissions.`,
-      )
-    ) {
+    if (!confirm(`Delete role "${role.name}"? Users with this role will lose its permissions.`)) {
       return;
     }
     try {
@@ -295,11 +258,7 @@ export default function RolesPage() {
 
       const permissionIds = Array.from(pending[role.id] ?? new Set<string>());
 
-      await axios.patch(
-        `${API_URL}/api/roles/${role.id}/permissions`,
-        { permissionIds },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await axios.patch(`${API_URL}/api/roles/${role.id}/permissions`, { permissionIds }, { headers: { Authorization: `Bearer ${token}` } });
 
       toast.success(`Saved ${role.name}`);
       await fetchData();
@@ -320,15 +279,10 @@ export default function RolesPage() {
       if (!p || typeof p.code !== "string") return false;
       if (!search.trim()) return true;
       const needle = search.toLowerCase();
-      return (
-        p.code.toLowerCase().includes(needle) ||
-        (p.module ?? "").toLowerCase().includes(needle) ||
-        (p.description ?? "").toLowerCase().includes(needle)
-      );
+      return p.code.toLowerCase().includes(needle) || (p.module ?? "").toLowerCase().includes(needle) || (p.description ?? "").toLowerCase().includes(needle);
     });
     for (const perm of filtered) {
-      const group =
-        perm.module || perm.code.split(".")[0] || "other";
+      const group = perm.module || perm.code.split(".")[0] || "other";
       if (!map.has(group)) map.set(group, []);
       map.get(group)!.push(perm);
     }
@@ -337,45 +291,94 @@ export default function RolesPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-start gap-3">
-              <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <ShieldCheck className="size-5 text-primary" />
+      <div className="space-y-8">
+        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Roles & Permissions</h1>
+            <p className="text-muted-foreground">Maintain roles & permissions</p>
+          </div>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 shrink-0">
+                <Plus className="size-4" />
+                New Role
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="sm:max-w-[440px]">
+              <DialogHeader>
+                <DialogTitle>Create a new role</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-3 py-2">
+                <div>
+                  <Label htmlFor="role-name" className="text-xs">
+                    Role Name
+                  </Label>
+                  <Input id="role-name" autoFocus placeholder="e.g. HR_HEAD" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value.toUpperCase())} className="mt-1" />
+                </div>
+
+                <div>
+                  <Label htmlFor="role-description" className="text-xs">
+                    Description (optional)
+                  </Label>
+                  <Input id="role-description" placeholder="What this role is for" value={newRoleDescription} onChange={(e) => setNewRoleDescription(e.target.value)} className="mt-1" />
+                </div>
+
+                <div>
+                  <Label className="text-xs">Copy permissions from (optional)</Label>
+
+                  <Select value={copyFromRoleId || "none"} onValueChange={(value) => setCopyFromRoleId(value === "none" ? "" : value)}>
+                    <SelectTrigger className="mt-1 w-full">
+                      <SelectValue placeholder="Start blank (no permissions)" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="none">Start blank (no permissions)</SelectItem>
+
+                      {roles.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name} ({r.permissions.length} perms)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-foreground">
-                  Roles &amp; Permissions
-                </h1>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Tick the permissions each role should have. Save changes per
-                  role; nothing is applied until you click Save.
-                </p>
-              </div>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="ghost" type="button" disabled={creatingRole}>
+                    Cancel
+                  </Button>
+                </DialogClose>
+
+                <Button onClick={createRole} disabled={creatingRole || !newRoleName.trim()} className="gap-2 px-5">
+                  {creatingRole ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="size-3.5" />
+                      Create
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full lg:w-[350px] group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input type="text" placeholder="Filter permissions..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-72">
-                <Input
-                  placeholder="Filter permissions..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-
-              {/* Expand / Collapse all — handy on long pages */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={
-                  expandedRoles.size === roles.length ? collapseAll : expandAll
-                }
-                className="h-9 gap-1.5 shrink-0"
-                disabled={roles.length === 0}
-              >
+            <div>
+              <Button type="button" variant="outline" onClick={expandedRoles.size === roles.length ? collapseAll : expandAll} disabled={roles.length === 0}>
                 {expandedRoles.size === roles.length ? (
                   <>
                     <ChevronRight className="size-3.5" />
@@ -388,97 +391,6 @@ export default function RolesPage() {
                   </>
                 )}
               </Button>
-
-              {/* + New Role — opens the create dialog */}
-              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2 shrink-0">
-                    <Plus className="size-4" />
-                    New Role
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[440px]">
-                  <DialogHeader>
-                    <DialogTitle>Create a new role</DialogTitle>
-                    <DialogDescription>
-                      Use UPPER_SNAKE_CASE for the name (e.g. HR_HEAD,
-                      ACADEMIC_HEAD). It will appear immediately in the role
-                      dropdown on the Users page. You can tick its
-                      permissions right below after saving.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="space-y-3 py-2">
-                    <div>
-                      <Label className="text-xs">Role Name</Label>
-                      <Input
-                        autoFocus
-                        placeholder="e.g. HR_HEAD"
-                        value={newRoleName}
-                        onChange={(e) => setNewRoleName(e.target.value)}
-                        className="mt-1 uppercase"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Description (optional)</Label>
-                      <Input
-                        placeholder="What this role is for"
-                        value={newRoleDescription}
-                        onChange={(e) => setNewRoleDescription(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">
-                        Copy permissions from (optional)
-                      </Label>
-                      <select
-                        value={copyFromRoleId}
-                        onChange={(e) => setCopyFromRoleId(e.target.value)}
-                        className="mt-1 w-full h-10 px-3 rounded-lg border border-gray-200 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none bg-white pr-8 appearance-none bg-[length:14px_14px] bg-no-repeat bg-[right_0.6rem_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22%23667085%22><path fill-rule=%22evenodd%22 d=%22M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 011.08 1.04l-4.24 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z%22/></svg>')]"
-                      >
-                        <option value="">Start blank (no permissions)</option>
-                        {roles.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name} ({r.permissions.length} perms)
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                        Pick a parent / similar role to pre-tick its
-                        permissions. e.g. creating <code>ELECTRICAL_HEAD</code>?
-                        Copy from <code>MAINTENANCE_MANAGER</code>, then add
-                        the extras specific to electrical.
-                      </p>
-                    </div>
-                  </div>
-
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button variant="ghost" type="button" disabled={creatingRole}>
-                        Cancel
-                      </Button>
-                    </DialogClose>
-                    <Button
-                      onClick={createRole}
-                      disabled={creatingRole || !newRoleName.trim()}
-                      className="gap-2"
-                    >
-                      {creatingRole ? (
-                        <>
-                          <Loader2 className="size-3.5 animate-spin" />
-                          Creating…
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="size-3.5" />
-                          Create
-                        </>
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </div>
           </div>
         </div>
@@ -487,18 +399,13 @@ export default function RolesPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-32 rounded-xl bg-muted animate-pulse"
-              />
+              <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />
             ))}
           </div>
         ) : roles.length === 0 ? (
           <div className="bg-card rounded-md border border-border/60 p-10 text-center">
             <Shield className="size-10 text-muted-foreground/60 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              No roles found. Seed your database first.
-            </p>
+            <p className="text-sm text-muted-foreground">No roles found. Seed your database first.</p>
           </div>
         ) : (
           <div className="space-y-5">
@@ -508,40 +415,21 @@ export default function RolesPage() {
               const localPerms = pending[role.id] ?? new Set<string>();
 
               return (
-                <div
-                  key={role.id}
-                  className="bg-card rounded-md border border-border/60 overflow-hidden"
-                >
+                <div key={role.id} className="bg-card rounded-md border border-border/60 overflow-hidden">
                   {/* Clickable header — toggles expand. Stops at the
                       action buttons on the right so clicking Save/Delete
                       doesn't also collapse the section. */}
                   <div onClick={() => toggleRoleExpanded(role.id)} className="w-full flex items-center justify-between px-5 py-4 border-b border-border/50 hover:bg-muted/30 transition text-left cursor-pointer">
                     <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground">
-                        {expandedRoles.has(role.id) ? (
-                          <ChevronDown className="size-4" />
-                        ) : (
-                          <ChevronRight className="size-4" />
-                        )}
-                      </span>
+                      <span className="text-muted-foreground">{expandedRoles.has(role.id) ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</span>
                       <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
                         <Shield className="size-4 text-primary" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-foreground">
-                            {role.name}
-                          </h3>
-                          {role.isSystem && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                              System
-                            </span>
-                          )}
-                          {dirty && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">
-                              Unsaved
-                            </span>
-                          )}
+                          <h3 className="text-sm font-bold text-foreground">{role.name}</h3>
+                          {role.isSystem && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">System</span>}
+                          {dirty && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">Unsaved</span>}
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           {localPerms.size} permission
@@ -551,34 +439,15 @@ export default function RolesPage() {
                       </div>
                     </div>
 
-                    <div
-                      className="flex items-center gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       {/* Delete — hidden for system roles */}
                       {!role.isSystem && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteRole(role)}
-                          disabled={deletingRoleId === role.id}
-                          className="size-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          title="Delete role"
-                        >
-                          {deletingRoleId === role.id ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-3.5" />
-                          )}
+                        <Button variant="ghost" size="icon" onClick={() => deleteRole(role)} disabled={deletingRoleId === role.id} className="size-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="Delete role">
+                          {deletingRoleId === role.id ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
                         </Button>
                       )}
 
-                      <Button
-                        size="sm"
-                        onClick={() => saveRole(role)}
-                        disabled={!dirty || saving}
-                        className="h-9 gap-2"
-                      >
+                      <Button size="sm" onClick={() => saveRole(role)} disabled={!dirty || saving} className="h-9 gap-2">
                         {saving ? (
                           <>
                             <Loader2 className="size-3.5 animate-spin" />
@@ -597,55 +466,31 @@ export default function RolesPage() {
                   {/* Body — only mounted when the role is expanded. Hides
                       the (potentially long) permission grid on long pages. */}
                   {expandedRoles.has(role.id) && (
-                  <div className="p-5 space-y-5">
-                    {groups.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        No permissions match your filter.
-                      </p>
-                    ) : (
-                      groups.map(([groupName, perms]) => (
-                        <div key={groupName} className="space-y-2">
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            {groupName}
-                          </h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {perms.map((perm) => {
-                              const checked = localPerms.has(perm.id);
-                              return (
-                                <label
-                                  key={perm.id}
-                                  className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                                    checked
-                                      ? "border-primary/30 bg-primary/[0.04]"
-                                      : "border-border/60 hover:bg-muted/30"
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() =>
-                                      togglePermission(role.id, perm.id)
-                                    }
-                                    className="mt-0.5 accent-primary cursor-pointer"
-                                  />
-                                  <div className="min-w-0">
-                                    <div className="text-xs font-semibold text-foreground truncate">
-                                      {perm.code}
+                    <div className="p-5 space-y-5">
+                      {groups.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No permissions match your filter.</p>
+                      ) : (
+                        groups.map(([groupName, perms]) => (
+                          <div key={groupName} className="space-y-2">
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{groupName}</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {perms.map((perm) => {
+                                const checked = localPerms.has(perm.id);
+                                return (
+                                  <label key={perm.id} className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${checked ? "border-primary/30 bg-primary/[0.04]" : "border-border/60 hover:bg-muted/30"}`}>
+                                    <input type="checkbox" checked={checked} onChange={() => togglePermission(role.id, perm.id)} className="mt-0.5 accent-primary cursor-pointer" />
+                                    <div className="min-w-0">
+                                      <div className="text-xs font-semibold text-foreground truncate">{perm.code}</div>
+                                      {perm.description && <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{perm.description}</div>}
                                     </div>
-                                    {perm.description && (
-                                      <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
-                                        {perm.description}
-                                      </div>
-                                    )}
-                                  </div>
-                                </label>
-                              );
-                            })}
+                                  </label>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                        ))
+                      )}
+                    </div>
                   )}
                 </div>
               );
