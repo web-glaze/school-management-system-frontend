@@ -4,19 +4,8 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "../ui/breadcrumb";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "../ui/breadcrumb";
 import { Separator } from "../ui/separator";
 
 interface User {
@@ -46,11 +35,7 @@ const ROLE_COLORS: Record<string, string> = {
   user: "bg-emerald-500",
 };
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const pathname = usePathname();
 
@@ -79,9 +64,8 @@ export default function DashboardLayout({
       <AppSidebar role={user.role} />
 
       <SidebarInset>
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-white/90 backdrop-blur-sm px-4">
+        <header className="flex h-20 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-40 bg-white">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
               {parent && (
@@ -97,18 +81,9 @@ export default function DashboardLayout({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-
-          <div className="ml-auto flex items-center gap-2">
-            <span className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-              <span className={`inline-block size-2 rounded-full ${roleColor}`} />
-              {user.name || user.email}
-            </span>
-          </div>
         </header>
 
-        <main className="flex flex-1 flex-col gap-4 p-3 sm:p-4 md:p-6 bg-background">
-          {children}
-        </main>
+        <main className="flex flex-1 flex-col gap-4 p-6 bg-gray-100">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );
