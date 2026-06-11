@@ -38,11 +38,19 @@ export const technicianService = {
 export const locationService = {
   getAll: () => apiClient.get("/locations"),
 
+  getDropdown: () => apiClient.get("/locations/dropdown"),
+
   create: (name: string, parentId?: string | null) =>
-    apiClient.post("/locations", { name, parentId: parentId || null }),
+    apiClient.post("/locations", {
+      name,
+      parentId: parentId || null,
+    }),
 
   update: (id: string, name: string, parentId?: string | null) =>
-    apiClient.patch(`/locations/${id}`, { name, parentId }),
+    apiClient.patch(`/locations/${id}`, {
+      name,
+      parentId,
+    }),
 
   delete: (id: string) =>
     apiClient.delete(`/locations/${id}`),

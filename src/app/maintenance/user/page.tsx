@@ -538,8 +538,9 @@ export default function UserManagementPage() {
           <AlertDialogFooter className="mt-4">
             <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
-            <AlertDialogAction onClick={() => handleDelete(deletingUser?.id!)} disabled={deletingId === deletingUser?.id} className="h-11 bg-destructive text-white hover:bg-destructive/90">
-              {deletingId === deletingUser?.id ? (
+            <AlertDialogAction onClick={() => { if (deletingUser) {handleDelete(deletingUser.id);}}} 
+            className="h-11 bg-destructive text-white hover:bg-destructive/90">
+              {deletingId ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
                   Deleting...
