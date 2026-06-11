@@ -1,71 +1,45 @@
 "use client";
 
-/**
- * User Management — admin / super-admin only.
- *
- * Workflow:
- *   1. Admin picks a Role (Manager / Teacher / Staff / Technician / User)
- *      and a Department for the new user.
- *   2. Backend creates the User row, attaches the role, links the dept.
- *   3. Existing users below are grouped by department for clarity:
- *      • "System" card holds Super Admin + Admin (no department)
- *      • One card per real department (Maintenance, Hostel, Kitchen, …)
- *      • "Unassigned" card collects anyone we forgot to assign yet
- *
- * Password reset stays per-row; same endpoint as before.
- */
-
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Building2, Loader2, Plus, Search, ShieldCheck, Trash2, Users as UsersIcon, Calendar, Inbox, Pencil, MoreVertical } from "lucide-react";
+import { Building2, Loader2, Plus, Search, Trash2, Users as UsersIcon, Calendar, Pencil, MoreVertical } from "lucide-react";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { useUserStore, User } from "@/store/userStore";
+import { useRoleStore } from "@/store/roleStore";
 
-/** Roles that the admin can pick from the dropdown — sourced from the
- *  Roles & Permissions page. We hardcode the labels here only as a
- *  fallback in case /api/roles is empty; in practice the backend list
- *  drives the dropdown. */
 const FALLBACK_ROLES = ["MANAGER", "TEACHER", "STAFF", "TECHNICIAN", "USER"];
 
-interface RawRole {
-  id: string;
-  name: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-  userName?: string;
-  email?: string;
-  phone?: string;
-  userCode?: string;
-  createdAt: string;
-  userRoles: {
-    role: {
-      name: string;
-    };
-  }[];
-}
-
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<RawRole[]>([]);
+  const {
+    users,
+    loading,
+    creating,
+    updating,
+    deletingId,
+    fetchUsers,
+    createUser,
+    updateUser,
+    deleteUser
+  } = useUserStore();
 
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const {
+    roles,
+    fetchRolesAndPermissions
+  } = useRoleStore();
+
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [editUserOpen, setEditUserOpen] = useState(false);
@@ -73,8 +47,8 @@ export default function UserManagementPage() {
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Form states for creation
   const [name, setName] = useState("");
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
@@ -82,6 +56,7 @@ export default function UserManagementPage() {
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("");
 
+  // Form states for editing
   const [editName, setEditName] = useState("");
   const [editUserName, setEditUserName] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -89,74 +64,35 @@ export default function UserManagementPage() {
   const [editPassword, setEditPassword] = useState("");
   const [editRole, setEditRole] = useState("");
 
-  const [pwInputs, setPwInputs] = useState<Record<string, string>>({});
-  const [pwSaving, setPwSaving] = useState<string | null>(null);
-
-  const fetchAll = async () => {
-    try {
-      setLoading(true);
-
-      const token = localStorage.getItem("token");
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const [usersRes, rolesRes] = await Promise.all([
-        axios.get(`${API_URL}/api/users`, { headers }),
-        axios
-          .get(`${API_URL}/api/roles`, { headers })
-          .then((r) => (Array.isArray(r.data) ? r.data : (r.data?.data ?? [])))
-          .catch(() => [] as RawRole[]),
-      ]);
-
-      setUsers(usersRes.data?.data?.items ?? []);
-
-      setRoles(rolesRes);
-
-      if (rolesRes.length > 0 && !role) {
-        const safe = rolesRes.find((r: RawRole) => !["SUPER_ADMIN", "ADMIN"].includes(r.name)) ?? rolesRes[0];
-
-        setRole(safe.name);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch initial data
   useEffect(() => {
-    setTimeout(() => {
-      fetchAll();
-    }, 0);
-  }, []);
+    fetchUsers().catch(() => toast.error("Failed to load users"));
+    fetchRolesAndPermissions().catch(() => {});
+  }, [fetchUsers, fetchRolesAndPermissions]);
+
+  // Set default role when roles load
+  useEffect(() => {
+    if (roles.length > 0 && !role) {
+      const safe = roles.find((r) => !["SUPER_ADMIN", "ADMIN"].includes(r.name)) ?? roles[0];
+      setRole(safe.name);
+    }
+  }, [roles, role]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (!role) {
+      toast.error("Role is required");
+      return;
+    }
     try {
-      setCreating(true);
-
-      const token = localStorage.getItem("token");
-
-      await axios.post(
-        `${API_URL}/api/users`,
-        {
-          name,
-          userName,
-          email,
-          phone: phone || undefined,
-          password,
-          role,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await createUser({
+        name: name.trim(),
+        userName: userName.trim(),
+        email: email.trim(),
+        phone: phone.trim() || undefined,
+        password,
+        role,
+      });
 
       setName("");
       setUserName("");
@@ -164,101 +100,73 @@ export default function UserManagementPage() {
       setPassword("");
       setPhone("");
       setAddUserOpen(false);
-
       toast.success("User created");
-
-      await fetchAll();
     } catch (error) {
-      console.error(error);
       toast.error("Failed to create user");
-    } finally {
-      setCreating(false);
     }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-  };
-
-  const changePassword = async (userId: string) => {
-    const newPassword = (pwInputs[userId] ?? "").trim();
-
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
+    if (!editingUser) return;
 
     try {
-      setPwSaving(userId);
+      const payload: any = {
+        name: editName.trim(),
+        userName: editUserName.trim(),
+        email: editEmail.trim(),
+        phone: editPhone.trim() || undefined,
+        role: editRole,
+      };
 
-      const token = localStorage.getItem("token");
+      if (editPassword.trim()) {
+        payload.password = editPassword;
+      }
 
-      await axios.patch(
-        `${API_URL}/api/users/${userId}/password`,
-        {
-          newPassword,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setPwInputs((prev) => ({
-        ...prev,
-        [userId]: "",
-      }));
-
-      toast.success("Password updated");
+      await updateUser(editingUser.id, payload);
+      setEditUserOpen(false);
+      setEditingUser(null);
+      setEditPassword("");
+      toast.success("User updated");
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to update password");
-    } finally {
-      setPwSaving(null);
+      toast.error("Failed to update user");
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const token = localStorage.getItem("token");
-
-      await axios.delete(`${API_URL}/api/users/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      await deleteUser(id);
+      setDeleteUserOpen(false);
+      setDeletingUser(null);
       toast.success("User deleted");
-
-      await fetchAll();
     } catch (error) {
-      console.error(error);
       toast.error("Failed to delete user");
     }
   };
 
-  const grouped = [
-    {
-      id: "all-users",
-      name: "Users",
-      users: users.filter((u) => {
-        const needle = search.toLowerCase();
-
-        return !needle || u.email?.toLowerCase().includes(needle) || u.name?.toLowerCase().includes(needle) || u.userName?.toLowerCase().includes(needle);
-      }),
-    },
-  ];
+  const grouped = useMemo(() => {
+    return [
+      {
+        id: "all-users",
+        name: "Users",
+        users: users.filter((u) => {
+          const needle = search.toLowerCase();
+          const matchSearch = !needle || u.email?.toLowerCase().includes(needle) || u.name?.toLowerCase().includes(needle) || u.userName?.toLowerCase().includes(needle) || (u.userCode || "").toLowerCase().includes(needle);
+          const matchRole = roleFilter === "all" || u.userRoles?.some((r) => r.role.name === roleFilter);
+          return matchSearch && matchRole;
+        }),
+      },
+    ];
+  }, [users, search, roleFilter]);
 
   const openEditDialog = (user: User) => {
     setEditingUser(user);
-
     setEditName(user.name || "");
     setEditUserName(user.userName || "");
     setEditEmail(user.email || "");
     setEditPhone(user.phone || "");
-    setEditRole(user.userRoles[0].role.name);
-
+    setEditRole(user.userRoles?.[0]?.role?.name || "");
+    setEditPassword("");
     setEditUserOpen(true);
   };
 
@@ -268,7 +176,6 @@ export default function UserManagementPage() {
   };
 
   const fieldBase = "h-10 px-3 rounded-lg border border-gray-200 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition";
-
   const selectField = fieldBase + " bg-white pr-8 appearance-none";
 
   return (
@@ -328,7 +235,7 @@ export default function UserManagementPage() {
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
@@ -359,8 +266,8 @@ export default function UserManagementPage() {
                     </Button>
                   </DialogClose>
 
-                  <Button type="submit" disabled={loading} className="min-w-[130px] gap-2 px-5">
-                    {loading ? (
+                  <Button type="submit" disabled={creating} className="min-w-[130px] gap-2 px-5">
+                    {creating ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
                         Creating...
@@ -379,18 +286,34 @@ export default function UserManagementPage() {
         </div>
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full lg:w-[350px] group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+            <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+              <div className="relative w-full lg:w-[350px] group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+              </div>
+
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {["SUPER_ADMIN", "ADMIN", ...FALLBACK_ROLES].map((roleName) => (
+                    <SelectItem key={roleName} value={roleName}>
+                      {roleName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Grouped list */}
-          {loading ? (
+          {loading && users.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-10 flex items-center justify-center">
               <Loader2 className="size-5 animate-spin text-gray-400" />
             </div>
-          ) : grouped.length === 0 ? (
+          ) : grouped.length === 0 || (grouped.length > 0 && grouped[0].users.length === 0) ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
               <UsersIcon className="size-8 text-gray-300 mx-auto mb-3" />
               <p className="text-sm font-semibold text-gray-700">No users yet</p>
@@ -459,23 +382,6 @@ export default function UserManagementPage() {
 
                           <TableCell className="py-4 text-right align-top sticky right-0 bg-card shadow-lg md:shadow-none">
                             <div className="hidden md:flex justify-end gap-2">
-                              {/* <Input
-                                type="text"
-                                placeholder="New password"
-                                value={pwInputs[u.id] ?? ""}
-                                onChange={(e) =>
-                                  setPwInputs((prev) => ({
-                                    ...prev,
-                                    [u.id]: e.target.value,
-                                  }))
-                                }
-                                className="h-9 w-40"
-                              />
-
-                              <Button size="sm" onClick={() => changePassword(u.id)} disabled={pwSaving === u.id || !pwInputs[u.id]?.trim()}>
-                                {pwSaving === u.id ? "Saving..." : "Change"}
-                              </Button> */}
-
                               <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit User" onClick={() => openEditDialog(u)}>
                                 <Pencil className="size-5" />
                               </Button>
@@ -503,7 +409,7 @@ export default function UserManagementPage() {
                                   </DropdownMenuItem>
 
                                   {!isSystemUser && (
-                                    <DropdownMenuItem onClick={() => handleDelete(u.id)} className="text-destructive">
+                                    <DropdownMenuItem onClick={() => openDeleteDialog(u)} className="text-destructive">
                                       <Trash2 className="mr-2 size-4" />
                                       Delete
                                     </DropdownMenuItem>
@@ -564,8 +470,8 @@ export default function UserManagementPage() {
             </FieldGroup>
             <FieldGroup>
               <Field>
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" placeholder="••••••••" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} required />
+                <Label htmlFor="password">Password (optional)</Label>
+                <Input id="password" placeholder="Leave blank to keep unchanged" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
               </Field>
             </FieldGroup>
             <FieldGroup>
@@ -596,8 +502,8 @@ export default function UserManagementPage() {
                 </Button>
               </DialogClose>
 
-              <Button type="submit" disabled={loading} className="min-w-[130px] gap-2 px-5">
-                {loading ? (
+              <Button type="submit" disabled={updating} className="min-w-[130px] gap-2 px-5">
+                {updating ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
                     Updating...
@@ -623,7 +529,7 @@ export default function UserManagementPage() {
 
             <AlertDialogTitle className="w-full text-center text-xl">Delete User?</AlertDialogTitle>
 
-            <AlertDialogDescription className="text-center">
+            <AlertDialogDescription className="text-center text-sm">
               This action cannot be undone. This will permanently remove
               <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
             </AlertDialogDescription>
@@ -632,8 +538,8 @@ export default function UserManagementPage() {
           <AlertDialogFooter className="mt-4">
             <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
-            <AlertDialogAction onClick={() => handleDelete(deletingUser?.id!)} disabled={!!deletingId} className="h-11 bg-destructive text-white hover:bg-destructive/90">
-              {deletingId ? (
+            <AlertDialogAction onClick={() => handleDelete(deletingUser?.id!)} disabled={deletingId === deletingUser?.id} className="h-11 bg-destructive text-white hover:bg-destructive/90">
+              {deletingId === deletingUser?.id ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
                   Deleting...
@@ -642,7 +548,8 @@ export default function UserManagementPage() {
                 <>
                   <Trash2 className="mr-2 size-4" />
                   Delete User
-                </>)}
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

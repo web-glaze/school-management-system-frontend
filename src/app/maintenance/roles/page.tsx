@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { ChevronDown, ChevronRight, Loader2, Plus, Save, Search, Shield, ShieldCheck, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Plus, Save, Search, Shield, ShieldAlert, ShieldCheck, Trash2, Check, RotateCcw, Info, Building2, AlertCircle } from "lucide-react";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -10,491 +9,585 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import toast from "react-hot-toast";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { useRoleStore, Permission, Role } from "@/store/roleStore";
+import { Field, FieldGroup } from "@/components/ui/field";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-/**
- * Backend shape (see roles.service.ts):
- *   GET /api/roles               → Role[] where role.permissions is string[]
- *                                  of permission CODES (not objects).
- *   GET /api/roles/permissions   → Permission[] with { id, code, module,
- *                                  description }.
- *   PATCH /api/roles/:id/permissions accepts { permissionIds: string[] }.
- *
- * We store the current selection as a Set<string> of permission IDs per
- * role and map back-and-forth from codes when seeding from the role list.
- */
-interface Permission {
-  id: string;
-  code: string; // e.g. "ticket.create"
-  module?: string;
-  description?: string;
-}
-
-interface Role {
-  id: string;
-  name: string;
-  description?: string | null;
-  isSystem?: boolean; // protects the 6 built-in roles from deletion
-  permissions: string[]; // permission CODES
-}
-
-/**
- * Admin / Super-admin page: tick which permissions each role gets.
- *
- *   GET  /api/roles                  → list of roles + current permissions
- *   GET  /api/roles/permissions      → full catalogue of available permissions
- *   PATCH /api/roles/:id/permissions → save the new permission set for a role
- *
- * The state is "dirty by role" — Save only fires for roles the user actually
- * changed, so a single PATCH per touched role (not one per checkbox).
- */
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const { roles, permissions, loading, savingRoleId, deletingRoleId, creatingRole, fetchRolesAndPermissions, createRole, deleteRole, updateRolePermissions } = useRoleStore();
 
-  // Local pending state: per-role set of permissionIds the user has ticked.
-  // Initially populated from the server response. Diff against the server
-  // copy to know which roles are "dirty".
-  const [pending, setPending] = useState<Record<string, Set<string>>>({});
-  const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
-  // New-role dialog state
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [localPermissions, setLocalPermissions] = useState<Set<string>>(new Set());
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeModule, setActiveModule] = useState<string>("all");
+
   const [newRoleName, setNewRoleName] = useState("");
   const [newRoleDescription, setNewRoleDescription] = useState("");
-  // "Copy permissions from" — when set, the new role starts with the
-  // same ticks as this source role. Useful for sub-heads inheriting
-  // their Maintenance Manager's base permissions.
   const [copyFromRoleId, setCopyFromRoleId] = useState("");
-  const [creatingRole, setCreatingRole] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
 
-  // Collapsible card state — which role IDs are currently expanded.
-  // Default: only the first (top) role is expanded so the page is
-  // readable on first paint instead of 15 sections deep.
-  const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set());
-  const toggleRoleExpanded = (id: string) =>
-    setExpandedRoles((prev) => {
+  // Load initial data
+  useEffect(() => {
+    fetchRolesAndPermissions().catch(() => {
+      toast.error("Failed to load roles and permissions");
+    });
+  }, [fetchRolesAndPermissions]);
+
+  // Code-to-ID mapping
+  const codeToId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of permissions) {
+      map.set(p.code, p.id);
+    }
+    return map;
+  }, [permissions]);
+
+  // Initialize selectedRoleId if empty
+  useEffect(() => {
+    if (roles.length > 0 && !selectedRoleId) {
+      setSelectedRoleId(roles[0].id);
+    }
+  }, [roles, selectedRoleId]);
+
+  // Initialize local permissions when role changes
+  useEffect(() => {
+    const selectedRole = roles.find((r) => r.id === selectedRoleId);
+    if (selectedRole) {
+      const ids = new Set<string>();
+      for (const code of selectedRole.permissions ?? []) {
+        const id = codeToId.get(code);
+        if (id) ids.add(id);
+      }
+      setLocalPermissions(ids);
+    } else {
+      setLocalPermissions(new Set());
+    }
+  }, [selectedRoleId, roles, codeToId]);
+
+  // Find active selected role object
+  const selectedRole = useMemo(() => {
+    return roles.find((r) => r.id === selectedRoleId);
+  }, [roles, selectedRoleId]);
+
+  // Verify if there are unsaved edits
+  const serverPermissionIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (selectedRole) {
+      for (const code of selectedRole.permissions ?? []) {
+        const id = codeToId.get(code);
+        if (id) ids.add(id);
+      }
+    }
+    return ids;
+  }, [selectedRole, codeToId]);
+
+  const isDirty = useMemo(() => {
+    if (serverPermissionIds.size !== localPermissions.size) return true;
+    for (const id of localPermissions) {
+      if (!serverPermissionIds.has(id)) return true;
+    }
+    return false;
+  }, [serverPermissionIds, localPermissions]);
+
+  // Handle single permission toggle
+  const handleTogglePermission = (permissionId: string) => {
+    setLocalPermissions((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(permissionId)) {
+        next.delete(permissionId);
+      } else {
+        next.add(permissionId);
+      }
       return next;
     });
-  const expandAll = () => setExpandedRoles(new Set(roles.map((r) => r.id)));
-  const collapseAll = () => setExpandedRoles(new Set());
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const [rolesRes, permsRes] = await Promise.all([axios.get(`${API_URL}/api/roles`, { headers }), axios.get(`${API_URL}/api/roles/permissions`, { headers })]);
-
-      const rolesData: Role[] = Array.isArray(rolesRes.data) ? rolesRes.data : (rolesRes.data?.data ?? []);
-      const permsData: Permission[] = Array.isArray(permsRes.data) ? permsRes.data : (permsRes.data?.data ?? []);
-
-      setRoles(rolesData);
-      setPermissions(permsData);
-
-      // Seed the pending map: role.permissions is an array of permission
-      // CODES, but we track by ID for save. Build a code→id lookup from
-      // the catalogue, then translate each role's current codes into ids.
-      const codeToId = new Map<string, string>();
-      for (const p of permsData) codeToId.set(p.code, p.id);
-
-      const seed: Record<string, Set<string>> = {};
-      for (const role of rolesData) {
-        const ids = new Set<string>();
-        for (const code of role.permissions ?? []) {
-          const id = codeToId.get(code);
-          if (id) ids.add(id);
-        }
-        seed[role.id] = ids;
-      }
-      setPending(seed);
-    } catch (error) {
-      console.error("roles.page.fetch", error);
-      toast.error("Failed to load roles");
-    } finally {
-      setLoading(false);
-    }
   };
 
-  useEffect(() => {
-    setTimeout(() => fetchData(), 0);
-  }, []);
+  // List of all distinct modules
+  const modules = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of permissions) {
+      const mod = p.module || p.code.split(".")[0] || "other";
+      set.add(mod);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [permissions]);
 
-  /**
-   * Create a brand-new role (e.g. HR_HEAD, ACADEMIC_HEAD). Backend
-   * defaults `isSystem=false` so the new role can be deleted later.
-   * After creating, reload so the new role card shows up.
-   */
-  const createRole = async () => {
+  // Selected permission counts per module
+  const moduleStats = useMemo(() => {
+    const stats: Record<string, { total: number; selected: number }> = {};
+
+    // Initialize stats
+    for (const mod of modules) {
+      stats[mod] = { total: 0, selected: 0 };
+    }
+    if (modules.length > 0 && !stats["other"]) {
+      stats["other"] = { total: 0, selected: 0 };
+    }
+
+    for (const p of permissions) {
+      const mod = p.module || p.code.split(".")[0] || "other";
+      if (!stats[mod]) stats[mod] = { total: 0, selected: 0 };
+      stats[mod].total++;
+      if (localPermissions.has(p.id)) {
+        stats[mod].selected++;
+      }
+    }
+    return stats;
+  }, [permissions, localPermissions, modules]);
+
+  // Total permissions count
+  const totalStats = useMemo(() => {
+    return {
+      total: permissions.length,
+      selected: localPermissions.size,
+    };
+  }, [permissions, localPermissions]);
+
+  // Filter permissions based on search query and active tab module
+  const filteredPermissions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return permissions.filter((p) => {
+      const mod = p.module || p.code.split(".")[0] || "other";
+
+      // Module check
+      if (activeModule !== "all" && mod !== activeModule) {
+        return false;
+      }
+
+      // Query check
+      if (!query) return true;
+      return p.code.toLowerCase().includes(query) || (p.module ?? "").toLowerCase().includes(query) || (p.description ?? "").toLowerCase().includes(query);
+    });
+  }, [permissions, searchQuery, activeModule]);
+
+  // Group filtered permissions by module
+  const groupedPermissions = useMemo(() => {
+    const map = new Map<string, Permission[]>();
+    for (const p of filteredPermissions) {
+      const mod = p.module || p.code.split(".")[0] || "other";
+      if (!map.has(mod)) {
+        map.set(mod, []);
+      }
+      map.get(mod)!.push(p);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredPermissions]);
+
+  // Handle module toggle select/clear all
+  const handleToggleModule = (moduleName: string, checkAll: boolean) => {
+    // Find all permission IDs belonging to this module
+    const targetPerms = permissions.filter((p) => {
+      const mod = p.module || p.code.split(".")[0] || "other";
+      return mod === moduleName;
+    });
+
+    setLocalPermissions((prev) => {
+      const next = new Set(prev);
+      for (const p of targetPerms) {
+        if (checkAll) {
+          next.add(p.id);
+        } else {
+          next.delete(p.id);
+        }
+      }
+      return next;
+    });
+  };
+
+  // Store action triggers
+  const handleCreateRole = async () => {
     const name = newRoleName.trim().toUpperCase().replace(/\s+/g, "_");
     if (!name) {
       toast.error("Role name is required");
       return;
     }
     try {
-      setCreatingRole(true);
-      const token = localStorage.getItem("token");
-      const createdRes = await axios.post(
-        `${API_URL}/api/roles`,
-        {
-          name,
-          description: newRoleDescription.trim() || undefined,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // If admin picked "Copy permissions from <existing role>", apply
-      // that source role's permission set to the new role right away.
-      // One follow-up PATCH — admin can still adjust before clicking Save
-      // on the new card.
-      const created = createdRes.data?.data ?? createdRes.data;
-      const newId = created?.id ?? null;
-      if (newId && copyFromRoleId) {
-        const source = roles.find((r) => r.id === copyFromRoleId);
-        if (source) {
-          const codeToId = new Map<string, string>();
-          for (const p of permissions) codeToId.set(p.code, p.id);
-          const permissionIds: string[] = [];
-          for (const code of source.permissions ?? []) {
-            const pid = codeToId.get(code);
-            if (pid) permissionIds.push(pid);
-          }
-          if (permissionIds.length > 0) {
-            await axios.patch(`${API_URL}/api/roles/${newId}/permissions`, { permissionIds }, { headers: { Authorization: `Bearer ${token}` } });
-          }
-        }
-      }
-
-      toast.success(copyFromRoleId ? `Role "${name}" created with copied permissions` : `Role "${name}" created`);
-      setNewRoleName("");
-      setNewRoleDescription("");
-      setCopyFromRoleId("");
-      setCreateOpen(false);
-      await fetchData();
-      // Auto-expand the brand-new role card so admin can immediately tweak.
-      if (newId) {
-        setExpandedRoles((prev) => {
-          const next = new Set(prev);
-          next.add(newId);
-          return next;
-        });
+      const created = await createRole(name, newRoleDescription.trim() || undefined, copyFromRoleId || undefined);
+      if (created) {
+        toast.success(`Role "${name}" created`);
+        setSelectedRoleId(created.id);
+        setNewRoleName("");
+        setNewRoleDescription("");
+        setCopyFromRoleId("");
+        setCreateOpen(false);
       }
     } catch (error) {
-      console.error("roles.page.create", error);
       toast.error("Failed to create role");
-    } finally {
-      setCreatingRole(false);
     }
   };
 
-  /**
-   * Delete a custom role. Backend rejects deletion of system roles
-   * (SUPER_ADMIN, ADMIN, MANAGER, TECHNICIAN, STAFF, USER) so we also
-   * guard the button on the frontend.
-   */
-  const deleteRole = async (role: Role) => {
-    if (role.isSystem) {
+  const handleDeleteRole = async () => {
+    if (!selectedRole) return;
+    if (selectedRole.isSystem) {
       toast.error("System roles cannot be deleted");
       return;
     }
-    if (!confirm(`Delete role "${role.name}"? Users with this role will lose its permissions.`)) {
+    if (!confirm(`Are you sure you want to delete "${selectedRole.name}"? Users assigned to this role will lose its permissions.`)) {
       return;
     }
     try {
-      setDeletingRoleId(role.id);
-      const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/api/roles/${role.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success(`Deleted ${role.name}`);
-      await fetchData();
+      const name = selectedRole.name;
+      await deleteRole(selectedRole.id);
+      toast.success(`Deleted role "${name}"`);
+      setSelectedRoleId(roles[0]?.id || "");
     } catch (error) {
-      console.error("roles.page.delete", error);
       toast.error("Failed to delete role");
-    } finally {
-      setDeletingRoleId(null);
     }
   };
 
-  const togglePermission = (roleId: string, permissionId: string) => {
-    setPending((prev) => {
-      const next = { ...prev };
-      const current = new Set(next[roleId] ?? []);
-      if (current.has(permissionId)) current.delete(permissionId);
-      else current.add(permissionId);
-      next[roleId] = current;
-      return next;
-    });
-  };
-
-  const isDirty = (role: Role): boolean => {
-    // Build the server set fresh each render — translate codes to ids
-    // using the catalogue we already have in state.
-    const codeToId = new Map<string, string>();
-    for (const p of permissions) codeToId.set(p.code, p.id);
-    const server = new Set<string>();
-    for (const code of role.permissions ?? []) {
-      const id = codeToId.get(code);
-      if (id) server.add(id);
-    }
-    const local = pending[role.id] ?? new Set<string>();
-    if (server.size !== local.size) return true;
-    for (const id of local) if (!server.has(id)) return true;
-    return false;
-  };
-
-  const saveRole = async (role: Role) => {
+  const handleSaveChanges = async () => {
+    if (!selectedRoleId || !selectedRole) return;
     try {
-      setSavingRoleId(role.id);
-      const token = localStorage.getItem("token");
-
-      const permissionIds = Array.from(pending[role.id] ?? new Set<string>());
-
-      await axios.patch(`${API_URL}/api/roles/${role.id}/permissions`, { permissionIds }, { headers: { Authorization: `Bearer ${token}` } });
-
-      toast.success(`Saved ${role.name}`);
-      await fetchData();
+      await updateRolePermissions(selectedRoleId, Array.from(localPermissions));
+      toast.success(`Permissions saved for ${selectedRole.name}`);
     } catch (error) {
-      console.error("roles.page.save", error);
-      toast.error("Failed to save role");
-    } finally {
-      setSavingRoleId(null);
+      toast.error("Failed to save permissions");
     }
   };
 
-  // Group permissions by their backend `module` field (or the code prefix
-  // if module is missing) so the matrix reads as "ticket: create, read,
-  // assign, …" instead of one big list.
-  const groups = useMemo(() => {
-    const map = new Map<string, Permission[]>();
-    const filtered = permissions.filter((p) => {
-      if (!p || typeof p.code !== "string") return false;
-      if (!search.trim()) return true;
-      const needle = search.toLowerCase();
-      return p.code.toLowerCase().includes(needle) || (p.module ?? "").toLowerCase().includes(needle) || (p.description ?? "").toLowerCase().includes(needle);
-    });
-    for (const perm of filtered) {
-      const group = perm.module || perm.code.split(".")[0] || "other";
-      if (!map.has(group)) map.set(group, []);
-      map.get(group)!.push(perm);
-    }
-    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [permissions, search]);
+  const handleDiscardChanges = () => {
+    setLocalPermissions(new Set(serverPermissionIds));
+    toast.success("Changes discarded");
+  };
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-4">
         <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Roles & Permissions</h1>
-            <p className="text-muted-foreground">Maintain roles & permissions</p>
+            <p className="text-muted-foreground">Manage system access levels, create custom roles, and assign granular resource permissions</p>
           </div>
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 shrink-0">
-                <Plus className="size-4" />
-                New Role
-              </Button>
-            </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[440px]">
-              <DialogHeader>
-                <DialogTitle>Create a new role</DialogTitle>
-              </DialogHeader>
+          <div className="flex gap-2">
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 px-5">
+                  <Plus className="size-4" />
+                  New Role
+                </Button>
+              </DialogTrigger>
 
-              <div className="space-y-3 py-2">
-                <div>
-                  <Label htmlFor="role-name" className="text-xs">
-                    Role Name
-                  </Label>
-                  <Input id="role-name" autoFocus placeholder="e.g. HR_HEAD" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value.toUpperCase())} className="mt-1" />
+              <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+                <div className="border-b px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Shield className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-lg">Create Role</DialogTitle>
+                      <DialogDescription>Create a new role</DialogDescription>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="role-description" className="text-xs">
-                    Description (optional)
-                  </Label>
-                  <Input id="role-description" placeholder="What this role is for" value={newRoleDescription} onChange={(e) => setNewRoleDescription(e.target.value)} className="mt-1" />
+                <div className="space-y-4 p-6">
+                  <FieldGroup>
+                    <Field>
+                      <Label htmlFor="role-name">Role Name</Label>
+                      <Input id="role-name" autoFocus placeholder="e.g. MAINTENANCE_SUPERVISOR" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value.toUpperCase())} />
+                    </Field>
+                  </FieldGroup>
+
+                  <FieldGroup>
+                    <Field>
+                      <Label htmlFor="role-description">Description (optional)</Label>
+                      <Input id="role-description" placeholder="Brief details about what this role manages" value={newRoleDescription} onChange={(e) => setNewRoleDescription(e.target.value)} />
+                    </Field>
+                  </FieldGroup>
+
+                  <FieldGroup>
+                    <Field>
+                      <Label>Copy permissions from (optional)</Label>
+                      <Select value={copyFromRoleId || "none"} onValueChange={(value) => setCopyFromRoleId(value === "none" ? "" : value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Start blank (no permissions)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Start blank (no permissions)</SelectItem>
+                          {roles.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.name} ({r.permissions.length} permissions)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </FieldGroup>
+
+                  <DialogFooter className="gap-2">
+                    <DialogClose asChild>
+                      <Button variant="outline" type="button" disabled={creatingRole}>
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <Button onClick={handleCreateRole} disabled={creatingRole || !newRoleName.trim()} className="min-w-[130px] gap-2 px-5">
+                      {creatingRole ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="size-4" />
+                          Create Role
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
                 </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
 
-                <div>
-                  <Label className="text-xs">Copy permissions from (optional)</Label>
-
-                  <Select value={copyFromRoleId || "none"} onValueChange={(value) => setCopyFromRoleId(value === "none" ? "" : value)}>
-                    <SelectTrigger className="mt-1 w-full">
-                      <SelectValue placeholder="Start blank (no permissions)" />
+        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
+          <div className="space-y-2 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="role-select" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Selected Role
+              </Label>
+              <div className="flex flex-row items-center gap-3">
+                {loading && roles.length === 0 ? (
+                  <div className="w-[280px] h-11 bg-muted animate-pulse rounded-xl" />
+                ) : (
+                  <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
+                    <SelectTrigger id="role-select" className="w-[150px]">
+                      <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
-
-                    <SelectContent>
-                      <SelectItem value="none">Start blank (no permissions)</SelectItem>
-
-                      {roles.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name} ({r.permissions.length} perms)
+                    <SelectContent className="rounded-md">
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id} className="font-medium">
+                          {role.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                )}
+
+                {selectedRole && (
+                  <div className="flex items-center gap-2">
+                    {selectedRole.isSystem ? (
+                      <Badge variant="secondary" className="bg-amber-500/10 text-amber-700 border-none font-bold uppercase tracking-wider text-[12px] px-2.5 py-3 rounded-full">
+                        System Role
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-sky-500/10 text-sky-700 font-bold uppercase tracking-wider text-[12px] px-2.5 py-3 rounded-full border-none">
+                        Custom Role
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
-
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="ghost" type="button" disabled={creatingRole}>
-                    Cancel
-                  </Button>
-                </DialogClose>
-
-                <Button onClick={createRole} disabled={creatingRole || !newRoleName.trim()} className="gap-2 px-5">
-                  {creatingRole ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="size-3.5" />
-                      Create
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full lg:w-[350px] group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input type="text" placeholder="Filter permissions..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
-            <div>
-              <Button type="button" variant="outline" onClick={expandedRoles.size === roles.length ? collapseAll : expandAll} disabled={roles.length === 0}>
-                {expandedRoles.size === roles.length ? (
+            <div className="flex items-center gap-1">
+              {selectedRole && !selectedRole.isSystem && (
+                <Button variant="outline" size="sm" onClick={handleDeleteRole} disabled={!!deletingRoleId} className="gap-2 px-4 py-4 text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30">
+                  {deletingRoleId === selectedRole.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Delete
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={handleSaveChanges}
+                disabled={!isDirty || savingRoleId === selectedRoleId}
+                className={`gap-2 px-4 py-4 transition-all duration-300 ${isDirty ? "bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-[1.01]" : "bg-primary text-primary-foreground"}`}
+              >
+                {savingRoleId === selectedRoleId ? (
                   <>
-                    <ChevronRight className="size-3.5" />
-                    Collapse All
+                    <Loader2 className="size-4 animate-spin" />
+                    Saving...
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="size-3.5" />
-                    Expand All
+                    <Save className="size-4" />
+                    Save
                   </>
                 )}
               </Button>
             </div>
           </div>
+          <div className="h-px bg-border/60 w-full" />
+
+          {/* Stats badges */}
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5 border border-border/30">
+              <ShieldCheck className="size-4 text-primary" />
+              <span className="font-semibold text-foreground">{localPermissions.size}</span>
+              <span>of {permissions.length} total permissions active</span>
+            </div>
+          </div>
         </div>
 
-        {/* Matrix */}
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />
-            ))}
+        {/* Loading and empty states */}
+        {loading && roles.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-12 bg-muted rounded-xl animate-pulse" />
+              ))}
+            </div>
+            <div className="space-y-6">
+              <div className="h-24 bg-muted rounded-md animate-pulse" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />
+                ))}
+              </div>
+            </div>
           </div>
         ) : roles.length === 0 ? (
-          <div className="bg-card rounded-md border border-border/60 p-10 text-center">
-            <Shield className="size-10 text-muted-foreground/60 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No roles found. Seed your database first.</p>
+          <div className="bg-card rounded-md border border-border/60 p-12 text-center max-w-md mx-auto">
+            <ShieldAlert className="size-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-foreground">No roles loaded</h3>
+            <p className="text-sm text-muted-foreground mt-2">Seed your database or create a new role using the button above.</p>
+          </div>
+        ) : !selectedRole ? (
+          <div className="bg-card rounded-md border border-border/60 p-12 text-center max-w-md mx-auto">
+            <Info className="size-12 text-primary/60 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-foreground">No role selected</h3>
+            <p className="text-sm text-muted-foreground mt-2">Select a role from the dropdown selector above to continue configuration.</p>
           </div>
         ) : (
-          <div className="space-y-5">
-            {roles.map((role) => {
-              const dirty = isDirty(role);
-              const saving = savingRoleId === role.id;
-              const localPerms = pending[role.id] ?? new Set<string>();
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] lg:grid-cols-[280px_1fr] gap-4 items-start">
+              <div className="md:sticky top-28 bg-card border border-border/60 rounded-md p-4 space-y-2 max-h-[calc(100vh-140px)] overflow-y-auto">
+                <h3 className="text-[12px] font-bold text-muted-foreground tracking-wider uppercase px-3 py-2">Modules</h3>
 
-              return (
-                <div key={role.id} className="bg-card rounded-md border border-border/60 overflow-hidden">
-                  {/* Clickable header — toggles expand. Stops at the
-                      action buttons on the right so clicking Save/Delete
-                      doesn't also collapse the section. */}
-                  <div onClick={() => toggleRoleExpanded(role.id)} className="w-full flex items-center justify-between px-5 py-4 border-b border-border/50 hover:bg-muted/30 transition text-left cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground">{expandedRoles.has(role.id) ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</span>
-                      <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Shield className="size-4 text-primary" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-foreground">{role.name}</h3>
-                          {role.isSystem && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">System</span>}
-                          {dirty && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">Unsaved</span>}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          {localPerms.size} permission
-                          {localPerms.size === 1 ? "" : "s"} selected
-                          {role.description ? ` · ${role.description}` : ""}
-                        </p>
-                      </div>
-                    </div>
+                <button
+                  onClick={() => setActiveModule("all")}
+                  className={`w-full text-left flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-semibold transition-all duration-150 ${
+                    activeModule === "all" ? "bg-sky-600 text-primary-foreground" : "text-muted-foreground hover:bg-gray-200 hover:text-foreground"
+                  }`}
+                >
+                  <span>All Modules</span>
+                  <Badge variant="outline" className={`border-none text-[10px] font-bold py-0 h-5 px-2 rounded-full ${activeModule === "all" ? "bg-white text-black" : "bg-muted text-muted-foreground"}`}>
+                    {totalStats.selected} / {totalStats.total}
+                  </Badge>
+                </button>
 
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      {/* Delete — hidden for system roles */}
-                      {!role.isSystem && (
-                        <Button variant="ghost" size="icon" onClick={() => deleteRole(role)} disabled={deletingRoleId === role.id} className="size-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="Delete role">
-                          {deletingRoleId === role.id ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
-                        </Button>
-                      )}
+                <div className="h-px bg-border/60 my-2" />
 
-                      <Button size="sm" onClick={() => saveRole(role)} disabled={!dirty || saving} className="h-9 gap-2">
-                        {saving ? (
-                          <>
-                            <Loader2 className="size-3.5 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="size-3.5" />
-                            {dirty ? "Save" : "Saved"}
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                <div className="space-y-1">
+                  {modules.map((mod) => {
+                    const stats = moduleStats[mod] || { total: 0, selected: 0 };
+                    const isActive = activeModule === mod;
+
+                    return (
+                      <button
+                        key={mod}
+                        onClick={() => setActiveModule(mod)}
+                        className={`w-full text-left flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-semibold capitalize transition-all duration-150 ${
+                          isActive ? "bg-sky-600 text-primary-foreground" : "text-muted-foreground hover:bg-gray-200 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="truncate">{mod}</span>
+                        <Badge variant="outline" className={`border-none text-[10px] font-bold py-0 h-5 px-2 rounded-full ${isActive ? "bg-white text-black" : "bg-muted text-muted-foreground"}`}>
+                          {stats.selected} / {stats.total}
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-card rounded-md border border-border/60 p-4 flex flex-col sm:flex-row items-center gap-4">
+                  <div className="relative w-full group flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input type="text" placeholder="Filter permissions by code or details..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-11 h-11 rounded-md bg-muted/30 border-border/80 focus:bg-background" />
                   </div>
+                </div>
+                {isDirty && (
+                  <div className="flex flex-col gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-col gap-2">
+                      <Badge className="bg-orange-500 hover:bg-orange-500 text-white shrink-0">Unsaved Changes</Badge>
 
-                  {/* Body — only mounted when the role is expanded. Hides
-                      the (potentially long) permission grid on long pages. */}
-                  {expandedRoles.has(role.id) && (
-                    <div className="p-5 space-y-5">
-                      {groups.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">No permissions match your filter.</p>
-                      ) : (
-                        groups.map(([groupName, perms]) => (
-                          <div key={groupName} className="space-y-2">
-                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{groupName}</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                              {perms.map((perm) => {
-                                const checked = localPerms.has(perm.id);
-                                return (
-                                  <label key={perm.id} className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${checked ? "border-primary/30 bg-primary/[0.04]" : "border-border/60 hover:bg-muted/30"}`}>
-                                    <input type="checkbox" checked={checked} onChange={() => togglePermission(role.id, perm.id)} className="mt-0.5 accent-primary cursor-pointer" />
-                                    <div className="min-w-0">
-                                      <div className="text-xs font-semibold text-foreground truncate">{perm.code}</div>
-                                      {perm.description && <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{perm.description}</div>}
-                                    </div>
-                                  </label>
-                                );
-                              })}
+                      <div className="flex items-center gap-2 text-sm font-medium text-orange-700">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span>You have unsaved changes. Save them before leaving this page.</span>
+                      </div>
+                    </div>
+
+                    <Button variant="outline" size="sm" onClick={handleDiscardChanges} disabled={savingRoleId === selectedRoleId} className="px-3">
+                      <RotateCcw className="h-4 w-4" />
+                      Discard Changes
+                    </Button>
+                  </div>
+                )}
+
+                {groupedPermissions.length === 0 ? (
+                  <div className="bg-card border border-border/60 rounded-md p-10 text-center">
+                    <Search className="size-10 text-muted-foreground/60 mx-auto mb-3" />
+                    <h4 className="font-bold text-foreground">No permissions found</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Try resetting your search query or choosing a different module domain.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {groupedPermissions.map(([groupName, perms]) => {
+                      const stats = moduleStats[groupName] || { total: 0, selected: 0 };
+                      const allChecked = perms.every((p) => localPermissions.has(p.id));
+                      const someChecked = perms.some((p) => localPermissions.has(p.id));
+
+                      return (
+                        <div key={groupName} className="bg-card border border-border/60 rounded-md p-6 space-y-4 transition-all duration-300">
+                          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/55 pb-3">
+                            <div>
+                              <h4 className="text-sm font-bold uppercase tracking-wide text-foreground flex items-center gap-2">
+                                <span className="capitalize">{groupName}</span>
+                              </h4>
+                              <p className="text-[12px] text-muted-foreground mt-0.5">
+                                {stats.selected} of {stats.total} permission codes active.
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Button size="sm" variant="default" onClick={() => handleToggleModule(groupName, !allChecked)}>
+                                {allChecked ? "Clear All" : "Select All"}
+                              </Button>
                             </div>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+
+                          {/* Permissions Cards Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {perms.map((perm) => {
+                              const checked = localPermissions.has(perm.id);
+                              return (
+                                <div
+                                  key={perm.id}
+                                  onClick={() => handleTogglePermission(perm.id)}
+                                  className={`flex items-start justify-between gap-3 p-4 rounded-md border cursor-pointer select-none transition-all duration-200 ${
+                                    checked ? "border-sky-600/60 bg-sky-50/50" : "border-border/60 hover:border-border hover:bg-muted/30"
+                                  }`}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-bold text-foreground" title={perm.code}>
+                                      {perm.code}
+                                    </div>
+                                    {perm.description && (
+                                      <div className="text-[12px] text-muted-foreground leading-relaxed line-clamp-2" title={perm.description}>
+                                        {perm.description}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="shrink-0 pt-0.5">
+                                    <div className={`w-8 h-5 rounded-full relative transition-colors duration-200 ${checked ? "bg-sky-600" : "bg-muted-foreground/30"}`}>
+                                      <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.75 left-0.75 transition-transform duration-200 ${checked ? "translate-x-3.25" : ""}`} />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
