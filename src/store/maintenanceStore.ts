@@ -237,6 +237,18 @@ export interface Complaint {
     oldValue?: string;
     newValue?: string;
     createdAt: string;
+
+    createdBy?: {
+      id: string;
+      name?: string;
+      userCode?: string;
+    };
+
+    attachments?: {
+      id: string;
+      url: string;
+      type: "IMAGE" | "VIDEO";
+    }[];
   }[];
 }
 

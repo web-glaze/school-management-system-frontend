@@ -3,47 +3,21 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Save, Upload, ImageIcon } from "lucide-react";
+import { ArrowLeft, Save, Upload, Paperclip, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  useComplaintStore,
-  useTechnicianStore,
-  useDepartmentStore,
-  Complaint,
-} from "@/store/maintenanceStore";
+import { useComplaintStore, useTechnicianStore, useDepartmentStore, Complaint } from "@/store/maintenanceStore";
 import { complaintService } from "@/services/maintenance.service";
-
-interface Technician {
-  id: string;
-  name: string;
-}
-
-interface Department {
-  id: string;
-  name: string;
-}
+import apiClient from "@/services/api";
 
 export default function TicketManagementPage() {
   const params = useParams();
@@ -60,24 +34,41 @@ export default function TicketManagementPage() {
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [technicianId, setTechnicianId] = useState("");
-  const [adminImageUrl, setAdminImageUrl] = useState("");
   const [departmentId, setDepartmentId] = useState("");
+  const [adminAttachments, setAdminAttachments] = useState<
+    {
+      url: string;
+      type: "IMAGE" | "VIDEO";
+    }[]
+  >([]);
+
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+
+  const [selectedAttachments, setSelectedAttachments] = useState<
+    {
+      id?: string;
+      url: string;
+      type: "IMAGE" | "VIDEO";
+    }[]
+  >([]);
+
+  const [previewFile, setPreviewFile] = useState<{
+    url: string;
+    type: "IMAGE" | "VIDEO";
+  } | null>(null);
 
   const fetchData = async () => {
     try {
       const cRes = await complaintService.getById(id);
       const cData = cRes.data.data || cRes.data;
 
-      await Promise.all([
-        fetchTechnicians(),
-        fetchDepartments(),
-      ]);
+      await Promise.all([fetchTechnicians(), fetchDepartments()]);
 
       setComplaint(cData);
       setStatus(cData.status || "");
       setPriority(cData.priority || "");
       setTechnicianId(cData.assignedTechnician?.id || "");
-      setAdminImageUrl(cData.adminImageUrl || "");
+      setAdminAttachments([]);
       setDepartmentId(cData.department?.id || "");
     } catch (error) {
       toast.error("Failed to fetch administrative records.");
@@ -87,15 +78,41 @@ export default function TicketManagementPage() {
   };
 
   useEffect(() => {
-    if (id) fetchData();
+    if (id)
+      setTimeout(() => {
+        fetchData();
+      }, 0);
   }, [id]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setAdminImageUrl(reader.result as string);
-      reader.readAsDataURL(file);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    if (!files.length) return;
+
+    try {
+      const formData = new FormData();
+
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await apiClient.post("/uploads/media", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const uploadedFiles = response.data?.data?.files ?? [];
+
+      setAdminAttachments((prev) => [
+        ...prev,
+        ...uploadedFiles.map((file: any) => ({
+          url: file.url,
+          type: file.type,
+        })),
+      ]);
+    } catch {
+      toast.error("Upload failed");
     }
   };
 
@@ -108,7 +125,7 @@ export default function TicketManagementPage() {
         priority,
         technicianId: technicianId || null,
         departmentId: departmentId || null,
-        adminImageUrl: adminImageUrl || null,
+        attachments: adminAttachments.map((file) => ({ ...file, owner: "ADMIN" })),
       });
       toast.success("Ticket Updated Successfully");
       await fetchData();
@@ -272,20 +289,17 @@ export default function TicketManagementPage() {
     }
   };
 
+  const userAttachments = complaint.attachments?.filter((f) => f.owner === "USER") || [];
+
   return (
     <DashboardLayout>
       <div className="space-y-8 mx-auto max-w-7xl w-full">
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Ticket #{complaint.ticketCode}
-            </h1>
+            <h1 className="text-2xl font-bold text-foreground">Ticket #{complaint.ticketCode}</h1>
             <p className="text-muted-foreground">Ticket Detail Page</p>
           </div>
-          <Button
-            className="bg-primary text-white hover:bg-primary/90"
-            onClick={() => router.back()}
-          >
+          <Button className="bg-primary text-white hover:bg-primary/90" onClick={() => router.back()}>
             <ArrowLeft size={18} /> Back
           </Button>
         </div>
@@ -294,9 +308,7 @@ export default function TicketManagementPage() {
           <Card className="lg:col-span-8">
             <CardHeader>
               <CardTitle>Ticket Information</CardTitle>
-              <CardDescription>
-                Update ticket information, assignment and status.
-              </CardDescription>
+              <CardDescription>Update ticket information, assignment and status.</CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6">
@@ -316,7 +328,7 @@ export default function TicketManagementPage() {
                   />
                 </Field>
               </FieldGroup>
-              <div className="grid grid-cols-1 lg:grid-col-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <FieldGroup>
                   <Field>
                     <Label>Status</Label>
@@ -354,10 +366,7 @@ export default function TicketManagementPage() {
                 <FieldGroup>
                   <Field>
                     <Label>Assigned Technician</Label>
-                    <Select
-                      value={technicianId}
-                      onValueChange={setTechnicianId}
-                    >
+                    <Select value={technicianId} onValueChange={setTechnicianId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Technician" />
                       </SelectTrigger>
@@ -375,10 +384,7 @@ export default function TicketManagementPage() {
                 <FieldGroup>
                   <Field>
                     <Label>Department</Label>
-                    <Select
-                      value={departmentId}
-                      onValueChange={setDepartmentId}
-                    >
+                    <Select value={departmentId} onValueChange={setDepartmentId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Department" />
                       </SelectTrigger>
@@ -397,34 +403,29 @@ export default function TicketManagementPage() {
               <div className="space-y-2">
                 <Label>Issue Resolved</Label>
                 <div className="flex items-center gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
+                  <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="mr-2 size-4" /> Upload Image
                   </Button>
-                  <Input
-                    type="file"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                  />
-                  {adminImageUrl && (
-                    <img
-                      src={adminImageUrl}
-                      alt="Preview"
-                      className="h-16 w-16 object-cover rounded border"
-                    />
-                  )}
+                  <Input type="file" multiple className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*,video/*" />
+                  {adminAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {adminAttachments.map((file, idx) => (
+                        <div key={idx} className="relative group rounded overflow-hidden">
+                          {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-16 w-16 rounded border object-cover" /> : <video src={file.url} className="h-16 w-16 rounded border object-cover" />}
+
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                            <button type="button" onClick={() => setAdminAttachments((prev) => prev.filter((_, i) => i !== idx))} className="px-2 py-1 rounded bg-red-500 text-white text-xs font-medium">
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}{" "}
                 </div>
               </div>
 
-              <Button
-                onClick={saveChanges}
-                disabled={saving}
-                className="h-11 px-6"
-              >
+              <Button onClick={saveChanges} disabled={saving} className="h-11 px-6">
                 <Save className="size-4 mr-2" />
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
@@ -433,90 +434,82 @@ export default function TicketManagementPage() {
           <Card className="lg:col-span-4">
             <CardHeader>
               <CardTitle>Ticket Details</CardTitle>
-              <CardDescription>
-                Overview and assignment information
-              </CardDescription>
+              <CardDescription>Overview and assignment information</CardDescription>
             </CardHeader>
 
             <CardContent>
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Status</span>
-                  <Badge
-                    variant="outline"
-                    className={getStatusBadge(complaint.status)}
-                  >
+                  <Badge variant="outline" className={getStatusBadge(complaint.status)}>
                     {complaint.status.replaceAll("_", " ")}
                   </Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Priority
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={getPriorityBadge(complaint.priority)}
-                  >
+                  <span className="text-sm text-muted-foreground">Priority</span>
+                  <Badge variant="outline" className={getPriorityBadge(complaint.priority)}>
                     {complaint.priority}
                   </Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Department
-                  </span>
-                  <span className="font-medium">
-                    {complaint.department?.name || "Unassigned"}
-                  </span>
+                  <span className="text-sm text-muted-foreground">Department</span>
+                  <span className="font-medium">{complaint.department?.name || "Unassigned"}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Assigned To
-                  </span>
-                  <span className="font-medium text-right">
-                    {complaint.assignedTechnician?.name || "Unassigned"}
-                  </span>
+                  <span className="text-sm text-muted-foreground">Assigned To</span>
+                  <span className="font-medium text-right">{complaint.assignedTechnician?.name || "Unassigned"}</span>
                 </div>
 
                 <Separator />
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">Issue Attachments</h4>
 
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold">Issue Image</h4>
-                  {complaint.imageUrl ? (
-                    <img
-                      src={complaint.imageUrl}
-                      alt="Issue Image"
-                      className="w-full rounded border"
-                    />
-                  ) : (
-                    <div className="h-32 flex items-center justify-center border rounded bg-slate-50">
-                      <ImageIcon className="text-slate-300" />
+                  {userAttachments.length > 0 ? (
+                    <div className="flex gap-2">
+                      {userAttachments.slice(0, 2).map((file) => (
+                        <button
+                          key={file.id}
+                          onClick={() => {
+                            setSelectedAttachments(userAttachments);
+                            setAttachmentsOpen(true);
+                          }}
+                          className="h-16 w-16 overflow-hidden rounded-md border cursor-pointer"
+                        >
+                          {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-full w-full object-cover" /> : <video src={file.url} className="h-full w-full object-cover" />}
+                        </button>
+                      ))}
+
+                      {userAttachments.length > 2 && (
+                        <button
+                          onClick={() => {
+                            setSelectedAttachments(userAttachments);
+                            setAttachmentsOpen(true);
+                          }}
+                          className="h-16 w-16 rounded-md border flex items-center justify-center font-semibold text-sm bg-muted"
+                        >
+                          +{userAttachments.length - 2}
+                        </button>
+                      )}
                     </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No attachments</p>
                   )}
                 </div>
-
                 <Separator />
 
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold">
-                    Reporting Information
-                  </h4>
+                  <h4 className="text-sm font-semibold">Reporting Information</h4>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Reported By
-                    </span>
-                    <span className="text-sm text-right break-all">
-                      {complaint.user?.email}
-                    </span>
+                    <span className="text-sm text-muted-foreground">Reported By</span>
+                    <span className="text-sm text-right break-all">{complaint.user?.email}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Reported At
-                    </span>
+                    <span className="text-sm text-muted-foreground">Reported At</span>
                     <span className="text-sm text-right">
                       {new Date(complaint.createdAt).toLocaleString("en-IN", {
                         day: "2-digit",
@@ -532,21 +525,115 @@ export default function TicketManagementPage() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold">
-                    Location Information
-                  </h4>
+                  <h4 className="text-sm font-semibold">Location Information</h4>
 
                   <div className="flex items-start justify-between gap-4">
-                    <span className="text-sm text-muted-foreground">
-                      {complaint.locationType}
-                    </span>
+                    <span className="text-sm text-muted-foreground">{complaint.locationType}</span>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold">Activity Timeline</h2>
+              <p className="text-muted-foreground">Complaint history and updates</p>
+            </div>
+
+            <Badge variant="secondary">{complaint.activities?.length || 0} Events</Badge>
+          </div>
+
+          <div className="space-y-6">
+            {complaint.activities?.map((activity, index) => (
+              <div key={activity.id} className="flex gap-5">
+                {/* Timeline */}
+                <div className="relative flex flex-col items-center shrink-0">
+                  <div className="h-4 w-4 rounded-full bg-primary z-10" />
+
+                {index !== (complaint.activities?.length ?? 0) - 1 && ( <div className="absolute top-4 w-px h-[calc(100%+1.5rem)] bg-border" />)}
+                </div>
+
+                {/* Activity Card */}
+                <Card className="flex-1">
+                  <CardContent className="p-5">
+                    <div className="font-medium">
+                      {activity.action === "TICKET_CREATED" && "Ticket Created"}
+
+                      {activity.action === "STATUS_CHANGED" && `Status changed from ${activity.oldValue} to ${activity.newValue}`}
+
+                      {activity.action === "TECHNICIAN_ASSIGNED" && "Technician Assigned"}
+
+                      {activity.action === "DEPARTMENT_CHANGED" && "Department Assigned"}
+
+                      {activity.action === "ATTACHMENT_ADDED" && "Attachments Added"}
+                    </div>
+
+                    <div className="text-sm text-muted-foreground mt-1">{activity.createdBy?.name || "System"}</div>
+
+                    {activity.message && <div className="text-sm text-muted-foreground mt-2">{activity.message}</div>}
+
+                    <div className="text-xs text-muted-foreground mt-3">
+                      {new Date(activity.createdAt).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+
+                    {activity.attachments?.length ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() => {
+                          setSelectedAttachments(activity.attachments ?? []);
+                          setAttachmentsOpen(true);
+                        }}
+                      >
+                        <Paperclip className="h-4 w-4 mr-2" />
+                        {activity.attachments.length} {activity.attachments.length === 1 ? "Attachment" : "Attachments"}
+                      </Button>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {attachmentsOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-auto p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Attachments ({selectedAttachments.length})</h3>
+
+              <Button variant="outline" onClick={() => setAttachmentsOpen(false)}>
+                Close
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {selectedAttachments.map((file, index) => (
+                <div key={file.id || index}>
+                  {file.type === "IMAGE" ? <img src={file.url} alt="" onClick={() => setPreviewFile(file)} className="w-full rounded-md border" /> : <video controls src={file.url} className="w-full rounded-md border" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {previewFile && (
+        <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-6" onClick={() => setPreviewFile(null)}>
+          <div className="max-w-7xl max-h-[95vh]" onClick={(e) => e.stopPropagation()}>
+            {previewFile.type === "IMAGE" ? <img src={previewFile.url} alt="" className="max-h-[95vh] max-w-full object-contain rounded-lg" /> : <video controls autoPlay src={previewFile.url} className="max-h-[95vh] max-w-full rounded-lg" />}
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

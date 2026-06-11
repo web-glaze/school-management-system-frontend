@@ -5,34 +5,52 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
-import { ImagePlus, RefreshCw, Trash2, Plus } from "lucide-react";
-
-import { Building2, Layers, MapPin, ArrowUp, ArrowLeft, ArrowRight, AlertCircle, Flame, ShieldAlert, CheckCircle2, Undo, Loader2, Check, ChevronRight } from "lucide-react";
-
+import { locationService } from "@/services/maintenance.service";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useLocationStore, useComplaintStore, Location } from "@/store/maintenanceStore";
 import apiClient from "@/services/api";
-
+import { Building2, Layers, MapPin, ArrowUp, ArrowLeft, ArrowRight, AlertCircle, Flame, ShieldAlert, CheckCircle2, Undo, Loader2, Check, ChevronRight, ImagePlus, RefreshCw, Trash2, Plus } from "lucide-react";
 export default function RaiseTicketPage() {
   const router = useRouter();
-  const { locations, loading: locationsLoading, fetchLocations } = useLocationStore();
   const { createComplaints, loading: submitting } = useComplaintStore();
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(1);
   const [selectedPath, setSelectedPath] = useState<string[]>([]);
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
 
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
+
   useEffect(() => {
-    fetchLocations();
+    const loadLocations = async () => {
+      try {
+        const response = await locationService.getDropdown();
+
+        setLocations(response.data?.data || response.data || []);
+      } finally {
+        setLocationsLoading(false);
+      }
+    };
+
+    loadLocations();
   }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, issueId: number) => {
     const files = Array.from(e.target.files || []);
 
     if (!files.length) return;
+
+    const currentIssue = issues.find((i) => i.id === issueId);
+
+    const existingFiles = currentIssue?.attachments?.length || 0;
+
+    if (existingFiles + files.length > 5) {
+      toast.error("Maximum 5 files allowed per ticket");
+      return;
+    }
 
     try {
       setUploading(true);
@@ -49,7 +67,7 @@ export default function RaiseTicketPage() {
         },
       });
 
-      const uploadedFiles = response.data?.data?.files ?? [];      
+      const uploadedFiles = response.data?.data?.files ?? [];
 
       console.log("UPLOAD RESPONSE", response.data);
       console.log("FILES", uploadedFiles);
@@ -71,7 +89,7 @@ export default function RaiseTicketPage() {
         )
       );
 
-      toast.success(`${uploadedFiles.length} file(s) uploaded successfully`);
+      toast.success( `${uploadedFiles.length} ${ uploadedFiles.length === 1 ? "file" : "files" } uploaded successfully`);;
     } catch (error) {
       console.error(error);
       toast.error("Failed to upload files");
@@ -165,7 +183,7 @@ export default function RaiseTicketPage() {
     const invalidIssue = issues.find((issue) => !issue.description.trim());
 
     if (invalidIssue) {
-      toast.error("Please fill all issue summaries.");
+      toast.error("Please fill issue summary.");
       return;
     }
 
@@ -527,45 +545,43 @@ export default function RaiseTicketPage() {
                                   <Input id={`image-upload-${issue.id}`} type="file" multiple accept="image/*,video/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
                                 </label>
                               ) : (
-                                <div className="relative rounded-xl overflow-hidden border border-border/60 group">
-                                  {issue.attachments?.map((file, idx) => (
-                                    <div key={idx}>
-                                      {file.type === "IMAGE" ? (
-                                        <img src={file.url} alt={`Attachment ${idx}`} className="w-full h-[150px] object-cover rounded-lg" />
-                                      ) : (
-                                        <video src={file.url} controls className="w-full h-[150px] object-cover rounded-lg" />
-                                      )}
+                                <div className="grid grid-cols-2 gap-3">
+                                  {issue.attachments.map((file, idx) => (
+                                    <div key={idx} className="relative rounded-xl overflow-hidden border border-border/60 group">
+                                      {file.type === "IMAGE" ? <img src={file.url} alt={`Attachment ${idx}`} className="w-full h-[140px] object-cover" /> : <video src={file.url} className="w-full h-[140px] object-cover" />}
+
+                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setIssues(
+                                              issues.map((i) =>
+                                                i.id === issue.id
+                                                  ? {
+                                                      ...i,
+                                                      attachments: i.attachments.filter((_, attachmentIndex) => attachmentIndex !== idx),
+                                                    }
+                                                  : i
+                                              )
+                                            )
+                                          }
+                                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500 text-white text-xs font-medium"
+                                        >
+                                          <Trash2 className="size-4" />
+                                          Delete
+                                        </button>
+                                      </div>
                                     </div>
                                   ))}
-                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-                                    <label htmlFor={`image-replace-${issue.id}`} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-2 rounded-lg cursor-pointer transition-all">
-                                      <RefreshCw className="size-3.5" />
-                                      Replace
-                                      <Input id={`image-replace-${issue.id}`} type="file" accept="image/*,video/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
-                                    </label>
-
-                                    <label htmlFor={`image-add-${issue.id}`} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-primary/70 hover:bg-primary/90 px-3 py-2 rounded-lg transition-all cursor-pointer">
-                                      <Plus className="size-3.5" />
-                                      Add More
-                                      <Input id={`image-add-${issue.id}`} type="file" multiple accept="image/*,video/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
-                                    </label>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => setIssues(issues.map((i) => (i.id === issue.id ? { ...i, attachments: [] } : i)))}
-                                      className="flex items-center gap-1.5 text-xs font-semibold text-white bg-red-500/70 hover:bg-red-500/90 px-3 py-2 rounded-lg transition-all"
-                                    >
-                                      <Trash2 className="size-3.5" />
-                                      Delete
-                                    </button>
-                                  </div>
-                                  <div className="absolute bottom-0 left-0 right-0 px-2.5 py-1.5 bg-black/40 backdrop-blur-sm">
-                                    <p className="text-[14px] text-white/90 font-medium flex items-center gap-1">
-                                      <CheckCircle2 className="size-3" />
-                                      Photo attached — hover to replace or delete
-                                    </p>
-                                  </div>
                                 </div>
+                              )}
+
+                              {issue.attachments.length < 5 && (
+                                <label htmlFor={`image-add-${issue.id}`} className="flex items-center justify-center gap-2 h-12 border border-dashed rounded-xl cursor-pointer hover:bg-muted">
+                                  <Plus className="size-4" />
+                                  Add More Files
+                                  <Input id={`image-add-${issue.id}`} type="file" multiple accept="image/*,video/*" className="sr-only" onChange={(e) => handleImageUpload(e, issue.id)} />
+                                </label>
                               )}
 
                               {uploading && (
