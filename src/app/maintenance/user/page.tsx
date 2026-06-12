@@ -470,7 +470,7 @@ export default function UserManagementPage() {
             </FieldGroup>
             <FieldGroup>
               <Field>
-                <Label htmlFor="password">Password (optional)</Label>
+                <Label htmlFor="password">New Password</Label>
                 <Input id="password" placeholder="Leave blank to keep unchanged" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
               </Field>
             </FieldGroup>

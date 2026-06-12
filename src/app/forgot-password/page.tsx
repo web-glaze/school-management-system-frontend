@@ -8,17 +8,8 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen">
       <div className="grid min-h-screen lg:grid-cols-[0.85fr_1.15fr]">
         <div className="flex items-center justify-center px-8 py-10 relative">
-          {/* Top-right of left panel */}
-          <div className="absolute top-8 right-8">
-            <Link href="/login">
-              <Button variant="outline" className="gap-2 border-border/80 hover:bg-muted font-medium transition-all shadow-sm">
-                <ArrowLeft size={16} />
-                Go Back
-              </Button>
-            </Link>
-          </div>
-
           <div className="w-full max-w-md relative">
+
             <Link href="/" className="mb-10">
               <img src="/Ecole2.png" alt="Logo" className="h-20 object-contain" />
             </Link>
@@ -29,7 +20,16 @@ export default function ForgotPasswordPage() {
               <p className="text-lg">Enter your email to reset your password</p>
             </div>
 
-            <ForgotPasswordForm />
+            <div className="space-y-4">
+              <ForgotPasswordForm />
+
+              <Link href="/login">
+                <Button variant="outline" className="gap-2 border-border/80 hover:bg-muted font-medium transition-all">
+                  <ArrowLeft size={16} />
+                  Go Back
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
