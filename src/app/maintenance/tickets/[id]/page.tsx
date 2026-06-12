@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Save, Upload, Paperclip, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Upload, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useComplaintStore, useTechnicianStore, useDepartmentStore, Complaint } from "@/store/maintenanceStore";
 import { complaintService } from "@/services/maintenance.service";
 import apiClient from "@/services/api";
+import "yet-another-react-lightbox/styles.css";
+import "yet-another-react-lightbox/plugins/thumbnails.css";
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
+import Video from "yet-another-react-lightbox/plugins/video";
 
 export default function TicketManagementPage() {
   const params = useParams();
@@ -42,20 +48,15 @@ export default function TicketManagementPage() {
     }[]
   >([]);
 
-  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
-
-  const [selectedAttachments, setSelectedAttachments] = useState<
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [lightboxFiles, setLightboxFiles] = useState<
     {
       id?: string;
       url: string;
       type: "IMAGE" | "VIDEO";
     }[]
   >([]);
-
-  const [previewFile, setPreviewFile] = useState<{
-    url: string;
-    type: "IMAGE" | "VIDEO";
-  } | null>(null);
 
   const fetchData = async () => {
     try {
@@ -291,6 +292,19 @@ export default function TicketManagementPage() {
 
   const userAttachments = complaint.attachments?.filter((f) => f.owner === "USER") || [];
 
+  const openLightbox = (
+    files: {
+      id?: string;
+      url: string;
+      type: "IMAGE" | "VIDEO";
+    }[],
+    index: number
+  ) => {
+    setLightboxFiles(files);
+    setCurrentIndex(index);
+    setLightboxOpen(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8 mx-auto max-w-7xl w-full">
@@ -469,27 +483,14 @@ export default function TicketManagementPage() {
 
                   {userAttachments.length > 0 ? (
                     <div className="flex gap-2">
-                      {userAttachments.slice(0, 2).map((file) => (
-                        <button
-                          key={file.id}
-                          onClick={() => {
-                            setSelectedAttachments(userAttachments);
-                            setAttachmentsOpen(true);
-                          }}
-                          className="h-16 w-16 overflow-hidden rounded-md border cursor-pointer"
-                        >
+                      {userAttachments.slice(0, 2).map((file, index) => (
+                        <button key={file.id} onClick={() => openLightbox(userAttachments, index)} className="h-16 w-16 overflow-hidden rounded-md border cursor-pointer">
                           {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-full w-full object-cover" /> : <video src={file.url} className="h-full w-full object-cover" />}
                         </button>
                       ))}
 
                       {userAttachments.length > 2 && (
-                        <button
-                          onClick={() => {
-                            setSelectedAttachments(userAttachments);
-                            setAttachmentsOpen(true);
-                          }}
-                          className="h-16 w-16 rounded-md border flex items-center justify-center font-semibold text-sm bg-muted"
-                        >
+                        <button onClick={() => openLightbox(userAttachments, 0)} className="h-16 w-16 rounded-md border flex items-center justify-center font-semibold text-sm bg-muted">
                           +{userAttachments.length - 2}
                         </button>
                       )}
@@ -552,7 +553,7 @@ export default function TicketManagementPage() {
                 <div className="relative flex flex-col items-center shrink-0">
                   <div className="h-4 w-4 rounded-full bg-primary z-10" />
 
-                {index !== (complaint.activities?.length ?? 0) - 1 && ( <div className="absolute top-4 w-px h-[calc(100%+1.5rem)] bg-border" />)}
+                  {index !== (complaint.activities?.length ?? 0) - 1 && <div className="absolute top-4 w-px h-[calc(100%+1.5rem)] bg-border" />}
                 </div>
 
                 {/* Activity Card */}
@@ -585,18 +586,13 @@ export default function TicketManagementPage() {
                     </div>
 
                     {activity.attachments?.length ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-4"
-                        onClick={() => {
-                          setSelectedAttachments(activity.attachments ?? []);
-                          setAttachmentsOpen(true);
-                        }}
-                      >
-                        <Paperclip className="h-4 w-4 mr-2" />
-                        {activity.attachments.length} {activity.attachments.length === 1 ? "Attachment" : "Attachments"}
-                      </Button>
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {activity.attachments.map((file, index) => (
+                          <button key={file.id || index} onClick={() => openLightbox(activity.attachments!, index)} className="h-16 w-16 overflow-hidden rounded-md border cursor-pointer">
+                            {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-full w-full object-cover" /> : <video src={file.url} className="h-full w-full object-cover" />}
+                          </button>
+                        ))}
+                      </div>
                     ) : null}
                   </CardContent>
                 </Card>
@@ -605,35 +601,28 @@ export default function TicketManagementPage() {
           </div>
         </div>
       </div>
-
-      {attachmentsOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6">
-          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-auto p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Attachments ({selectedAttachments.length})</h3>
-
-              <Button variant="outline" onClick={() => setAttachmentsOpen(false)}>
-                Close
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {selectedAttachments.map((file, index) => (
-                <div key={file.id || index}>
-                  {file.type === "IMAGE" ? <img src={file.url} alt="" onClick={() => setPreviewFile(file)} className="w-full rounded-md border" /> : <video controls src={file.url} className="w-full rounded-md border" />}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-      {previewFile && (
-        <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-6" onClick={() => setPreviewFile(null)}>
-          <div className="max-w-7xl max-h-[95vh]" onClick={(e) => e.stopPropagation()}>
-            {previewFile.type === "IMAGE" ? <img src={previewFile.url} alt="" className="max-h-[95vh] max-w-full object-contain rounded-lg" /> : <video controls autoPlay src={previewFile.url} className="max-h-[95vh] max-w-full rounded-lg" />}
-          </div>
-        </div>
-      )}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        index={currentIndex}
+        plugins={[Zoom, Thumbnails, Video]}
+        carousel={{finite:true,}}
+        slides={lightboxFiles.map((file) =>
+          file.type === "IMAGE"
+            ? {
+                src: file.url,
+              }
+            : {
+                type: "video",
+                sources: [
+                  {
+                    src: file.url,
+                    type: "video/mp4",
+                  },
+                ],
+              }
+        )}
+      />
     </DashboardLayout>
   );
 }
