@@ -21,22 +21,9 @@ import { useRoleStore } from "@/store/roleStore";
 const FALLBACK_ROLES = ["MANAGER", "TEACHER", "STAFF", "TECHNICIAN", "USER"];
 
 export default function UserManagementPage() {
-  const {
-    users,
-    loading,
-    creating,
-    updating,
-    deletingId,
-    fetchUsers,
-    createUser,
-    updateUser,
-    deleteUser
-  } = useUserStore();
+  const { users, loading, creating, updating, deletingId, fetchUsers, createUser, updateUser, deleteUser } = useUserStore();
 
-  const {
-    roles,
-    fetchRolesAndPermissions
-  } = useRoleStore();
+  const { roles, fetchRolesAndPermissions } = useRoleStore();
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -346,12 +333,9 @@ export default function UserManagementPage() {
                         <TableRow key={u.id} className="hover:bg-muted/20 transition-colors">
                           <TableCell className="py-4 align-top">
                             <div className="space-y-1 max-w-[250px]">
-                              <p className="font-semibold text-foreground">{u.userName || u.email}</p>
+                              <p className="font-semibold text-foreground">{u.name || u.userName}</p>
 
-                              <p className="text-sm text-muted-foreground">
-                                {u.name ? `${u.name} · ` : ""}
-                                {u.email ?? "No Email"}
-                              </p>
+                              <p className="text-sm text-muted-foreground">{u.email ?? "No Email"}</p>
 
                               <p className="text-xs text-muted-foreground">{u.userCode ?? "—"}</p>
                             </div>
@@ -538,8 +522,14 @@ export default function UserManagementPage() {
           <AlertDialogFooter className="mt-4">
             <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
-            <AlertDialogAction onClick={() => { if (deletingUser) {handleDelete(deletingUser.id);}}} 
-            className="h-11 bg-destructive text-white hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingUser) {
+                  handleDelete(deletingUser.id);
+                }
+              }}
+              className="h-11 bg-destructive text-white hover:bg-destructive/90"
+            >
               {deletingId ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />

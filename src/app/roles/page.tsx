@@ -388,24 +388,6 @@ export default function RolesPage() {
                   {deletingRoleId === selectedRole.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Delete
                 </Button>
               )}
-              <Button
-                size="sm"
-                onClick={handleSaveChanges}
-                disabled={!isDirty || savingRoleId === selectedRoleId}
-                className={`gap-2 px-4 py-4 transition-all duration-300 ${isDirty ? "bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-[1.01]" : "bg-primary text-primary-foreground"}`}
-              >
-                {savingRoleId === selectedRoleId ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="size-4" />
-                    Save
-                  </>
-                )}
-              </Button>
             </div>
           </div>
           <div className="h-px bg-border/60 w-full" />
@@ -500,7 +482,7 @@ export default function RolesPage() {
                   </div>
                 </div>
                 {isDirty && (
-                  <div className="flex flex-col gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 md:flex-row md:items-center md:justify-between">
+                  <div className="sticky top-24 z-10 flex flex-col gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-2">
                       <Badge className="bg-orange-500 hover:bg-orange-500 text-white shrink-0">Unsaved Changes</Badge>
 
@@ -510,10 +492,30 @@ export default function RolesPage() {
                       </div>
                     </div>
 
-                    <Button variant="outline" size="sm" onClick={handleDiscardChanges} disabled={savingRoleId === selectedRoleId} className="px-3">
-                      <RotateCcw className="h-4 w-4" />
-                      Discard Changes
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleDiscardChanges} disabled={savingRoleId === selectedRoleId} className="px-4 py-4">
+                        <RotateCcw className="h-4 w-4" />
+                        Discard Changes
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveChanges}
+                        disabled={!isDirty || savingRoleId === selectedRoleId}
+                        className={`gap-2 px-4 py-4 transition-all duration-300 ${isDirty ? "bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-[1.01]" : "bg-primary text-primary-foreground"}`}
+                      >
+                        {savingRoleId === selectedRoleId ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="size-4" />
+                            Save
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
 

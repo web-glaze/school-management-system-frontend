@@ -7,14 +7,13 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
 
-
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
+  const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
 
-const permissions = user.permissions || [];
+  const permissions = user.permissions || [];
 
-  const navItems = [
+  const maintenanceItems = [
     permissions.includes("ticket.read") && {
       title: "Tickets",
       url: "/maintenance/tickets",
@@ -42,19 +41,21 @@ const permissions = user.permissions || [];
       icon: MapPin,
       isActive: pathname === "/maintenance/location",
     },
+  ].filter(Boolean);
 
+  const settingItems = [
     permissions.includes("user.read") && {
       title: "Users",
-      url: "/maintenance/user",
+      url: "/user",
       icon: Scroll,
-      isActive: pathname === "/maintenance/user",
+      isActive: pathname === "/user",
     },
 
     permissions.includes("role.read") && {
       title: "Roles",
-      url: "/maintenance/roles",
+      url: "/roles",
       icon: Users,
-      isActive: pathname === "/maintenance/roles",
+      isActive: pathname === "/roles",
     },
   ].filter(Boolean);
 
@@ -65,7 +66,7 @@ const permissions = user.permissions || [];
       avatar: "",
     },
 
-    navSingle: navItems,
+    navSingle: maintenanceItems,
 
     navSecondary: [
       {
@@ -98,9 +99,7 @@ const permissions = user.permissions || [];
 
       {/* Content */}
       <SidebarContent>
-        <NavMain items={data.navSingle} />
-
-        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+        <NavMain maintenanceItems={maintenanceItems} settingItems={settingItems} />
       </SidebarContent>
 
       {/* Footer */}

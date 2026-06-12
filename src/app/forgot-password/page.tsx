@@ -9,7 +9,6 @@ export default function ForgotPasswordPage() {
       <div className="grid min-h-screen lg:grid-cols-[0.85fr_1.15fr]">
         <div className="flex items-center justify-center px-8 py-10 relative">
           <div className="w-full max-w-md relative">
-
             <Link href="/" className="mb-10">
               <img src="/Ecole2.png" alt="Logo" className="h-20 object-contain" />
             </Link>
@@ -22,13 +21,6 @@ export default function ForgotPasswordPage() {
 
             <div className="space-y-4">
               <ForgotPasswordForm />
-
-              <Link href="/login">
-                <Button variant="outline" className="gap-2 border-border/80 hover:bg-muted font-medium transition-all">
-                  <ArrowLeft size={16} />
-                  Go Back
-                </Button>
-              </Link>
             </div>
           </div>
         </div>
