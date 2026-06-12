@@ -119,18 +119,28 @@ export default function TicketManagementPage() {
 
   const saveChanges = async () => {
     if (!complaint) return;
+
+    if (!complaint.description?.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+
     try {
       await updateComplaint(id, {
-        description: complaint.description,
+        description: complaint.description.trim(),
         status,
         priority,
         technicianId: technicianId || null,
         departmentId: departmentId || null,
-        attachments: adminAttachments.map((file) => ({ ...file, owner: "ADMIN" })),
+        attachments: adminAttachments.map((file) => ({
+          ...file,
+          owner: "ADMIN",
+        })),
       });
+
       toast.success("Ticket Updated Successfully");
       await fetchData();
-    } catch (error) {
+    } catch {
       toast.error("Failed To Update Ticket");
     }
   };
@@ -331,6 +341,7 @@ export default function TicketManagementPage() {
                   <Label htmlFor="description">Ticket Description</Label>
                   <Textarea
                     id="description"
+                    required
                     value={complaint.description}
                     onChange={(e) =>
                       setComplaint({
@@ -606,7 +617,7 @@ export default function TicketManagementPage() {
         close={() => setLightboxOpen(false)}
         index={currentIndex}
         plugins={[Zoom, Thumbnails, Video]}
-        carousel={{finite:true,}}
+        carousel={{ finite: true }}
         slides={lightboxFiles.map((file) =>
           file.type === "IMAGE"
             ? {
