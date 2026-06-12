@@ -2,20 +2,16 @@
 
 import apiClient from "./api";
 
-
 // ====================== DEPARTMENT ======================
 
 export const departmentService = {
   getAll: () => apiClient.get("/departments"),
 
-  create: (name: string) =>
-    apiClient.post("/departments", { name }),
+  create: (name: string) => apiClient.post("/departments", { name }),
 
-  update: (id: string, name: string) =>
-    apiClient.patch(`/departments/${id}`, { name }),
+  update: (id: string, name: string) => apiClient.patch(`/departments/${id}`, { name }),
 
-  delete: (id: string) =>
-    apiClient.delete(`/departments/${id}`),
+  delete: (id: string) => apiClient.delete(`/departments/${id}`),
 };
 
 // ====================== Technicians ======================
@@ -23,14 +19,11 @@ export const departmentService = {
 export const technicianService = {
   getAll: () => apiClient.get("/technicians"),
 
-  create: (name: string, phone: string, email: string, departmentId: string) =>
-    apiClient.post("/technicians", { name, phone, email, departmentId }),
+  create: (name: string, phone: string, email: string, departmentId: string) => apiClient.post("/technicians", { name, phone, email, departmentId }),
 
-  update: (id: string, name: string, phone: string, email: string, departmentId: string) =>
-    apiClient.patch(`/technicians/${id}`, { name, phone, email, departmentId }),
+  update: (id: string, name: string, phone: string, email: string, departmentId: string) => apiClient.patch(`/technicians/${id}`, { name, phone, email, departmentId }),
 
-  delete: (id: string) =>
-    apiClient.delete(`/technicians/${id}`),
+  delete: (id: string) => apiClient.delete(`/technicians/${id}`),
 };
 
 // ====================== Location ======================
@@ -52,8 +45,7 @@ export const locationService = {
       parentId,
     }),
 
-  delete: (id: string) =>
-    apiClient.delete(`/locations/${id}`),
+  delete: (id: string) => apiClient.delete(`/locations/${id}`),
 };
 
 // ====================== Complaint / Ticket ======================
@@ -63,12 +55,11 @@ export const complaintService = {
 
   getById: (id: string) => apiClient.get(`/complaints/${id}`),
 
-  create: (complaints: any[]) =>
-    apiClient.post("/complaints", { complaints }),
+  getAssignOptions: () => apiClient.get("/complaints/assign-options"),
 
-  update: (id: string, data: any) =>
-    apiClient.patch(`/complaints/${id}`, data),
+  create: (complaints: any[]) => apiClient.post("/complaints", { complaints }),
 
-  delete: (id: string) =>
-    apiClient.delete(`/complaints/${id}`),
+  update: (id: string, data: any) => apiClient.patch(`/complaints/${id}`, data),
+
+  delete: (id: string) => apiClient.delete(`/complaints/${id}`),
 };

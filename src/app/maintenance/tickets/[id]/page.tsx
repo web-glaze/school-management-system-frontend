@@ -31,10 +31,9 @@ export default function TicketManagementPage() {
   const id = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { technicians, fetchTechnicians } = useTechnicianStore();
-  const { departments, fetchDepartments } = useDepartmentStore();
+  const [technicians, setTechnicians] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const { updateComplaint, loading: saving } = useComplaintStore();
-
   const [loading, setLoading] = useState(true);
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [status, setStatus] = useState("");
@@ -58,12 +57,26 @@ export default function TicketManagementPage() {
     }[]
   >([]);
 
+  const [userRole, setUserRole] = useState("");
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const role = user?.roles?.[0] || "";
+    setUserRole(role);
+  }, []);
+
+  const canManageTicket = ["SUPERADMIN", "ADMIN", "MANAGER"].includes(userRole);
   const fetchData = async () => {
     try {
       const cRes = await complaintService.getById(id);
       const cData = cRes.data.data || cRes.data;
 
-      await Promise.all([fetchTechnicians(), fetchDepartments()]);
+      if (canManageTicket) {
+        const optionsRes = await complaintService.getAssignOptions();
+
+        setTechnicians(optionsRes.data.technicians || []);
+        setDepartments(optionsRes.data.departments || []);
+      }
 
       setComplaint(cData);
       setStatus(cData.status || "");
@@ -162,59 +175,61 @@ export default function TicketManagementPage() {
           {/* Main Grid */}
           <div className="grid gap-4 lg:grid-cols-12">
             {/* Left Card */}
-            <Card className="lg:col-span-8">
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-72 mt-2" />
-              </CardHeader>
+            {canManageTicket && (
+              <Card className="lg:col-span-8">
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-72 mt-2" />
+                </CardHeader>
 
-              <CardContent className="space-y-6">
-                {/* Description */}
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-[180px] w-full rounded-md" />
-                </div>
-
-                {/* Select Fields */}
-                <div className="grid grid-cols-1 lg:grid-col-2 gap-3">
+                <CardContent className="space-y-6">
+                  {/* Description */}
                   <div className="space-y-2">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-10 w-full rounded-md" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-[180px] w-full rounded-md" />
                   </div>
 
+                  {/* Select Fields */}
+                  <div className="grid grid-cols-1 lg:grid-col-2 gap-3">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-10 w-full rounded-md" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-10 w-full rounded-md" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-10 w-full rounded-md" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-10 w-full rounded-md" />
+                    </div>
+                  </div>
+
+                  {/* Upload */}
                   <div className="space-y-2">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-10 w-full rounded-md" />
+                    <Skeleton className="h-4 w-40" />
+
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-10 w-40 rounded-md" />
+                      <Skeleton className="h-16 w-16 rounded-md" />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-36" />
-                    <Skeleton className="h-10 w-full rounded-md" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-10 w-full rounded-md" />
-                  </div>
-                </div>
-
-                {/* Upload */}
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-40" />
-
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-40 rounded-md" />
-                    <Skeleton className="h-16 w-16 rounded-md" />
-                  </div>
-                </div>
-
-                {/* Save Button */}
-                <Skeleton className="h-11 w-36 rounded-md" />
-              </CardContent>
-            </Card>
+                  {/* Save Button */}
+                  <Skeleton className="h-11 w-36 rounded-md" />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Right Card */}
-            <Card className="lg:col-span-4">
+            <Card className={canManageTicket ? "lg:col-span-4" : "lg:col-span-12"}>
               <CardHeader>
                 <Skeleton className="h-6 w-40" />
                 <Skeleton className="h-4 w-56 mt-2" />
@@ -329,134 +344,136 @@ export default function TicketManagementPage() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-12">
-          <Card className="lg:col-span-8">
-            <CardHeader>
-              <CardTitle>Ticket Information</CardTitle>
-              <CardDescription>Update ticket information, assignment and status.</CardDescription>
-            </CardHeader>
+          {canManageTicket && (
+            <Card className="lg:col-span-8">
+              <CardHeader>
+                <CardTitle>Ticket Information</CardTitle>
+                <CardDescription>Update ticket information, assignment and status.</CardDescription>
+              </CardHeader>
 
-            <CardContent className="space-y-6">
-              <FieldGroup>
-                <Field>
-                  <Label htmlFor="description">Ticket Description</Label>
-                  <Textarea
-                    id="description"
-                    required
-                    value={complaint.description}
-                    onChange={(e) =>
-                      setComplaint({
-                        ...complaint,
-                        description: e.target.value,
-                      })
-                    }
-                    className="min-h-[180px]"
-                  />
-                </Field>
-              </FieldGroup>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <CardContent className="space-y-6">
                 <FieldGroup>
                   <Field>
-                    <Label>Status</Label>
-                    <Select value={status} onValueChange={setStatus}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PENDING">Pending</SelectItem>
-                        <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                        <SelectItem value="RESOLVED">Resolved</SelectItem>
-                        <SelectItem value="CLOSED">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="description">Ticket Description</Label>
+                    <Textarea
+                      id="description"
+                      required
+                      value={complaint.description}
+                      onChange={(e) =>
+                        setComplaint({
+                          ...complaint,
+                          description: e.target.value,
+                        })
+                      }
+                      className="min-h-[180px]"
+                    />
                   </Field>
                 </FieldGroup>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <FieldGroup>
+                    <Field>
+                      <Label>Status</Label>
+                      <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PENDING">Pending</SelectItem>
+                          <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                          <SelectItem value="RESOLVED">Resolved</SelectItem>
+                          <SelectItem value="CLOSED">Closed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </FieldGroup>
 
-                <FieldGroup>
-                  <Field>
-                    <Label>Priority</Label>
-                    <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="LOW">Low</SelectItem>
-                        <SelectItem value="MEDIUM">Medium</SelectItem>
-                        <SelectItem value="HIGH">High</SelectItem>
-                        <SelectItem value="URGENT">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </FieldGroup>
-                <FieldGroup>
-                  <Field>
-                    <Label>Assigned Technician</Label>
-                    <Select value={technicianId} onValueChange={setTechnicianId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Technician" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {technicians.map((technician) => (
-                          <SelectItem key={technician.id} value={technician.id}>
-                            {technician.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </FieldGroup>
+                  <FieldGroup>
+                    <Field>
+                      <Label>Priority</Label>
+                      <Select value={priority} onValueChange={setPriority}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="LOW">Low</SelectItem>
+                          <SelectItem value="MEDIUM">Medium</SelectItem>
+                          <SelectItem value="HIGH">High</SelectItem>
+                          <SelectItem value="URGENT">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </FieldGroup>
+                  <FieldGroup>
+                    <Field>
+                      <Label>Assigned Technician</Label>
+                      <Select value={technicianId} onValueChange={setTechnicianId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Technician" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {technicians.map((technician) => (
+                            <SelectItem key={technician.id} value={technician.id}>
+                              {technician.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </FieldGroup>
 
-                <FieldGroup>
-                  <Field>
-                    <Label>Department</Label>
-                    <Select value={departmentId} onValueChange={setDepartmentId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departments.map((department) => (
-                          <SelectItem key={department.id} value={department.id}>
-                            {department.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </FieldGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Issue Resolved</Label>
-                <div className="flex items-center gap-4">
-                  <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="mr-2 size-4" /> Upload Image
-                  </Button>
-                  <Input type="file" multiple className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*,video/*" />
-                  {adminAttachments.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {adminAttachments.map((file, idx) => (
-                        <div key={idx} className="relative group rounded overflow-hidden">
-                          {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-16 w-16 rounded border object-cover" /> : <video src={file.url} className="h-16 w-16 rounded border object-cover" />}
-
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
-                            <button type="button" onClick={() => setAdminAttachments((prev) => prev.filter((_, i) => i !== idx))} className="px-2 py-1 rounded bg-red-500 text-white text-xs font-medium">
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}{" "}
+                  <FieldGroup>
+                    <Field>
+                      <Label>Department</Label>
+                      <Select value={departmentId} onValueChange={setDepartmentId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((department) => (
+                            <SelectItem key={department.id} value={department.id}>
+                              {department.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </FieldGroup>
                 </div>
-              </div>
 
-              <Button onClick={saveChanges} disabled={saving} className="h-11 px-6">
-                <Save className="size-4 mr-2" />
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-4">
+                <div className="space-y-2">
+                  <Label>Issue Resolved</Label>
+                  <div className="flex items-center gap-4">
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="mr-2 size-4" /> Upload Image
+                    </Button>
+                    <Input type="file" multiple className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*,video/*" />
+                    {adminAttachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {adminAttachments.map((file, idx) => (
+                          <div key={idx} className="relative group rounded overflow-hidden">
+                            {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-16 w-16 rounded border object-cover" /> : <video src={file.url} className="h-16 w-16 rounded border object-cover" />}
+
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                              <button type="button" onClick={() => setAdminAttachments((prev) => prev.filter((_, i) => i !== idx))} className="px-2 py-1 rounded bg-red-500 text-white text-xs font-medium">
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}{" "}
+                  </div>
+                </div>
+
+                <Button onClick={saveChanges} disabled={saving} className="h-11 px-6">
+                  <Save className="size-4 mr-2" />
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          <Card className={canManageTicket ? "lg:col-span-4" : "lg:col-span-12"}>
             <CardHeader>
               <CardTitle>Ticket Details</CardTitle>
               <CardDescription>Overview and assignment information</CardDescription>

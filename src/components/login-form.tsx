@@ -19,7 +19,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"form">)
     const result = await login({ identifier, password });
     if (result.success) {
       toast.success("Welcome back!");
-      router.push("/maintenance/tickets");
+      router.push("/dashboard");
     } else {
       const errMsg = result.error || "";
       if (errMsg.toLowerCase().includes("password")) {
