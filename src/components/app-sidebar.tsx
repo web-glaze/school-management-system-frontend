@@ -36,7 +36,7 @@ const permissions = user.permissions || [];
       isActive: pathname === "/maintenance/technician",
     },
 
-    permissions.includes("location.create") && {
+    permissions.includes("location.read") && {
       title: "Locations",
       url: "/maintenance/location",
       icon: MapPin,
