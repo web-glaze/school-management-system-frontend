@@ -15,7 +15,7 @@ import { Calendar, Loader2, MailIcon, Pencil, Phone, Plus, Search, Trash2, User,
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import { Field, FieldGroup } from "@/components/ui/field";
-
+import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -142,6 +142,12 @@ export default function TechnicianPage() {
   };
 
   const filteredTechnicians = technicians.filter((technician) => [technician.name, technician.phone, technician.department?.name].filter(Boolean).some((field) => field!.toLowerCase().includes(search.toLowerCase())));
+
+  const authorized = usePermission("technician.read");
+
+  if (authorized === null) {
+    return null;
+  }
 
   return (
     <DashboardLayout>

@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import { Building2, Calendar, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
-
+import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { toast } from "sonner";
@@ -111,6 +111,12 @@ export default function DepartmentPage() {
     setDeletingDepartment(department);
     setDeleteDepartmentOpen(true);
   };
+
+  const authorized = usePermission("department.read");
+
+  if (authorized === null) {
+    return null;
+  }
 
   const filteredDepartments = departments.filter((department) => department.name.toLowerCase().includes(search.toLowerCase()));
 

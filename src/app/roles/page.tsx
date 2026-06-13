@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Loader2, Plus, Save, Search, Shield, ShieldAlert, ShieldCheck, Trash2, Check, RotateCcw, Info, Building2, AlertCircle } from "lucide-react";
-
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -251,6 +251,12 @@ export default function RolesPage() {
     setLocalPermissions(new Set(serverPermissionIds));
     toast.success("Changes discarded");
   };
+
+  const authorized = usePermission("role.read");
+
+  if (authorized === null) {
+    return null;
+  }
 
   return (
     <DashboardLayout>

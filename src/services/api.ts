@@ -33,6 +33,28 @@ apiClient.interceptors.response.use(
   }
 );
 
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined") {
+        useAuthStore.getState().logout();
+        window.location.replace("/login");
+      }
+      return new Promise(() => {});
+    }
+
+    if (error.response?.status === 403) {
+      if (typeof window !== "undefined") {
+        window.location.replace("/403");
+      }
+      return new Promise(() => {});
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;
 
 export const authService = {

@@ -1,27 +1,18 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-
 import { useEffect, useState } from "react";
-
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
-
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
 import { Label } from "@/components/ui/label";
-
 import { Field, FieldGroup } from "@/components/ui/field";
-
 import { ChevronRight, Inbox, Loader2, MapPin, Pencil, Plus, Search, Trash2, Settings, MoreVertical, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { useLocationStore } from "@/store/maintenanceStore";
-
+import { usePermission } from "@/hooks/usePermission";
 interface Location {
   id: string;
   name: string;
@@ -86,6 +77,12 @@ export default function LocationPage() {
       toast.error("Failed to create sub-location");
     }
   };
+
+  const authorized = usePermission("location.read");
+
+  if (authorized === null) {
+    return null;
+  }
 
   const handleRename = async () => {
     if (!selectedLocation) return;
@@ -335,11 +332,7 @@ export default function LocationPage() {
                     <Button variant="outline">Cancel</Button>
                   </DialogClose>
 
-                  <Button
-                    className="gap-2 min-w-[130px]"
-                    disabled={loading}
-                    onClick={handleCreateRoot}
-                  >
+                  <Button className="gap-2 min-w-[130px]" disabled={loading} onClick={handleCreateRoot}>
                     {loading ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
@@ -420,11 +413,7 @@ export default function LocationPage() {
           </div>
 
           <DialogFooter className="flex-row justify-end gap-2">
-            <Button
-              className="gap-2 min-w-[130px]"
-              disabled={loading}
-              onClick={handleCreateSub}
-            >
+            <Button className="gap-2 min-w-[130px]" disabled={loading} onClick={handleCreateSub}>
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
@@ -463,11 +452,7 @@ export default function LocationPage() {
           </div>
 
           <DialogFooter className="flex-row justify-end gap-2">
-            <Button
-              className="gap-2 min-w-[130px]"
-              disabled={loading}
-              onClick={handleRename}
-            >
+            <Button className="gap-2 min-w-[130px]" disabled={loading} onClick={handleRename}>
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
@@ -495,11 +480,7 @@ export default function LocationPage() {
           <AlertDialogFooter className="flex-row justify-end gap-2">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
 
-            <AlertDialogAction
-              className="gap-2 min-w-[130px]"
-              disabled={!!deletingId}
-              onClick={handleDelete}
-            >
+            <AlertDialogAction className="gap-2 min-w-[130px]" disabled={!!deletingId} onClick={handleDelete}>
               {deletingId ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
