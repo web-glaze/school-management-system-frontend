@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-
+import { usePermission } from "@/hooks/usePermission";
 import { useUserStore, User } from "@/store/userStore";
 import { useRoleStore } from "@/store/roleStore";
 
@@ -164,6 +164,12 @@ export default function UserManagementPage() {
 
   const fieldBase = "h-10 px-3 rounded-lg border border-gray-200 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition";
   const selectField = fieldBase + " bg-white pr-8 appearance-none";
+
+  const authorized = usePermission("user.read");
+
+  if (authorized === null) {
+    return null;
+  }
 
   return (
     <DashboardLayout>

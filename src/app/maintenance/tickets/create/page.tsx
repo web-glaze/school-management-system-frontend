@@ -89,7 +89,7 @@ export default function RaiseTicketPage() {
         )
       );
 
-      toast.success( `${uploadedFiles.length} ${ uploadedFiles.length === 1 ? "file" : "files" } uploaded successfully`);;
+      toast.success(`${uploadedFiles.length} ${uploadedFiles.length === 1 ? "file" : "files"} uploaded successfully`);
     } catch (error) {
       console.error(error);
       toast.error("Failed to upload files");

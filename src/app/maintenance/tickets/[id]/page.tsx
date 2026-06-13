@@ -25,6 +25,7 @@ import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
 import Video from "yet-another-react-lightbox/plugins/video";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function TicketManagementPage() {
   const params = useParams();
@@ -212,6 +213,12 @@ export default function TicketManagementPage() {
 
   // Combined list for display: saved attachments + newly uploaded ones
   const adminAttachments = [...savedAttachments, ...newAttachments];
+
+  const authorized = usePermission("ticket.read");
+
+  if (authorized === null) {
+    return null;
+  }
 
   if (loading || !complaint) {
     return (

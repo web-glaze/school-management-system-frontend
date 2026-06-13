@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useComplaintStore, Complaint } from "@/store/maintenanceStore";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function ComplaintsPage() {
   const { complaints, loading, fetchComplaints, deleteComplaint } = useComplaintStore();
@@ -108,6 +109,12 @@ export default function ComplaintsPage() {
       setIsDeleting(false);
     }
   };
+
+  const authorized = usePermission("ticket.read");
+
+  if (authorized === null) {
+    return null;
+  }
 
   const statusStats = [
     {
