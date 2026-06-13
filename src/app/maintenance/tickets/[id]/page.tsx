@@ -30,7 +30,7 @@ export default function TicketManagementPage() {
   const router = useRouter();
   const id = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [originalComplaint, setOriginalComplaint] = useState<Complaint | null>(null);
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const { updateComplaint, loading: saving } = useComplaintStore();
@@ -65,7 +65,7 @@ export default function TicketManagementPage() {
     setUserRole(role);
   }, []);
 
-  const canManageTicket = ["SUPERADMIN", "ADMIN", "MANAGER"].includes(userRole);
+  const canManageTicket = ["SUPER_ADMIN", "ADMIN", "MANAGER"].includes(userRole);
   const fetchData = async () => {
     try {
       const cRes = await complaintService.getById(id);
@@ -74,11 +74,12 @@ export default function TicketManagementPage() {
       if (canManageTicket) {
         const optionsRes = await complaintService.getAssignOptions();
 
-        setTechnicians(optionsRes.data.technicians || []);
-        setDepartments(optionsRes.data.departments || []);
+        const { technicians, departments } = optionsRes.data.data;
+        setTechnicians(technicians || []);
+        setDepartments(departments || []);
       }
-
       setComplaint(cData);
+      setOriginalComplaint(cData);
       setStatus(cData.status || "");
       setPriority(cData.priority || "");
       setTechnicianId(cData.assignedTechnician?.id || "");
@@ -92,11 +93,10 @@ export default function TicketManagementPage() {
   };
 
   useEffect(() => {
-    if (id)
-      setTimeout(() => {
-        fetchData();
-      }, 0);
-  }, [id]);
+    if (id && userRole) {
+      fetchData();
+    }
+  }, [id, userRole]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -157,6 +157,14 @@ export default function TicketManagementPage() {
       toast.error("Failed To Update Ticket");
     }
   };
+
+  const hasChanges =
+    complaint?.description?.trim() !== originalComplaint?.description?.trim() ||
+    status !== (originalComplaint?.status || "") ||
+    priority !== (originalComplaint?.priority || "") ||
+    technicianId !== (originalComplaint?.assignedTechnician?.id || "") ||
+    departmentId !== (originalComplaint?.department?.id || "") ||
+    adminAttachments.length > 0;
 
   if (loading || !complaint) {
     return (
@@ -413,7 +421,7 @@ export default function TicketManagementPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {technicians.map((technician) => (
-                            <SelectItem key={technician.id} value={technician.id}>
+                            <SelectItem key={technician.id} value={String(technician.id)}>
                               {technician.name}
                             </SelectItem>
                           ))}
@@ -431,7 +439,7 @@ export default function TicketManagementPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {departments.map((department) => (
-                            <SelectItem key={department.id} value={department.id}>
+                            <SelectItem key={department.id} value={String(department.id)}>
                               {department.name}
                             </SelectItem>
                           ))}
@@ -466,7 +474,7 @@ export default function TicketManagementPage() {
                   </div>
                 </div>
 
-                <Button onClick={saveChanges} disabled={saving} className="h-11 px-6">
+                <Button onClick={saveChanges} disabled={saving || !hasChanges} className="h-11 px-6">
                   <Save className="size-4 mr-2" />
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
