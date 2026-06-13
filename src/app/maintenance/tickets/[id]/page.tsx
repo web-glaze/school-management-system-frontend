@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Save, Upload, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Upload, Trash2, Loader2, Eye, FileText, User, Building, MapPin, Clock, Paperclip, CheckCircle2, AlertCircle, PlusCircle, ArrowRightLeft, UserCheck, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { useComplaintStore, useTechnicianStore, useDepartmentStore, Complaint } from "@/store/maintenanceStore";
 import { complaintService } from "@/services/maintenance.service";
 import apiClient from "@/services/api";
@@ -40,12 +41,12 @@ export default function TicketManagementPage() {
   const [priority, setPriority] = useState("");
   const [technicianId, setTechnicianId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [adminAttachments, setAdminAttachments] = useState<
-    {
-      url: string;
-      type: "IMAGE" | "VIDEO";
-    }[]
-  >([]);
+  // Attachments already saved on the server (loaded on mount)
+  const [savedAttachments, setSavedAttachments] = useState<{ url: string; type: "IMAGE" | "VIDEO" }[]>([]);
+  // Only newly uploaded attachments (not yet saved to the ticket)
+  const [newAttachments, setNewAttachments] = useState<{ url: string; type: "IMAGE" | "VIDEO" }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -66,6 +67,7 @@ export default function TicketManagementPage() {
   }, []);
 
   const canManageTicket = ["SUPER_ADMIN", "ADMIN", "MANAGER"].includes(userRole);
+
   const fetchData = async () => {
     try {
       const cRes = await complaintService.getById(id);
@@ -83,8 +85,18 @@ export default function TicketManagementPage() {
       setStatus(cData.status || "");
       setPriority(cData.priority || "");
       setTechnicianId(cData.assignedTechnician?.id || "");
-      setAdminAttachments([]);
       setDepartmentId(cData.department?.id || "");
+
+      // Load existing admin attachments from the server into savedAttachments
+      const existingAdmin = cData.attachments?.filter((f: any) => f.owner === "ADMIN") || [];
+      setSavedAttachments(
+        existingAdmin.map((file: any) => ({
+          url: file.url,
+          type: file.type,
+        }))
+      );
+      // Clear any newly uploaded files since we just reloaded from server
+      setNewAttachments([]);
     } catch (error) {
       toast.error("Failed to fetch administrative records.");
     } finally {
@@ -98,12 +110,10 @@ export default function TicketManagementPage() {
     }
   }, [id, userRole]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-
+  const uploadFiles = async (files: File[]) => {
     if (!files.length) return;
-
     try {
+      setUploading(true);
       const formData = new FormData();
 
       files.forEach((file) => {
@@ -118,15 +128,48 @@ export default function TicketManagementPage() {
 
       const uploadedFiles = response.data?.data?.files ?? [];
 
-      setAdminAttachments((prev) => [
+      // Only append to newAttachments — do NOT touch savedAttachments
+      setNewAttachments((prev) => [
         ...prev,
         ...uploadedFiles.map((file: any) => ({
           url: file.url,
           type: file.type,
         })),
       ]);
+      toast.success("Uploaded successfully");
     } catch {
       toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    await uploadFiles(files);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const files = Array.from(e.dataTransfer.files);
+      await uploadFiles(files);
     }
   };
 
@@ -145,7 +188,8 @@ export default function TicketManagementPage() {
         priority,
         technicianId: technicianId || null,
         departmentId: departmentId || null,
-        attachments: adminAttachments.map((file) => ({
+        // Only send newly uploaded files — existing ones are already on the server
+        attachments: newAttachments.map((file) => ({
           ...file,
           owner: "ADMIN",
         })),
@@ -164,7 +208,10 @@ export default function TicketManagementPage() {
     priority !== (originalComplaint?.priority || "") ||
     technicianId !== (originalComplaint?.assignedTechnician?.id || "") ||
     departmentId !== (originalComplaint?.department?.id || "") ||
-    adminAttachments.length > 0;
+    newAttachments.length > 0;
+
+  // Combined list for display: saved attachments + newly uploaded ones
+  const adminAttachments = [...savedAttachments, ...newAttachments];
 
   if (loading || !complaint) {
     return (
@@ -337,151 +384,383 @@ export default function TicketManagementPage() {
     setCurrentIndex(index);
     setLightboxOpen(true);
   };
+  const getActivityIcon = (action: string) => {
+    const iconClass = "h-7 w-7 text-sky-600 bg-sky-100 p-1 rounded-full ";
 
+    switch (action) {
+      case "TICKET_CREATED":
+        return <PlusCircle className={iconClass} />;
+      case "STATUS_CHANGED":
+        return <ArrowRightLeft className={iconClass} />;
+      case "TECHNICIAN_ASSIGNED":
+        return <UserCheck className={iconClass} />;
+      case "DEPARTMENT_CHANGED":
+        return <Building2 className={iconClass} />;
+      case "ATTACHMENT_ADDED":
+        return <Paperclip className={iconClass} />;
+      default:
+        return <Clock className={iconClass} />;
+    }
+  };
+
+  const getActivityTitle = (activity: any) => {
+    switch (activity.action) {
+      case "TICKET_CREATED":
+        return "Ticket Created";
+      case "STATUS_CHANGED":
+        return `Status changed to ${activity.newValue}`;
+      case "TECHNICIAN_ASSIGNED":
+        return "Technician Assigned";
+      case "DEPARTMENT_CHANGED":
+        return "Department Assigned";
+      case "ATTACHMENT_ADDED":
+        return "Attachments Added";
+      default:
+        return activity.action;
+    }
+  };
   return (
     <DashboardLayout>
       <div className="space-y-8 mx-auto max-w-7xl w-full">
+        {/* Top Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Ticket #{complaint.ticketCode}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-foreground">Ticket #{complaint.ticketCode}</h1>
+              <Badge variant="outline" className={getStatusBadge(complaint.status)}>
+                {complaint.status.replaceAll("_", " ")}
+              </Badge>
+              <Badge variant="outline" className={getPriorityBadge(complaint.priority)}>
+                {complaint.priority}
+              </Badge>
+            </div>
             <p className="text-muted-foreground">Ticket Detail Page</p>
           </div>
           <Button className="bg-primary text-white hover:bg-primary/90" onClick={() => router.back()}>
-            <ArrowLeft size={18} /> Back
+            <ArrowLeft size={18} className="mr-2" /> Back
           </Button>
         </div>
 
+        {/* Main Content Grid */}
         <div className="grid gap-4 lg:grid-cols-12">
-          {canManageTicket && (
-            <Card className="lg:col-span-8">
-              <CardHeader>
-                <CardTitle>Ticket Information</CardTitle>
-                <CardDescription>Update ticket information, assignment and status.</CardDescription>
-              </CardHeader>
+          {/* Left Column: Ticket Info */}
+          <div className="lg:col-span-8 space-y-6">
+            {canManageTicket ? (
+              /* MANAGER / ADMIN EDIT VIEW */
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ticket Information</CardTitle>
+                  <CardDescription>Update ticket information, assignment and status.</CardDescription>
+                </CardHeader>
 
-              <CardContent className="space-y-6">
-                <FieldGroup>
-                  <Field>
-                    <Label htmlFor="description">Ticket Description</Label>
-                    <Textarea
-                      id="description"
-                      required
-                      value={complaint.description}
-                      onChange={(e) =>
-                        setComplaint({
-                          ...complaint,
-                          description: e.target.value,
-                        })
-                      }
-                      className="min-h-[180px]"
-                    />
-                  </Field>
-                </FieldGroup>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <CardContent className="space-y-6">
+                  {/* Ticket Description */}
                   <FieldGroup>
                     <Field>
-                      <Label>Status</Label>
-                      <Select value={status} onValueChange={setStatus}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PENDING">Pending</SelectItem>
-                          <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                          <SelectItem value="RESOLVED">Resolved</SelectItem>
-                          <SelectItem value="CLOSED">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="description">Ticket Description</Label>
+                      <Textarea
+                        id="description"
+                        required
+                        value={complaint.description}
+                        onChange={(e) =>
+                          setComplaint({
+                            ...complaint,
+                            description: e.target.value,
+                          })
+                        }
+                        disabled={saving}
+                        className="min-h-[180px]"
+                      />
                     </Field>
                   </FieldGroup>
 
-                  <FieldGroup>
-                    <Field>
-                      <Label>Priority</Label>
-                      <Select value={priority} onValueChange={setPriority}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="LOW">Low</SelectItem>
-                          <SelectItem value="MEDIUM">Medium</SelectItem>
-                          <SelectItem value="HIGH">High</SelectItem>
-                          <SelectItem value="URGENT">Urgent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </FieldGroup>
-                  <FieldGroup>
-                    <Field>
-                      <Label>Assigned Technician</Label>
-                      <Select value={technicianId} onValueChange={setTechnicianId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Technician" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {technicians.map((technician) => (
-                            <SelectItem key={technician.id} value={String(technician.id)}>
-                              {technician.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </FieldGroup>
+                  {/* Dropdowns Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <FieldGroup>
+                      <Field>
+                        <Label>Status</Label>
+                        <Select value={status} onValueChange={setStatus} disabled={saving}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                            <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                            <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                            <SelectItem value="RESOLVED">Resolved</SelectItem>
+                            <SelectItem value="CLOSED">Closed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
 
-                  <FieldGroup>
-                    <Field>
-                      <Label>Department</Label>
-                      <Select value={departmentId} onValueChange={setDepartmentId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Department" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {departments.map((department) => (
-                            <SelectItem key={department.id} value={String(department.id)}>
-                              {department.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </FieldGroup>
-                </div>
+                    <FieldGroup>
+                      <Field>
+                        <Label>Priority</Label>
+                        <Select value={priority} onValueChange={setPriority} disabled={saving}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="LOW">Low</SelectItem>
+                            <SelectItem value="MEDIUM">Medium</SelectItem>
+                            <SelectItem value="HIGH">High</SelectItem>
+                            <SelectItem value="URGENT">Urgent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
 
-                <div className="space-y-2">
-                  <Label>Issue Resolved</Label>
-                  <div className="flex items-center gap-4">
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="mr-2 size-4" /> Upload Image
-                    </Button>
-                    <Input type="file" multiple className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*,video/*" />
+                    <FieldGroup>
+                      <Field>
+                        <Label>Assigned Technician</Label>
+                        <Select value={technicianId} onValueChange={setTechnicianId} disabled={saving}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Technician" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {technicians.map((technician) => (
+                              <SelectItem key={technician.id} value={String(technician.id)}>
+                                {technician.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+
+                    <FieldGroup>
+                      <Field>
+                        <Label>Department</Label>
+                        <Select value={departmentId} onValueChange={setDepartmentId} disabled={saving}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Department" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departments.map((department) => (
+                              <SelectItem key={department.id} value={String(department.id)}>
+                                {department.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Issue Resolved</Label>
+
+                    <div
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDragOver={handleDrag}
+                      onDrop={handleDrop}
+                      onClick={() => !uploading && fileInputRef.current?.click()}
+                      className={`relative border border-dashed rounded-md p-6 text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-2
+                        ${dragActive ? "border-primary bg-muted" : "border-border hover:bg-muted/50"}
+                        ${uploading ? "pointer-events-none opacity-50 bg-muted/10" : ""}
+                      `}
+                    >
+                      <input type="file" multiple className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*,video/*" disabled={uploading || saving} />
+
+                      {uploading ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <Loader2 className="size-5 text-primary animate-spin" />
+                          <p className="text-sm font-medium">Uploading attachments...</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1">
+                          <Upload className="size-5 text-muted-foreground" />
+                          <p className="text-sm">
+                            Drag & drop files here, or <span className="text-primary hover:underline">browse files</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
                     {adminAttachments.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 pt-2">
                         {adminAttachments.map((file, idx) => (
-                          <div key={idx} className="relative group rounded overflow-hidden">
-                            {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-16 w-16 rounded border object-cover" /> : <video src={file.url} className="h-16 w-16 rounded border object-cover" />}
+                          <div key={idx} className="relative group rounded border overflow-hidden h-16 w-16 bg-muted">
+                            {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-full w-full object-cover" /> : <video src={file.url} className="h-full w-full object-cover" />}
 
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
-                              <button type="button" onClick={() => setAdminAttachments((prev) => prev.filter((_, i) => i !== idx))} className="px-2 py-1 rounded bg-red-500 text-white text-xs font-medium">
-                                Delete
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 rounded">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openLightbox(adminAttachments, idx);
+                                }}
+                                className="p-1 rounded bg-white/20 hover:bg-white/40 text-white transition-colors"
+                              >
+                                <Eye className="size-3.5" />
                               </button>
+                              {idx >= savedAttachments.length && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const savedCount = savedAttachments.length;
+                                    setNewAttachments((prev) => prev.filter((_, i) => i !== idx - savedCount));
+                                  }}
+                                  className="p-1 rounded bg-red-500 hover:bg-red-600 text-white transition-colors"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
                       </div>
-                    )}{" "}
+                    )}
                   </div>
+
+                  <Button onClick={saveChanges} disabled={saving || uploading || !hasChanges} className="h-11 px-6">
+                    {saving ? (
+                      <>
+                        <Loader2 className="size-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="size-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ticket Information</CardTitle>
+                  <CardDescription>Details for ticket #{complaint.ticketCode}.</CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Ticket Description</Label>
+                    <div className="bg-muted p-4 rounded-md text-foreground whitespace-pre-wrap leading-relaxed text-sm">{complaint.description || "No description provided."}</div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground uppercase font-medium">Assigned Technician</span>
+                      <div className="text-sm font-medium">{complaint.assignedTechnician?.name || "Not assigned"}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground uppercase font-medium">Department</span>
+                      <div className="text-sm font-medium">{complaint.department?.name || "Not assigned"}</div>
+                    </div>{" "}
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-muted-foreground">Resolution Proof</Label>
+
+                    {adminAttachments.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {adminAttachments.map((file, idx) => (
+                          <button key={idx} type="button" onClick={() => openLightbox(adminAttachments, idx)} className="relative group rounded border overflow-hidden h-16 w-16 bg-muted hover:opacity-90 transition-opacity">
+                            {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-full w-full object-cover" /> : <video src={file.url} className="h-full w-full object-cover" />}
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                              <Eye className="size-4 text-white" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No resolution proof attachments uploaded yet.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">Activity Timeline</h2>
+                  <p className="text-muted-foreground">Complaint history and updates</p>
                 </div>
 
-                <Button onClick={saveChanges} disabled={saving || !hasChanges} className="h-11 px-6">
-                  <Save className="size-4 mr-2" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-          <Card className={canManageTicket ? "lg:col-span-4" : "lg:col-span-12"}>
+                <Badge variant="outline" className="bg-sky-50 text-sky-600 h-8 px-4 text-sm">
+                  {complaint.activities?.length || 0} Events
+                </Badge>
+              </div>
+
+              <div className="space-y-4">
+                {complaint.activities?.map((activity, index) => (
+                  <div key={activity.id} className="flex gap-5">
+                    {/* Timeline Line */}
+                    <div className="relative flex flex-col items-center shrink-0">
+                      <div className="h-4 w-4 rounded-full bg-primary z-10" />
+
+                      {index !== (complaint.activities?.length ?? 0) - 1 && <div className="absolute top-4 w-px h-[calc(100%+1.5rem)] bg-border" />}
+                    </div>
+
+                    <Card className="flex-1">
+                      <CardContent className="p-4">
+                        {/* Action Header */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex gap-3">
+                            <span className="pt-0.5">{getActivityIcon(activity.action)}</span>
+
+                            <div>
+                              <div className="font-semibold text-md text-foreground">
+                                {getActivityTitle(activity)} - <span className="text-sm text-muted-foreground">{activity.createdBy?.name || "System"}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-sm whitespace-nowrap">
+                              {new Date(activity.createdAt).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Message */}
+                        {activity.message && <div className="mt-4 py-1 text-sm text-yellow-700 leading-relaxed border-l-2 border-yellow-500 pl-4 bg-yellow-100/60">{activity.message}</div>}
+
+                        {/* Attachments */}
+                        {activity.attachments?.length ? (
+                          <div className="mt-5">
+                            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-medium">Attachments ({activity.attachments.length})</p>
+                            <div className="flex flex-wrap gap-3">
+                              {activity.attachments.map((file, idx) => (
+                                <button
+                                  key={file.id || idx}
+                                  onClick={() => openLightbox(activity.attachments!, idx)}
+                                  className="group relative h-20 w-20 overflow-hidden rounded-xl border border-border hover:border-primary/50 transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                >
+                                  {file.type === "IMAGE" ? <img src={file.url} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <video src={file.url} className="h-full w-full object-cover" />}
+
+                                  {/* Overlay indicator */}
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="text-white text-xs font-medium">View</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Ticket Metadata & User Attachments */}
+          <Card className="lg:col-span-4 h-fit sticky top-24">
             <CardHeader>
               <CardTitle>Ticket Details</CardTitle>
               <CardDescription>Overview and assignment information</CardDescription>
@@ -514,6 +793,8 @@ export default function TicketManagementPage() {
                 </div>
 
                 <Separator />
+
+                {/* Issue Attachments */}
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold">Issue Attachments</h4>
 
@@ -535,8 +816,10 @@ export default function TicketManagementPage() {
                     <p className="text-sm text-muted-foreground">No attachments</p>
                   )}
                 </div>
+
                 <Separator />
 
+                {/* Reporting Information */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-semibold">Reporting Information</h4>
 
@@ -561,6 +844,7 @@ export default function TicketManagementPage() {
 
                 <Separator />
 
+                {/* Location Information */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-semibold">Location Information</h4>
 
@@ -572,71 +856,9 @@ export default function TicketManagementPage() {
             </CardContent>
           </Card>
         </div>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold">Activity Timeline</h2>
-              <p className="text-muted-foreground">Complaint history and updates</p>
-            </div>
-
-            <Badge variant="secondary">{complaint.activities?.length || 0} Events</Badge>
-          </div>
-
-          <div className="space-y-6">
-            {complaint.activities?.map((activity, index) => (
-              <div key={activity.id} className="flex gap-5">
-                {/* Timeline */}
-                <div className="relative flex flex-col items-center shrink-0">
-                  <div className="h-4 w-4 rounded-full bg-primary z-10" />
-
-                  {index !== (complaint.activities?.length ?? 0) - 1 && <div className="absolute top-4 w-px h-[calc(100%+1.5rem)] bg-border" />}
-                </div>
-
-                {/* Activity Card */}
-                <Card className="flex-1">
-                  <CardContent className="p-5">
-                    <div className="font-medium">
-                      {activity.action === "TICKET_CREATED" && "Ticket Created"}
-
-                      {activity.action === "STATUS_CHANGED" && `Status changed from ${activity.oldValue} to ${activity.newValue}`}
-
-                      {activity.action === "TECHNICIAN_ASSIGNED" && "Technician Assigned"}
-
-                      {activity.action === "DEPARTMENT_CHANGED" && "Department Assigned"}
-
-                      {activity.action === "ATTACHMENT_ADDED" && "Attachments Added"}
-                    </div>
-
-                    <div className="text-sm text-muted-foreground mt-1">{activity.createdBy?.name || "System"}</div>
-
-                    {activity.message && <div className="text-sm text-muted-foreground mt-2">{activity.message}</div>}
-
-                    <div className="text-xs text-muted-foreground mt-3">
-                      {new Date(activity.createdAt).toLocaleString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-
-                    {activity.attachments?.length ? (
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        {activity.attachments.map((file, index) => (
-                          <button key={file.id || index} onClick={() => openLightbox(activity.attachments!, index)} className="h-16 w-16 overflow-hidden rounded-md border cursor-pointer">
-                            {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-full w-full object-cover" /> : <video src={file.url} className="h-full w-full object-cover" />}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
+
+      {/* Lightbox for large previews */}
       <Lightbox
         open={lightboxOpen}
         close={() => setLightboxOpen(false)}
