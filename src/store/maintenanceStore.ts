@@ -28,9 +28,14 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
     try {
       set({ loading: true });
       const response = await departmentService.getAll();
+
+      if (!response) return;
+
       set({
         departments: response.data?.data || response.data || [],
       });
+    } catch {
+      // interceptor handles redirect
     } finally {
       set({ loading: false });
     }
@@ -102,9 +107,14 @@ export const useTechnicianStore = create<TechnicianState>((set) => ({
     try {
       set({ loading: true });
       const response = await technicianService.getAll();
+
+      if (!response) return;
+
       set({
         technicians: response.data?.data || response.data || [],
       });
+    } catch {
+      // interceptor handles redirect
     } finally {
       set({ loading: false });
     }
@@ -167,9 +177,14 @@ export const useLocationStore = create<LocationState>((set) => ({
     try {
       set({ loading: true });
       const response = await locationService.getAll();
+
+      if (!response) return;
+
       set({
         locations: response.data?.data || response.data || [],
       });
+    } catch {
+      // interceptor handles redirect
     } finally {
       set({ loading: false });
     }
@@ -270,9 +285,14 @@ export const useComplaintStore = create<ComplaintState>((set) => ({
     try {
       set({ loading: true });
       const response = await complaintService.getAll();
+
+      if (!response) return;
+
       set({
         complaints: response.data?.data || response.data || [],
       });
+    } catch {
+      // interceptor handles redirect
     } finally {
       set({ loading: false });
     }

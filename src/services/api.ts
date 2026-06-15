@@ -6,10 +6,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("token")
-      : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -19,36 +16,26 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
+  
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+
+      if (token) {
         useAuthStore.getState().logout();
         window.location.replace("/login");
+        return new Promise(() => {});
       }
-      return new Promise(() => {});
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
-        useAuthStore.getState().logout();
-        window.location.replace("/login");
-      }
-      return new Promise(() => {});
     }
 
     if (error.response?.status === 403) {
-      if (typeof window !== "undefined") {
+      const url = error.config?.url || "";
+
+      if (typeof window !== "undefined" && !url.includes("/auth/login")) {
         window.location.replace("/403");
+        return new Promise(() => {});
       }
-      return new Promise(() => {});
     }
 
     return Promise.reject(error);
@@ -58,8 +45,7 @@ apiClient.interceptors.response.use(
 export default apiClient;
 
 export const authService = {
-  login: (credentials: { identifier: string; password: string }) =>
-    apiClient.post("/auth/login", credentials),
+  login: (credentials: { identifier: string; password: string }) => apiClient.post("/auth/login", credentials),
 
   getProfile: () => apiClient.get("/auth/profile"),
 };

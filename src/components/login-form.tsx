@@ -37,7 +37,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"form">)
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="identifier">Email / Username</FieldLabel>
-          <Input id="identifier" type="text" placeholder="Enter Email or Username" value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
+          <Input id="identifier" type="text" placeholder="Enter Email or Username" required value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
         </Field>
 
         <Field>

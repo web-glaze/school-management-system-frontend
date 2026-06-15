@@ -77,7 +77,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: userData });
       return { success: true };
     } catch (error: unknown) {
-      console.error(error);
       const message = axios.isAxiosError(error) ? error.response?.data?.message : null;
       return { success: false, error: typeof message === "string" ? message : "Login Failed" };
     } finally {
