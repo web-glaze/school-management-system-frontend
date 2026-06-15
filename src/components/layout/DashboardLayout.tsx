@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "../ui/breadcrumb";
 import { Separator } from "../ui/separator";
+import { NavUser } from "../nav-user";
 
 interface User {
   name?: string;
@@ -59,28 +60,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const role = (user.role || "user").toLowerCase();
   const roleColor = ROLE_COLORS[role] ?? "bg-gray-400";
 
+  const data = {
+    user: {
+      name: user.name || "",
+      email: user.email || "",
+      avatar: "",
+    },
+  };
+
   return (
     <SidebarProvider>
       <AppSidebar role={user.role} />
 
       <SidebarInset>
-        <header className="flex h-20 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-40 bg-white">
-          <SidebarTrigger className="-ml-1" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              {parent && (
-                <>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href={parentHref}>{parent}</BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                </>
-              )}
-              <BreadcrumbItem>
-                <BreadcrumbPage>{current}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+        <header className="flex h-20 items-center justify-between gap-2 border-b px-4 sticky top-0 z-40 bg-white">
+          <div className="flex-1 flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                {parent && (
+                  <>
+                    <BreadcrumbItem className="hidden md:block">
+                      <BreadcrumbLink href={parentHref}>{parent}</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                  </>
+                )}
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{current}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+          <div>
+            <NavUser user={data.user} />
+          </div>
         </header>
 
         <main className="flex flex-1 flex-col gap-4 p-6 bg-gray-100">{children}</main>

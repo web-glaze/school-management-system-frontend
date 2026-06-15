@@ -25,8 +25,8 @@ export function NavMain({ maintenanceItems, settingItems }: NavMainProps) {
         <SidebarMenuItem>
           <SidebarMenuButton asChild>
             <Link href="/dashboard">
-              <LayoutDashboard className="h-6 w-6" />
-              <span className="text-base">Dashboard</span>
+              <LayoutDashboard className="w-5! h-5!" />
+              <span className="text-base font-medium">Dashboard</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -51,8 +51,8 @@ export function NavMain({ maintenanceItems, settingItems }: NavMainProps) {
                   "
                 >
                   <Link href={item.url}>
-                    <item.icon className="w-20 h-20" />
-                    <span className="text-base">{item.title}</span>
+                    <item.icon className="w-5! h-5!" />
+                    <span className="text-base font-medium">{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -79,9 +79,9 @@ export function NavMain({ maintenanceItems, settingItems }: NavMainProps) {
                     data-[active=true]:text-white
                   "
                 >
-                  <Link href={item.url}>
-                    <item.icon className="w-20 h-20" />
-                    <span className="text-base">{item.title}</span>
+                  <Link href={item.url} className="w-full block">
+                    <item.icon className="w-5! h-5!" />
+                    <span className="text-base font-medium">{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -101,11 +101,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain maintenanceItems={maintenanceItems} settingItems={settingItems} />
       </SidebarContent>
-
-      {/* Footer */}
-      <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter>
     </Sidebar>
   );
 }
