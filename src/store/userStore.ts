@@ -29,6 +29,8 @@ interface UserState {
   updateUser: (id: string, data: any) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   changePassword: (id: string, newPassword: string) => Promise<void>;
+  updateMyProfile: (data: any) => Promise<void>;
+  changeMyPassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
@@ -56,7 +58,6 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       set({ creating: true });
       await userService.create(data);
-      await get().fetchUsers();
     } catch (error) {
       console.error("createUser failed:", error);
       throw error;
@@ -69,7 +70,6 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       set({ updating: true });
       await userService.update(id, data);
-      await get().fetchUsers();
     } catch (error) {
       console.error("updateUser failed:", error);
       throw error;
@@ -82,7 +82,6 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       set({ deletingId: id });
       await userService.delete(id);
-      await get().fetchUsers();
     } catch (error) {
       console.error("deleteUser failed:", error);
       throw error;
@@ -97,6 +96,29 @@ export const useUserStore = create<UserState>((set, get) => ({
       await userService.changePassword(id, newPassword);
     } catch (error) {
       console.error("changePassword failed:", error);
+      throw error;
+    } finally {
+      set({ changingPasswordId: null });
+    }
+  },
+
+  updateMyProfile: async (data: any) => {
+    try {
+      set({ updating: true });
+      await userService.updateProfile(data);
+    } catch (error) {
+      console.error("updateMyProfile failed:", error);
+      throw error;
+    } finally {
+      set({ updating: false });
+    }
+  },
+
+  changeMyPassword: async (currentPassword: string, newPassword: string) => {
+    try {
+      set({ changingPasswordId: "self" });
+      await userService.changeMyPassword(currentPassword, newPassword);
+    } catch (error) {
       throw error;
     } finally {
       set({ changingPasswordId: null });

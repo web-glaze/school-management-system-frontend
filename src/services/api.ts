@@ -47,5 +47,5 @@ export default apiClient;
 export const authService = {
   login: (credentials: { identifier: string; password: string }) => apiClient.post("/auth/login", credentials),
 
-  getProfile: () => apiClient.get("/auth/profile"),
+  getProfile: () => apiClient.get("/auth/me"),
 };

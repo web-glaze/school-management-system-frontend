@@ -624,7 +624,12 @@ export default function TicketManagementPage() {
                   </div>
 
                   <Button onClick={saveChanges} disabled={saving || uploading || !hasChanges} className="h-11 px-6">
-                    {saving ? (
+                    {uploading ? (
+                      <>
+                        <Loader2 className="size-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : saving ? (
                       <>
                         <Loader2 className="size-4 mr-2 animate-spin" />
                         Saving...

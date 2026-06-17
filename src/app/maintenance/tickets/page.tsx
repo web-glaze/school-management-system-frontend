@@ -48,8 +48,8 @@ export default function ComplaintsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const userRole = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}")?.roles?.[0] || "" : "";
-  const canManageTickets = ["SUPERADMIN", "ADMIN", "MANAGER"].includes(userRole);
-
+  const canEditTickets = ["SUPERADMIN", "ADMIN", "MANAGER"].includes(userRole);
+  const canDeleteTickets = ["SUPERADMIN", "ADMIN"].includes(userRole);
   // Isolated state to handle targeting a specific ticket for deletion safely
   const [targetDeleteComplaint, setTargetDeleteComplaint] = useState<Complaint | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -373,7 +373,7 @@ export default function ComplaintsPage() {
 
                         <TableCell className="py-4 text-right align-top space-x-1  sticky right-0 bg-card shadow-lg md:shadow-none">
                           <div className="hidden md:flex justify-end gap-1">
-                            {canManageTickets ? (
+                            {canEditTickets ? (
                               <>
                                 <Link href={`/maintenance/tickets/${complaint.id}`}>
                                   <Button variant="ghost" size="icon" className="size-10 text-muted-foreground hover:bg-blue-600/10 hover:text-blue-600 transition-all">
@@ -381,9 +381,11 @@ export default function ComplaintsPage() {
                                   </Button>
                                 </Link>
 
-                                <Button variant="ghost" size="icon" className="size-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => setTargetDeleteComplaint(complaint)}>
-                                  <Trash2 className="size-5" />
-                                </Button>
+                                {canDeleteTickets && (
+                                  <Button variant="ghost" size="icon" className="size-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => setTargetDeleteComplaint(complaint)}>
+                                    <Trash2 className="size-5" />
+                                  </Button>
+                                )}
                               </>
                             ) : (
                               <Link href={`/maintenance/tickets/${complaint.id}`}>
@@ -394,7 +396,7 @@ export default function ComplaintsPage() {
                             )}
                           </div>
                           <div className="md:hidden flex justify-end">
-                            {canManageTickets ? (
+                            {canEditTickets ? (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="size-9">
@@ -410,10 +412,12 @@ export default function ComplaintsPage() {
                                     </Link>
                                   </DropdownMenuItem>
 
-                                  <DropdownMenuItem onClick={() => setTargetDeleteComplaint(complaint)} className="text-destructive">
-                                    <Trash2 className="mr-2 size-4" />
-                                    Delete
-                                  </DropdownMenuItem>
+                                  {canDeleteTickets && (
+                                    <DropdownMenuItem onClick={() => setTargetDeleteComplaint(complaint)} className="text-destructive">
+                                      <Trash2 className="mr-2 size-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             ) : (

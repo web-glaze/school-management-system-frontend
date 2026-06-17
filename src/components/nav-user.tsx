@@ -74,7 +74,16 @@ export function NavUser({
 
             {/* Settings */}
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/settings")} className="cursor-pointer">
+
+              <DropdownMenuItem
+                onClick={() =>
+                  router.push(
+                    "/settings",
+                  )
+                }
+                className="cursor-pointer"
+              >
+
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
