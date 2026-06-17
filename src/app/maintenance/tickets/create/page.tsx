@@ -157,6 +157,11 @@ export default function RaiseTicketPage() {
       return;
     }
 
+    if (issues.find((issue) => issue.attachments.length === 0)) {
+      toast.error("Each issue must have at least one image or video.");
+      return;
+    }
+
     const validIssues = issues.filter((issue) => issue.description.trim() !== "");
     if (!validIssues.length) {
       toast.error("Please add at least one issue.");

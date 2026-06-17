@@ -204,31 +204,31 @@ export default function UserManagementPage() {
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="full-name">Full Name</Label>
-                    <Input id="full-name" placeholder="Juan Dela Cruz" value={name} onChange={(e) => setName(e.target.value)} required />
+                    <Input id="full-name" placeholder="Juan Dela Cruz" value={name} onChange={(e) => setName(e.target.value)} />
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="username">Username</Label>
-                    <Input id="username" placeholder="juandc" value={userName} onChange={(e) => setUserName(e.target.value)} required />
+                    <Input id="username" placeholder="juandc" value={userName} onChange={(e) => setUserName(e.target.value)} />
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" placeholder="juandc@school.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input id="email" placeholder="juandc@school.edu" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" placeholder="09123456789" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                    <Input id="phone" placeholder="09123456789" value={phone} onChange={(e) => setPhone(e.target.value)} />
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
@@ -437,25 +437,25 @@ export default function UserManagementPage() {
             <FieldGroup>
               <Field>
                 <Label htmlFor="full-name">Full Name</Label>
-                <Input id="full-name" placeholder="Juan Dela Cruz" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                <Input id="full-name" placeholder="Juan Dela Cruz" value={editName} onChange={(e) => setEditName(e.target.value)} />
               </Field>
             </FieldGroup>
             <FieldGroup>
               <Field>
                 <Label htmlFor="username">Username</Label>
-                <Input id="username" placeholder="juandc" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} required />
+                <Input id="username" placeholder="juandc" value={editUserName} onChange={(e) => setEditUserName(e.target.value)}  />
               </Field>
             </FieldGroup>
             <FieldGroup>
               <Field>
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" placeholder="juandc@school.edu" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
+                <Input id="email" placeholder="juandc@school.edu" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
               </Field>
             </FieldGroup>
             <FieldGroup>
               <Field>
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" placeholder="09123456789" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} required />
+                <Input id="phone" placeholder="09123456789" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
               </Field>
             </FieldGroup>
             <FieldGroup>

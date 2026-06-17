@@ -183,6 +183,11 @@ export default function TicketManagementPage() {
     }
 
     try {
+      if (status === "CLOSED" && adminAttachments.length === 0) {
+        toast.error("Please upload at least one image or video before closing the ticket");
+        return;
+      }
+
       await updateComplaint(id, {
         description: complaint.description.trim(),
         status,
@@ -399,6 +404,8 @@ export default function TicketManagementPage() {
         return <PlusCircle className={iconClass} />;
       case "STATUS_CHANGED":
         return <ArrowRightLeft className={iconClass} />;
+      case "PRIORITY_CHANGED":
+        return <AlertCircle className={iconClass} />;
       case "TECHNICIAN_ASSIGNED":
         return <UserCheck className={iconClass} />;
       case "DEPARTMENT_CHANGED":
@@ -415,7 +422,9 @@ export default function TicketManagementPage() {
       case "TICKET_CREATED":
         return "Ticket Created";
       case "STATUS_CHANGED":
-        return `Status changed to ${activity.newValue}`;
+        return `Status changed`;
+      case "PRIORITY_CHANGED":
+        return `Priority changed`;
       case "TECHNICIAN_ASSIGNED":
         return "Technician Assigned";
       case "DEPARTMENT_CHANGED":
