@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, ChevronsUpDown, LogOut } from "lucide-react";
+import { ChevronsUpDown, LogOut, User } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 
@@ -78,14 +78,14 @@ export function NavUser({
               <DropdownMenuItem
                 onClick={() =>
                   router.push(
-                    "/settings",
+                    "/My-Profile",
                   )
                 }
                 className="cursor-pointer"
               >
 
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
+                <User className="h-4 w-4" />
+                <span>My Profile</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
 

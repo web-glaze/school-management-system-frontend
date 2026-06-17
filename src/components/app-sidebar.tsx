@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, User } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -44,6 +44,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   ].filter(Boolean);
 
   const settingItems = [
+    {
+      title: "My Profile",
+      url: "/My-Profile",
+      icon: User,
+      isActive: pathname === "/My-Profile",
+    },
+
     permissions.includes("user.read") && {
       title: "Users",
       url: "/user",
