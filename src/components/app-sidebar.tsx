@@ -41,6 +41,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       icon: MapPin,
       isActive: pathname === "/maintenance/location",
     },
+
+    permissions.includes("report.read") && {
+      title: "Reports",
+      url: "/maintenance/Reports",
+      icon: Scroll,
+      isActive: pathname.startsWith("/maintenance/Reports"),
+    },
   ].filter(Boolean);
 
   const settingItems = [

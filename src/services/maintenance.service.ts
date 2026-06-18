@@ -63,3 +63,12 @@ export const complaintService = {
 
   delete: (id: string) => apiClient.delete(`/complaints/${id}`),
 };
+
+// ====================== Reports ======================
+
+export const reportsService = {
+  getAll: (params?: Record<string, any>) =>
+    apiClient.get("/reports", {
+      params,
+    }),
+};

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { departmentService, technicianService, locationService, complaintService } from "@/services/maintenance.service";
+import { departmentService, technicianService, locationService, complaintService, reportsService } from "@/services/maintenance.service";
 
 // ====================== Department ======================
 
@@ -9,7 +9,6 @@ export interface Department {
   departmentCode?: string;
   createdAt: string;
 }
-
 interface DepartmentState {
   departments: Department[];
   loading: boolean;
@@ -272,8 +271,8 @@ interface ComplaintState {
   loading: boolean;
 
   fetchComplaints: () => Promise<void>;
-  createComplaints: (complaints: any[]) => Promise<void>;
-  updateComplaint: (id: string, data: any) => Promise<void>;
+  createComplaints: (complaints: unknown[]) => Promise<void>;
+  updateComplaint: (id: string, data: Record<string, unknown>) => Promise<void>;
   deleteComplaint: (id: string) => Promise<void>;
 }
 
@@ -298,7 +297,7 @@ export const useComplaintStore = create<ComplaintState>((set) => ({
     }
   },
 
-  createComplaints: async (complaints) => {
+  createComplaints: async (complaints: unknown[]) => {
     try {
       set({ loading: true });
       await complaintService.create(complaints);
@@ -308,7 +307,7 @@ export const useComplaintStore = create<ComplaintState>((set) => ({
     }
   },
 
-  updateComplaint: async (id, data) => {
+  updateComplaint: async (id: string, data: Record<string, unknown>) => {
     try {
       set({ loading: true });
       await complaintService.update(id, data);
@@ -323,6 +322,77 @@ export const useComplaintStore = create<ComplaintState>((set) => ({
       set({ loading: true });
       await complaintService.delete(id);
       await useComplaintStore.getState().fetchComplaints();
+    } finally {
+      set({ loading: false });
+    }
+  },
+}));
+
+// ====================== Reports ======================
+export interface ReportData {
+  summary: {
+    totalTickets: number;
+    pending: number;
+    assigned: number;
+    inProgress: number;
+    resolved: number;
+    closed: number;
+  };
+
+  charts: {
+    locationChart: {
+      locationType: string;
+      _count: number;
+    }[];
+
+    departmentChart: {
+      name: string;
+      count: number;
+    }[];
+
+    technicianChart: {
+      name: string;
+      count: number;
+    }[];
+
+    priorityChart: {
+      priority: string;
+      _count: number;
+    }[];
+
+    trendChart: {
+      date: string;
+      count: number;
+    }[];
+  };
+
+  tickets: Complaint[];
+}
+
+interface ReportState {
+  report: ReportData | null;
+  loading: boolean;
+
+  fetchReports: (params?: Record<string, string | number | boolean>) => Promise<void>;
+}
+
+export const useReportStore = create<ReportState>((set) => ({
+  report: null,
+  loading: false,
+
+  fetchReports: async (params = {}) => {
+    try {
+      set({ loading: true });
+
+      const response = await reportsService.getAll(params);
+
+      if (!response) return;
+
+      set({
+        report: response.data?.data || response.data,
+      });
+    } catch {
+      // interceptor handles redirect
     } finally {
       set({ loading: false });
     }
