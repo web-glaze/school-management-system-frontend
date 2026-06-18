@@ -218,7 +218,7 @@ function Modal({ title, description, onClose, children }: { title: string; descr
 function FilterSelect({ value, onChange, options, placeholder }: { value: string; onChange: (value: string) => void; options: string[]; placeholder: string }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 min-w-[200px]">
+      <SelectTrigger className="h-9 min-w-50">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
 
@@ -561,7 +561,7 @@ export default function ReportsPage() {
                   </CardTitle>
                   <CardDescription>Tickets created over time</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[320px] pt-2 min-w-0">
+                <CardContent className="h-80 pt-2 min-w-0">
                   {trendChart.length === 0 ? (
                     <ChartEmptyState />
                   ) : (
@@ -597,11 +597,11 @@ export default function ReportsPage() {
                   </CardTitle>
                   <CardDescription>Breakdown by priority</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[320px] pt-2 min-w-0">
+                <CardContent className="h-80 pt-2 min-w-0">
                   {priorityChart.length === 0 ? (
                     <ChartEmptyState />
                   ) : (
-                    <ChartContainer config={priorityChartConfig} className="mx-auto aspect-square max-h-[280px]">
+                    <ChartContainer config={priorityChartConfig} className="mx-auto aspect-square max-h-70">
                       <PieChart>
                         <ShadcnChartTooltip cursor={false} content={<ShadcnChartTooltipContent hideLabel />} />
 
@@ -687,7 +687,7 @@ export default function ReportsPage() {
                           <tr key={ticket.id} className="border-b last:border-0 odd:bg-muted/10 hover:bg-muted/30 transition-colors">
                             <td className="py-2.5 px-3">
                               <p className="font-semibold">{ticket.ticketCode}</p>
-                              <p className="text-xs text-muted-foreground truncate max-w-[220px]">{ticket.description}</p>
+                              <p className="text-xs text-muted-foreground truncate max-w-55">{ticket.description}</p>
                             </td>
                             <td className="py-2.5 px-3 text-muted-foreground">{ticket.locationType}</td>
                             <td className="py-2.5 px-3">

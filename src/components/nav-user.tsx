@@ -78,7 +78,7 @@ export function NavUser({
               <DropdownMenuItem
                 onClick={() =>
                   router.push(
-                    "/My-Profile",
+                    "/my-profile",
                   )
                 }
                 className="cursor-pointer"
