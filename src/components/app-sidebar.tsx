@@ -46,9 +46,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const settingItems = [
     {
       title: "My Profile",
-      url: "/My-Profile",
+      url: "/my-profile",
       icon: User,
-      isActive: pathname === "/My-Profile",
+      isActive: pathname === "/my-profile",
     },
 
     permissions.includes("user.read") && {

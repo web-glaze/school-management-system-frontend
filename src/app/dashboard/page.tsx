@@ -145,8 +145,8 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight text-sky-600">Welcome back, {user?.name || user?.email.split("@")[0]}!</h1>
-            <p className="mt-1.5 text-sm md:text-base">Here is a summary of the school management and maintenance status.</p>
+            <h1 className="text-2xl md:text-4xl font-extrabold text-foreground tracking-tight text-sky-600">Welcome back, {user?.name || user?.email.split("@")[0]}!</h1>
+            <p className="mt-1.5 text-base md:text-lg">Here is a summary of the school management and maintenance status.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Badge
@@ -174,7 +174,7 @@ export default function DashboardPage() {
               <Card key={stat.label} className="group relative  bg-card rounded-md p-5 transition-all duration-300 hover:shadow-md hover:-translate-y-1 overflow-hidden">
                 <CardContent className="p-0 flex flex-col justify-between h-full min-h-[90px]">
                   <div className="flex justify-between items-start">
-                    <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">{stat.label}</p>
+                    <p className="text-muted-foreground text-sm font-bold uppercase">{stat.label}</p>
                     <div className={cn("p-2 rounded-md border transition-transform duration-300 group-hover:scale-110 shrink-0", stat.colorClass)}>
                       <Icon className="size-4" />
                     </div>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
                         <Icon className="size-4 text-primary group-hover:text-primary-foreground transition-colors" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">{link.title}</p>
+                        <p className="text-base font-bold text-foreground group-hover:text-primary transition-colors leading-tight">{link.title}</p>
                         <p className="text-xs text-muted-foreground truncate mt-0.5">{link.desc}</p>
                       </div>
                     </Link>
@@ -247,7 +247,7 @@ export default function DashboardPage() {
               ) : recent.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
                   <Ticket className="size-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground font-semibold">No tickets found</p>
+                  <p className="text-base text-muted-foreground font-semibold">No tickets found</p>
                   <Link href="/maintenance/tickets/create" className="mt-3">
                     <Button size="sm" className="text-xs" variant="outline">
                       Create first ticket
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                     return (
                       <Link key={c.id} href={`/maintenance/tickets/${c.id}`} className="flex items-center justify-between gap-3 py-3 hover:bg-muted/40 px-2 rounded-md transition-all duration-200 -mx-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-foreground truncate leading-snug hover:text-primary transition-colors">{c.title || c.description?.slice(0, 40)}</p>
+                          <p className="text-base font-bold text-foreground truncate leading-snug hover:text-primary transition-colors">{c.title || c.description?.slice(0, 40)}</p>
                           <p className="text-xs text-muted-foreground mt-0.5 font-medium">
                             {c.ticketCode} · {c.locationType}
                           </p>
@@ -296,9 +296,9 @@ export default function DashboardPage() {
                     Active
                   </Badge>
                 </div>
-                <h3 className="text-sm font-bold text-foreground relative z-10 group-hover:text-primary transition-colors">Maintenance</h3>
+                <h3 className="text-base font-bold text-foreground relative z-10 group-hover:text-primary transition-colors">Maintenance</h3>
                 <p className="text-muted-foreground leading-normal relative z-10">Department assignments, ticket tracking & resolution workflow</p>
-                <div className="mt-4 flex items-center gap-1 text-primary text-sm font-bold relative z-10">
+                <div className="mt-4 flex items-center gap-1 text-primary text-base font-bold relative z-10">
                   Open module <ChevronRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </Card>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
                   Soon
                 </Badge>
               </div>
-              <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">Gate Pass</h3>
+              <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">Gate Pass</h3>
               <p className="text-muted-foreground leading-normal">Visitor tracking, passes & entry/exit logs</p>
             </Card>
 
@@ -333,7 +333,7 @@ export default function DashboardPage() {
                   Soon
                 </Badge>
               </div>
-              <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">Academics</h3>
+              <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">Academics</h3>
               <p className="text-muted-foreground leading-normal">Student databases, class rosters & attendance</p>
             </Card>
 
@@ -350,7 +350,7 @@ export default function DashboardPage() {
                   Soon
                 </Badge>
               </div>
-              <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">Tuck Shop / POS</h3>
+              <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">Tuck Shop / POS</h3>
               <p className="text-muted-foreground leading-normal">Inventory tracking, sales records & POS systems</p>
             </Card>
           </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LayoutDashboard, type LucideIcon } from "lucide-react";
 
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { usePathname } from "next/navigation";
 
 type NavItem = {
   title: string;
@@ -18,15 +19,16 @@ interface NavMainProps {
 }
 
 export function NavMain({ maintenanceItems, settingItems }: NavMainProps) {
+  const pathname = usePathname();
   return (
     <SidebarGroup className="flex flex-col gap-0">
       {/* Dashboard */}
       <SidebarMenu className="gap-1">
         <SidebarMenuItem>
-          <SidebarMenuButton asChild>
+          <SidebarMenuButton asChild isActive={pathname === "/dashboard"} className="h-9 hover:bg-sky-50 hover:text-sky-600 data-[active=true]:bg-sky-50 data-[active=true]:text-sky-600">
             <Link href="/dashboard">
               <LayoutDashboard className="w-5! h-5!" />
-              <span className="text-base font-medium">Dashboard</span>
+              <span className="text-lg">Dashboard</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -39,20 +41,10 @@ export function NavMain({ maintenanceItems, settingItems }: NavMainProps) {
           <SidebarMenu className="gap-1">
             {maintenanceItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={item.isActive}
-                  className="
-                    hover:bg-sky-50
-                    hover:text-sky-600
-
-                    data-[active=true]:bg-sky-600
-                    data-[active=true]:text-white
-                  "
-                >
+                <SidebarMenuButton asChild isActive={item.isActive} className="h-9 hover:bg-sky-50 hover:text-sky-600 data-[active=true]:bg-sky-50 data-[active=true]:text-sky-600">
                   <Link href={item.url}>
                     <item.icon className="w-5! h-5!" />
-                    <span className="text-base font-medium">{item.title}</span>
+                    <span className="text-lg">{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -68,20 +60,10 @@ export function NavMain({ maintenanceItems, settingItems }: NavMainProps) {
           <SidebarMenu>
             {settingItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={item.isActive}
-                  className="
-                    hover:bg-sky-50
-                    hover:text-sky-600
-
-                    data-[active=true]:bg-sky-600
-                    data-[active=true]:text-white
-                  "
-                >
+                <SidebarMenuButton asChild isActive={item.isActive} className="h-9 hover:bg-sky-50 hover:text-sky-600 data-[active=true]:bg-sky-50 data-[active=true]:text-sky-600">
                   <Link href={item.url} className="w-full block">
                     <item.icon className="w-5! h-5!" />
-                    <span className="text-base font-medium">{item.title}</span>
+                    <span className="text-lg">{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

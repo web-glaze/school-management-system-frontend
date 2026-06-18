@@ -16,6 +16,14 @@ export interface User {
   }[];
 }
 
+export interface ProfileUser {
+  id: string;
+  name: string;
+  userName: string;
+  email?: string;
+  phone?: string;
+}
+
 interface UserState {
   users: User[];
   loading: boolean;
@@ -29,7 +37,7 @@ interface UserState {
   updateUser: (id: string, data: any) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   changePassword: (id: string, newPassword: string) => Promise<void>;
-  updateMyProfile: (data: any) => Promise<void>;
+  updateMyProfile: (data: any) => Promise<ProfileUser>;
   changeMyPassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
@@ -57,10 +65,11 @@ export const useUserStore = create<UserState>((set, get) => ({
   createUser: async (data) => {
     try {
       set({ creating: true });
-      await userService.create(data);
-    } catch (error) {
-      console.error("createUser failed:", error);
-      throw error;
+      const response = await userService.create(data);
+      const newUser = response.data?.data || response.data;
+      set((state) => ({
+        users: [newUser, ...state.users],
+      }));
     } finally {
       set({ creating: false });
     }
@@ -69,10 +78,11 @@ export const useUserStore = create<UserState>((set, get) => ({
   updateUser: async (id, data) => {
     try {
       set({ updating: true });
-      await userService.update(id, data);
-    } catch (error) {
-      console.error("updateUser failed:", error);
-      throw error;
+      const response = await userService.update(id, data);
+      const updatedUser = response.data?.data || response.data;
+      set((state) => ({
+        users: state.users.map((user) => (user.id === id ? updatedUser : user)),
+      }));
     } finally {
       set({ updating: false });
     }
@@ -82,9 +92,9 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       set({ deletingId: id });
       await userService.delete(id);
-    } catch (error) {
-      console.error("deleteUser failed:", error);
-      throw error;
+      set((state) => ({
+        users: state.users.filter((user) => user.id !== id),
+      }));
     } finally {
       set({ deletingId: null });
     }
@@ -102,10 +112,15 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
+  // Only for My Profile
+
   updateMyProfile: async (data: any) => {
     try {
       set({ updating: true });
-      await userService.updateProfile(data);
+
+      const response = await userService.updateProfile(data);
+
+      return response.data?.data || response.data;
     } catch (error) {
       console.error("updateMyProfile failed:", error);
       throw error;

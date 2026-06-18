@@ -72,25 +72,26 @@ export default function SettingsPage() {
       return;
     }
 
-    if (!phone.trim()) {
-      toast.error("Phone number is required");
-      return;
-    }
-
     try {
-      await updateMyProfile({
+      const updatedUser = await updateMyProfile({
         name: name.trim(),
         userName: userName.trim(),
-        phone: phone.trim(),
+        phone: phone.trim() || null,
       });
 
-      setOriginalName(name);
-      setOriginalUserName(userName);
-      setOriginalPhone(phone);
+      setCurrentUser(updatedUser);
+
+      setName(updatedUser.name || "");
+      setUserName(updatedUser.userName || "");
+      setPhone(updatedUser.phone || "");
+
+      setOriginalName(updatedUser.name || "");
+      setOriginalUserName(updatedUser.userName || "");
+      setOriginalPhone(updatedUser.phone || "");
 
       toast.success("Profile updated successfully");
-    } catch {
-      toast.error("Failed to update profile");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to update profile");
     }
   };
 

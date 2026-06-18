@@ -51,6 +51,9 @@ export default function UserManagementPage() {
   const [editPassword, setEditPassword] = useState("");
   const [editRole, setEditRole] = useState("");
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+
   // Fetch initial data
   useEffect(() => {
     fetchUsers().catch(() => toast.error("Failed to load users"));
@@ -67,10 +70,9 @@ export default function UserManagementPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!role) {
-      toast.error("Role is required");
-      return;
-    }
+
+    setFormErrors({});
+
     try {
       await createUser({
         name: name.trim(),
@@ -87,14 +89,27 @@ export default function UserManagementPage() {
       setPassword("");
       setPhone("");
       setAddUserOpen(false);
+
       toast.success("User created");
-    } catch (error) {
-      toast.error("Failed to create user");
+    } catch (error: any) {
+      const errors = error?.response?.data?.errors;
+
+      if (errors) {
+        setFormErrors(errors);
+        return;
+      }
+
+      toast.error("Failed to create user", {
+        description: error?.response?.data?.message || "Something went wrong",
+      });
     }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    setEditErrors({});
+
     if (!editingUser) return;
 
     try {
@@ -102,7 +117,7 @@ export default function UserManagementPage() {
         name: editName.trim(),
         userName: editUserName.trim(),
         email: editEmail.trim(),
-        phone: editPhone.trim() || undefined,
+        phone: editPhone.trim() || null,
         role: editRole,
       };
 
@@ -111,12 +126,21 @@ export default function UserManagementPage() {
       }
 
       await updateUser(editingUser.id, payload);
+
       setEditUserOpen(false);
       setEditingUser(null);
-      setEditPassword("");
+
       toast.success("User updated");
-    } catch (error) {
-      toast.error("Failed to update user");
+    } catch (error: any) {
+      const errors = error?.response?.data?.errors;
+
+      if (errors) {
+        setEditErrors(errors);
+        return;
+      }
+      toast.error("Failed to update user", {
+        description: error?.response?.data?.message || "Something went wrong",
+      });
     }
   };
 
@@ -162,6 +186,13 @@ export default function UserManagementPage() {
     setDeleteUserOpen(true);
   };
 
+  const clearError = (field: string) => {
+    setFormErrors((prev) => ({
+      ...prev,
+      [field]: "",
+    }));
+  };
+
   const fieldBase = "h-10 px-3 rounded-lg border border-gray-200 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition";
   const selectField = fieldBase + " bg-white pr-8 appearance-none";
 
@@ -204,37 +235,89 @@ export default function UserManagementPage() {
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="full-name">Full Name</Label>
-                    <Input id="full-name" placeholder="Juan Dela Cruz" value={name} onChange={(e) => setName(e.target.value)} />
+                    <Input
+                      id="full-name"
+                      placeholder="Juan Dela Cruz"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        clearError("name");
+                      }}
+                    />
+                    {formErrors.name && <p className="text-sm text-red-500 -mt-2"> {formErrors.name}</p>}
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="username">Username</Label>
-                    <Input id="username" placeholder="juandc" value={userName} onChange={(e) => setUserName(e.target.value)} />
+                    <Input
+                      id="username"
+                      placeholder="juandc"
+                      value={userName}
+                      onChange={(e) => {
+                        setUserName(e.target.value);
+                        clearError("userName");
+                      }}
+                    />
+                    {formErrors.userName && <p className="text-sm text-red-500 -mt-2"> {formErrors.userName}</p>}
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" placeholder="juandc@school.edu" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <Input
+                      id="email"
+                      placeholder="juandc@school.edu"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearError("email");
+                      }}
+                    />
+                    {formErrors.email && <p className="text-sm text-red-500 -mt-2"> {formErrors.email}</p>}
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" placeholder="09123456789" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    <Input
+                      id="phone"
+                      placeholder="09123456789"
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        clearError("phone");
+                      }}
+                    />
+                    {formErrors.phone && <p className="text-sm text-red-500 -mt-2"> {formErrors.phone}</p>}
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearError("password");
+                      }}
+                    />
+                    {formErrors.password && <p className="text-sm text-red-500 -mt-2"> {formErrors.password}</p>}
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="role">Role</Label>
-                    <Select value={role} onValueChange={setRole}>
+                    <Select
+                      value={role}
+                      onValueChange={(value) => {
+                        setRole(value);
+                        clearError("role");
+                      }}
+                    >
                       <SelectTrigger className="w-36">
                         <SelectValue placeholder="Select Role" />
                       </SelectTrigger>
@@ -249,6 +332,7 @@ export default function UserManagementPage() {
                           ))}
                       </SelectContent>
                     </Select>
+                    {formErrors.role && <p className="text-sm text-red-500 -mt-2"> {formErrors.role}</p>}
                   </Field>
                 </FieldGroup>
 
@@ -437,31 +521,76 @@ export default function UserManagementPage() {
             <FieldGroup>
               <Field>
                 <Label htmlFor="full-name">Full Name</Label>
-                <Input id="full-name" placeholder="Juan Dela Cruz" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                <Input
+                  id="full-name"
+                  placeholder="Juan Dela Cruz"
+                  value={editName}
+                  onChange={(e) => {
+                    setEditName(e.target.value);
+                    clearError("name");
+                  }}
+                />
+                {editErrors.name && <p className="text-sm text-red-500 -mt-2"> {editErrors.name}</p>}
               </Field>
             </FieldGroup>
             <FieldGroup>
               <Field>
                 <Label htmlFor="username">Username</Label>
-                <Input id="username" placeholder="juandc" value={editUserName} onChange={(e) => setEditUserName(e.target.value)}  />
+                <Input
+                  id="username"
+                  placeholder="juandc"
+                  value={editUserName}
+                  onChange={(e) => {
+                    setEditUserName(e.target.value);
+                    clearError("userName");
+                  }}
+                />
+                {editErrors.userName && <p className="text-sm text-red-500 -mt-2"> {editErrors.userName}</p>}
               </Field>
             </FieldGroup>
             <FieldGroup>
               <Field>
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" placeholder="juandc@school.edu" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                <Input
+                  id="email"
+                  placeholder="juandc@school.edu"
+                  value={editEmail}
+                  onChange={(e) => {
+                    setEditEmail(e.target.value);
+                    clearError("email");
+                  }}
+                />
+                {editErrors.email && <p className="text-sm text-red-500 -mt-2"> {editErrors.email}</p>}
               </Field>
             </FieldGroup>
             <FieldGroup>
               <Field>
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" placeholder="09123456789" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
+                <Input
+                  id="phone"
+                  placeholder="09123456789"
+                  value={editPhone}
+                  onChange={(e) => {
+                    setEditPhone(e.target.value);
+                    clearError("phone");
+                  }}
+                />
+                {editErrors.phone && <p className="text-sm text-red-500 -mt-2"> {editErrors.phone}</p>}
               </Field>
             </FieldGroup>
             <FieldGroup>
               <Field>
                 <Label htmlFor="password">New Password</Label>
-                <Input id="password" placeholder="Leave blank to keep unchanged" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
+                <Input
+                  id="password"
+                  placeholder="Leave blank to keep unchanged"
+                  value={editPassword}
+                  onChange={(e) => {
+                    setEditPassword(e.target.value);
+                    clearError("password");
+                  }}
+                />
+                {editErrors.password && <p className="text-sm text-red-500 -mt-2"> {editErrors.password}</p>}
               </Field>
             </FieldGroup>
             <FieldGroup>
@@ -482,6 +611,7 @@ export default function UserManagementPage() {
                       ))}
                   </SelectContent>
                 </Select>
+                {editErrors.role && <p className="text-sm text-red-500 -mt-2"> {editErrors.role}</p>}
               </Field>
             </FieldGroup>
 
