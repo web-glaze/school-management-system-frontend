@@ -44,9 +44,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
     permissions.includes("report.read") && {
       title: "Reports",
-      url: "/maintenance/Reports",
+      url: "/maintenance/reports",
       icon: Scroll,
-      isActive: pathname.startsWith("/maintenance/Reports"),
+      isActive: pathname.startsWith("/maintenance/reports"),
     },
   ].filter(Boolean);
 

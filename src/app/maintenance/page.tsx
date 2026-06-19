@@ -85,7 +85,7 @@
 //     {
 //       title: "User Management",
 //       description: "Create and manage ERP IDs, roles and passwords.",
-//       href: "/maintenance/user",
+//       href: "/user",
 //     },
 
 //     {

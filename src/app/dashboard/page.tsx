@@ -93,7 +93,7 @@ export default function DashboardPage() {
       { title: "Technicians", href: "/maintenance/technician", icon: Hammer, desc: "Manage assignments" },
       { title: "Departments", href: "/maintenance/departments", icon: VectorSquare, desc: "Manage departments" },
       { title: "Locations", href: "/maintenance/location", icon: MapPin, desc: "Campus locations" },
-      { title: "Users", href: "/maintenance/user", icon: UserCog, desc: "User accounts" },
+      { title: "Users", href: "/user", icon: UserCog, desc: "User accounts" },
     ];
   } else {
     quickLinks = [
