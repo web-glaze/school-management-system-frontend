@@ -68,7 +68,7 @@ export const complaintService = {
 
 export const reportsService = {
   getAll: (params?: Record<string, any>) =>
-    apiClient.get("/reports", {
+    apiClient.get("/maintenance/reports", {
       params,
     }),
 };

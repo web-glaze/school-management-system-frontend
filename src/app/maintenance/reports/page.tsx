@@ -13,27 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import {
-  ClipboardList,
-  Clock,
-  Activity,
-  CheckCircle2,
-  XCircle,
-  UserCog,
-  CalendarDays,
-  TrendingUp,
-  Building2,
-  MapPin,
-  PieChart as PieChartIcon,
-  Search,
-  SlidersHorizontal,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  X,
-} from "lucide-react";
+import { DateRange } from "react-day-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ClipboardList, Clock, Activity, CheckCircle2, XCircle, UserCog, CalendarDays, TrendingUp, Building2, MapPin, PieChart as PieChartIcon, Search, Download, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X } from "lucide-react";
 
 import { PieChart, Pie, Cell, Label, XAxis, YAxis, CartesianGrid, AreaChart, Area } from "recharts";
 
@@ -62,12 +45,6 @@ const trendChartConfig = {
     color: "#2563eb",
   },
 } satisfies ChartConfig;
-
-const PERIODS = [
-  { key: "today", label: "Today" },
-  { key: "week", label: "Week" },
-  { key: "month", label: "Month" },
-];
 
 const TABS = [
   { key: "overview", label: "Overview" },
@@ -235,7 +212,22 @@ function FilterSelect({ value, onChange, options, placeholder }: { value: string
   );
 }
 
-function exportTicketsExcel(tickets: any[], period: string) {
+type ReportTicket = {
+  ticketCode?: string;
+  description?: string;
+  locationType?: string;
+  priority?: string;
+  status?: string;
+  createdAt?: string;
+  department?: {
+    name?: string;
+  } | null;
+  assignedTechnician?: {
+    name?: string;
+  } | null;
+};
+
+function exportTicketsExcel(tickets: ReportTicket[], period: string) {
   const data = tickets.map((t) => ({
     Ticket: t.ticketCode,
     Description: t.description,
@@ -264,25 +256,7 @@ function exportTicketsExcel(tickets: any[], period: string) {
   saveAs(file, `tickets-${period}-${Date.now()}.xlsx`);
 }
 
-function exportTicketsPDF(
-  tickets: Array<{
-    ticketCode?: string;
-    description?: string;
-    locationType?: string;
-    priority?: string;
-    status?: string;
-    createdAt?: string;
-
-    department?: {
-      name?: string;
-    } | null;
-
-    assignedTechnician?: {
-      name?: string;
-    } | null;
-  }>,
-  period: string
-) {
+function exportTicketsPDF(tickets: ReportTicket[], period: string) {
   const doc = new jsPDF();
 
   doc.setFontSize(14);
@@ -332,9 +306,12 @@ export default function ReportsPage() {
   const authorized = usePermission("report.read");
   const { report, loading, fetchReports } = useReportStore();
 
-  const [period, setPeriod] = useState("month");
+  const [period, setPeriod] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [department, setDepartment] = useState("all");
   const [location, setLocation] = useState("all");
+  const [appliedPeriod, setAppliedPeriod] = useState("");
+  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | undefined>();
   const [status, setStatus] = useState("all");
   const [technician, setTechnician] = useState("all");
   const [priority, setPriority] = useState("all");
@@ -343,14 +320,33 @@ export default function ReportsPage() {
   const [activeModal, setActiveModal] = useState<"locations" | "departments" | "technicians" | null>(null);
   const [page, setPage] = useState(1);
   const [sortDir, setSortDir] = useState("desc");
+  const [appliedFilters, setAppliedFilters] = useState({
+    department: "all",
+    location: "all",
+    status: "all",
+    technician: "all",
+    priority: "all",
+    search: "",
+    period: "",
+    dateRange: undefined as DateRange | undefined,
+  });
 
   useEffect(() => {
-    fetchReports({ period });
-  }, [period, fetchReports]);
+    const params: Record<string, string> = {};
+    if (appliedPeriod) {
+      params.period = appliedPeriod;
+    }
 
-  useEffect(() => {
-    setPage(1);
-  }, [search, department, location, status, technician, priority, period, activeTab]);
+    if (appliedDateRange?.from && appliedDateRange?.to) {
+      params.from = appliedDateRange.from.toISOString();
+      const endDate = new Date(appliedDateRange.to);
+      endDate.setHours(23, 59, 59, 999);
+
+      params.to = endDate.toISOString();
+    }
+
+    fetchReports(params);
+  }, [appliedPeriod, appliedDateRange, fetchReports]);
 
   const summary = report?.summary;
 
@@ -392,27 +388,42 @@ export default function ReportsPage() {
   const priorityOptions = useMemo(() => Array.from(new Set((report?.tickets || []).map((t) => t.priority).filter((priority): priority is string => Boolean(priority)))), [report]);
   const filteredTickets = useMemo(() => {
     let list = report?.tickets || [];
-    if (department !== "all") list = list.filter((t) => matchesDimension(t.department?.name, department));
-    if (location !== "all") list = list.filter((t) => matchesDimension(t.locationType, location));
-    if (status !== "all") list = list.filter((t) => t.status === status);
-    if (technician !== "all") {
-      list = list.filter((t) => (t.assignedTechnician?.name || "").toLowerCase() === technician.toLowerCase());
+    if (appliedFilters.department !== "all") list = list.filter((t) => matchesDimension(t.department?.name, appliedFilters.department));
+    if (appliedFilters.location !== "all") list = list.filter((t) => matchesDimension(t.locationType, appliedFilters.location));
+    if (appliedFilters.status !== "all") list = list.filter((t) => t.status === appliedFilters.status);
+    if (appliedFilters.technician !== "all") {
+      list = list.filter((t) => (t.assignedTechnician?.name || "").toLowerCase() === appliedFilters.technician.toLowerCase());
     }
-    if (priority !== "all") {
-      list = list.filter((t) => (t.priority || "").toLowerCase() === priority.toLowerCase());
+    if (appliedFilters.priority !== "all") {
+      list = list.filter((t) => (t.priority || "").toLowerCase() === appliedFilters.priority.toLowerCase());
     }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      list = list.filter((t) => t.ticketCode?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q) || t.assignedTechnician?.name?.toLowerCase().includes(q) || t.department?.name?.toLowerCase().includes(q) ||  t.locationType?.toLowerCase().includes(q));}
+      list = list.filter(
+        (t) => t.ticketCode?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q) || t.assignedTechnician?.name?.toLowerCase().includes(q) || t.department?.name?.toLowerCase().includes(q) || t.locationType?.toLowerCase().includes(q)
+      );
+    }
 
     return [...list].sort((a, b) => {
       const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       return sortDir === "desc" ? -diff : diff;
     });
-  }, [report, department, location, status, technician, priority, search, sortDir]);
+  }, [report, appliedFilters, sortDir, search]);
 
-  const hasActiveFilters = department !== "all" || location !== "all" || status !== "all" || technician !== "all" || priority !== "all" || search.trim().length > 0;
+  const hasActiveFilters =
+    appliedFilters.department !== "all" || appliedFilters.location !== "all" || appliedFilters.status !== "all" || appliedFilters.technician !== "all" || appliedFilters.priority !== "all" || appliedPeriod !== "" || !!appliedDateRange?.from;
+
   const liveSummary = hasActiveFilters ? computeLiveSummary(filteredTickets) : summary;
+
+  const filtersChanged =
+    department !== appliedFilters.department ||
+    location !== appliedFilters.location ||
+    status !== appliedFilters.status ||
+    technician !== appliedFilters.technician ||
+    priority !== appliedFilters.priority ||
+    period !== appliedPeriod ||
+    dateRange?.from?.getTime() !== appliedDateRange?.from?.getTime() ||
+    dateRange?.to?.getTime() !== appliedDateRange?.to?.getTime();
 
   const stats = [
     { label: "Total Tickets", value: liveSummary?.totalTickets ?? 0, icon: ClipboardList, accent: "indigo" },
@@ -439,7 +450,7 @@ export default function ReportsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-5">
+      <div className="space-y-3">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -448,25 +459,18 @@ export default function ReportsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
-              {PERIODS.map((p) => (
-                <Button key={p.key} size="sm" variant={period === p.key ? "default" : "ghost"} className={period === p.key ? "shadow-sm" : "text-muted-foreground hover:text-foreground"} onClick={() => setPeriod(p.key)}>
-                  {p.label}
-                </Button>
-              ))}
-            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
+                <Button variant="outline" className="h-10 px-4 gap-2 text-sm">
                   <Download className="size-3.5" />
                   Export
                 </Button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => exportTicketsPDF(filteredTickets, period)}>PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportTicketsPDF(filteredTickets, appliedPeriod)}>PDF</DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => exportTicketsExcel(filteredTickets, period)}>Spreadsheet</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportTicketsExcel(filteredTickets, appliedPeriod)}>Spreadsheet</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -474,10 +478,10 @@ export default function ReportsPage() {
 
         {/* Filter toolbar */}
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2.5">
-          <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mr-1 shrink-0">
+          {/* <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mr-1 shrink-0">
             <SlidersHorizontal className="size-3.5" />
             Filters
-          </div>
+          </div> */}
 
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
@@ -485,7 +489,7 @@ export default function ReportsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search ticket"
-              className="h-9 w-full sm:w-64 rounded-md border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400"
+              className="h-9 w-full sm:w-38 rounded-md border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400"
             />
           </div>
 
@@ -495,6 +499,92 @@ export default function ReportsPage() {
           <FilterSelect value={technician} onChange={setTechnician} options={technicianOptions} placeholder="All technicians" />
           <FilterSelect value={priority} onChange={setPriority} options={priorityOptions} placeholder="All priorities" />
 
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-9">
+                {period
+                  ? period.charAt(0).toUpperCase() + period.slice(1)
+                  : dateRange?.from
+                    ? dateRange.to
+                      ? `${dateRange.from.toLocaleDateString("en-IN")} - ${dateRange.to.toLocaleDateString("en-IN")}`
+                      : dateRange.from.toLocaleDateString("en-IN")
+                    : "Date Range"}
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent className="w-auto p-3" align="start">
+              <div className="flex gap-2 mb-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setPeriod("today");
+                    setDateRange(undefined);
+                  }}
+                >
+                  Today
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setPeriod("week");
+                    setDateRange(undefined);
+                  }}
+                >
+                  Week
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setPeriod("month");
+                    setDateRange(undefined);
+                  }}
+                >
+                  Month
+                </Button>
+              </div>
+
+              <Calendar
+                mode="range"
+                numberOfMonths={2}
+                defaultMonth={new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)}
+                selected={dateRange}
+                onSelect={(range) => {
+                  setDateRange(range);
+                  setPeriod("");
+                }}
+                disabled={(date) => date > new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+          <Button
+            className="ml-auto"
+            disabled={!filtersChanged}
+            onClick={() => {
+              setAppliedFilters({
+                department,
+                location,
+                status,
+                technician,
+                priority,
+                search: "",
+                period,
+                dateRange,
+              });
+
+              setAppliedPeriod(period);
+              setAppliedDateRange(dateRange);
+              setPage(1);
+            }}
+          >
+            Apply Filters
+          </Button>
+        </div>
+        <div className="flex justify-end">
           {hasActiveFilters && (
             <button
               onClick={() => {
@@ -504,6 +594,21 @@ export default function ReportsPage() {
                 setTechnician("all");
                 setPriority("all");
                 setSearch("");
+                setPeriod("");
+                setDateRange(undefined);
+                setAppliedPeriod("");
+                setAppliedDateRange(undefined);
+
+                setAppliedFilters({
+                  department: "all",
+                  location: "all",
+                  status: "all",
+                  technician: "all",
+                  priority: "all",
+                  search: "",
+                  period: "",
+                  dateRange: undefined,
+                });
               }}
               className="text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline ml-auto shrink-0"
             >
@@ -536,7 +641,7 @@ export default function ReportsPage() {
         </Card>
 
         {/* Tabs */}
-        <div className="border-b flex gap-1 overflow-x-auto">
+        <div className="border-b flex gap-1">
           {TABS.map((tab) => (
             <button
               key={tab.key}
