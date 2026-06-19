@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, User } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus , User } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -45,7 +45,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     permissions.includes("report.read") && {
       title: "Reports",
       url: "/maintenance/reports",
-      icon: Scroll,
+      icon: ClipboardMinus,
       isActive: pathname.startsWith("/maintenance/reports"),
     },
   ].filter(Boolean);
@@ -61,14 +61,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     permissions.includes("user.read") && {
       title: "Users",
       url: "/user",
-      icon: Scroll,
+      icon: Users,
       isActive: pathname === "/user",
     },
 
     permissions.includes("role.read") && {
       title: "Roles",
       url: "/roles",
-      icon: Users,
+      icon: Scroll,
       isActive: pathname === "/roles",
     },
   ].filter(Boolean);

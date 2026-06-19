@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useEffect, useState } from "react";
 import { useComplaintStore, useDepartmentStore, useTechnicianStore } from "@/store/maintenanceStore";
 import Link from "next/link";
-import { Ticket, Clock, Activity, CheckCircle2, XCircle, ArrowRight, Hammer, MapPin, VectorSquare, UserCog, Plus, AlertCircle, Users, GraduationCap, ShoppingCart, Car, Wrench, ChevronRight, ClipboardList } from "lucide-react";
+import { Ticket, Clock, Activity, CheckCircle2, XCircle, ArrowRight, Hammer, MapPin, VectorSquare, Plus, Users, GraduationCap, ShoppingCart, Car, Wrench, ChevronRight, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -93,7 +93,7 @@ export default function DashboardPage() {
       { title: "Technicians", href: "/maintenance/technician", icon: Hammer, desc: "Manage assignments" },
       { title: "Departments", href: "/maintenance/departments", icon: VectorSquare, desc: "Manage departments" },
       { title: "Locations", href: "/maintenance/location", icon: MapPin, desc: "Campus locations" },
-      { title: "Users", href: "/user", icon: UserCog, desc: "User accounts" },
+      { title: "Users", href: "/user", icon: Users, desc: "User accounts" },
     ];
   } else {
     quickLinks = [
@@ -172,7 +172,7 @@ export default function DashboardPage() {
             const pct = total > 0 ? Math.round((stat.value / total) * 100) : 0;
             return (
               <Card key={stat.label} className="group relative  bg-card rounded-md p-5 transition-all duration-300 hover:shadow-md hover:-translate-y-1 overflow-hidden">
-                <CardContent className="p-0 flex flex-col justify-between h-full min-h-[90px]">
+                <CardContent className="p-0 flex flex-col justify-between h-full min-h-22.5">
                   <div className="flex justify-between items-start">
                     <p className="text-muted-foreground text-sm font-bold uppercase">{stat.label}</p>
                     <div className={cn("p-2 rounded-md border transition-transform duration-300 group-hover:scale-110 shrink-0", stat.colorClass)}>

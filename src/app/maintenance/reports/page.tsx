@@ -59,7 +59,7 @@ const priorityChartConfig = {
 const trendChartConfig = {
   count: {
     label: "Tickets",
-    color: "hsl(var(--chart-1))",
+    color: "#2563eb",
   },
 } satisfies ChartConfig;
 
