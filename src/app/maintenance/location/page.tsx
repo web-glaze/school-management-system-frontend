@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { ChevronRight, Inbox, Loader2, MapPin, Pencil, Plus, Search, Trash2, Settings, MoreVertical, Trash } from "lucide-react";
+import { Inbox, Loader2, MapPin, Pencil, Plus, Search, Trash2, MoreVertical, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { useLocationStore } from "@/store/maintenanceStore";
 import { usePermission } from "@/hooks/usePermission";
@@ -303,7 +303,7 @@ export default function LocationPage() {
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+            <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
               <div className="border-b px-6 py-5">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -332,7 +332,7 @@ export default function LocationPage() {
                     <Button variant="outline">Cancel</Button>
                   </DialogClose>
 
-                  <Button className="gap-2 min-w-[130px]" disabled={loading} onClick={handleCreateRoot}>
+                  <Button className="gap-2 min-w-32.5" disabled={loading} onClick={handleCreateRoot}>
                     {loading ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
@@ -354,7 +354,7 @@ export default function LocationPage() {
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-5">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             {/* SEARCH */}
-            <div className="relative w-full lg:w-[350px] group">
+            <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
 
               <Input type="text" placeholder="Search locations..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
@@ -390,7 +390,7 @@ export default function LocationPage() {
       </div>
 
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className="sm:max-w-105">
           <DialogTitle>Add Sub Location</DialogTitle>
 
           <DialogDescription>
@@ -413,7 +413,7 @@ export default function LocationPage() {
           </div>
 
           <DialogFooter className="flex-row justify-end gap-2">
-            <Button className="gap-2 min-w-[130px]" disabled={loading} onClick={handleCreateSub}>
+            <Button className="gap-2 min-w-32.5" disabled={loading} onClick={handleCreateSub}>
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
@@ -431,7 +431,7 @@ export default function LocationPage() {
       </Dialog>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className="sm:max-w-105">
           <DialogTitle>Edit Location</DialogTitle>
 
           <DialogDescription>Update location name</DialogDescription>
@@ -452,7 +452,7 @@ export default function LocationPage() {
           </div>
 
           <DialogFooter className="flex-row justify-end gap-2">
-            <Button className="gap-2 min-w-[130px]" disabled={loading} onClick={handleRename}>
+            <Button className="gap-2 min-w-32.5" disabled={loading} onClick={handleRename}>
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
@@ -480,7 +480,7 @@ export default function LocationPage() {
           <AlertDialogFooter className="flex-row justify-end gap-2">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
 
-            <AlertDialogAction className="gap-2 min-w-[130px]" disabled={!!deletingId} onClick={handleDelete}>
+            <AlertDialogAction className="gap-2 min-w-32.5" disabled={!!deletingId} onClick={handleDelete}>
               {deletingId ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />

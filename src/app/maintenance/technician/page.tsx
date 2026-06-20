@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import { Calendar, Loader2, MailIcon, Pencil, Phone, Plus, Search, Trash2, User, MoreVertical } from "lucide-react";
 
@@ -165,7 +165,7 @@ export default function TechnicianPage() {
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+            <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
               <div className="border-b px-6 py-5">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -223,7 +223,7 @@ export default function TechnicianPage() {
                     </Button>
                   </DialogClose>
 
-                  <Button type="submit" disabled={loading} className="min-w-[130px] gap-2 px-5">
+                  <Button type="submit" disabled={loading} className="min-w-32.5 gap-2 px-5">
                     {loading ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
@@ -243,7 +243,7 @@ export default function TechnicianPage() {
         </div>
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full lg:w-[350px] group">
+            <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input type="text" placeholder="Search technicians..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
@@ -277,10 +277,10 @@ export default function TechnicianPage() {
               <Table>
                 <TableHeader className="bg-gray-50 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">Name</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">Contact</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-[50px] sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Name</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Contact</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-12.5 sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
                       <span className="hidden md:block">Actions</span>
                     </TableHead>
                   </TableRow>
@@ -290,7 +290,7 @@ export default function TechnicianPage() {
                     return (
                       <TableRow key={technician.id} className="hover:bg-muted/20 transition-colors">
                         <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-[180px]">
+                          <div className="space-y-1 max-w-45">
                             <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{technician.name}</p>
                             <p className="text-sm text-foreground/50">
                               {technician.technicianCode} | {technician.department?.name || "NA"}
@@ -298,7 +298,7 @@ export default function TechnicianPage() {
                           </div>
                         </TableCell>
                         <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-[180px]">
+                          <div className="space-y-1 max-w-45">
                             <p className="text-foreground text-sm leading-tight hover:text-primary transition-colors">
                               <span className="flex gap-1">
                                 <Phone size={18} />
@@ -331,7 +331,7 @@ export default function TechnicianPage() {
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className="py-4 text-right align-top max-w-[50px] sticky right-0 bg-card shadow-lg md:shadow-none">
+                        <TableCell className="py-4 text-right align-top max-w-12.5 sticky right-0 bg-card shadow-lg md:shadow-none">
                           <div className="hidden md:flex justify-end gap-1">
                             <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit Technician" onClick={() => openEditDialog(technician)}>
                               <Pencil className="size-5" />
@@ -374,7 +374,7 @@ export default function TechnicianPage() {
       </div>
 
       <Dialog open={editTechnicianOpen} onOpenChange={setEditTechnicianOpen}>
-        <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -441,7 +441,7 @@ export default function TechnicianPage() {
                 </Button>
               </DialogClose>
 
-              <Button type="submit" disabled={loading} className="min-w-[130px] gap-2 px-5">
+              <Button type="submit" disabled={loading} className="min-w-32.5 gap-2 px-5">
                 {loading ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
@@ -460,7 +460,7 @@ export default function TechnicianPage() {
       </Dialog>
 
       <AlertDialog open={deleteTechnicianOpen} onOpenChange={setDeleteTechnicianOpen}>
-        <AlertDialogContent className="sm:max-w-[420px]">
+        <AlertDialogContent className="sm:max-w-105">
           <AlertDialogHeader>
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
               <Trash2 className="size-6 text-destructive" />

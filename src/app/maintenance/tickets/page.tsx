@@ -21,7 +21,6 @@ import {
   Plus,
   Pencil,
   Loader2,
-  CheckCircle,
   Check,
   MoreVertical,
 } from "lucide-react";
@@ -215,7 +214,7 @@ export default function ComplaintsPage() {
         {/* Filtering & Controls Section */}
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full lg:w-[350px] group">
+            <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input type="text" placeholder="Search by title, location, email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
@@ -251,7 +250,7 @@ export default function ComplaintsPage() {
 
               <div>
                 <Select value={String(pageSize)} onValueChange={(val) => setPageSize(Number(val))}>
-                  <SelectTrigger className="w-[110px]">
+                  <SelectTrigger className="w-27.5">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -305,11 +304,11 @@ export default function ComplaintsPage() {
               <Table>
                 <TableHeader className="bg-gray-50 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[170px]"># Issue Details</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[200px] pr-7">Location</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[150px]">Priority / Status</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-[50px] sticky right-0 bg-gray-50 shadow-lg md:shadow-none">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-42.5"># Issue Details</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-50 pr-7">Location</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-37.5">Priority / Status</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-12.5 sticky right-0 bg-gray-50 shadow-lg md:shadow-none">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/30">
@@ -331,7 +330,7 @@ export default function ComplaintsPage() {
                           <Badge
                             variant="outline"
                             className={cn(
-                              "min-w-[90px] justify-center rounded-lg font-bold text-xs py-1 px-2.5 mr-2",
+                              "min-w-22.5 justify-center rounded-lg font-bold text-xs py-1 px-2.5 mr-2",
                               complaint.priority === "LOW" && "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
                               complaint.priority === "MEDIUM" && "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",
                               complaint.priority === "HIGH" && "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:text-orange-400",
@@ -344,7 +343,7 @@ export default function ComplaintsPage() {
                           <Badge
                             variant="outline"
                             className={cn(
-                              "min-w-[100px] justify-center rounded-lg font-bold text-xs py-1 px-2.5",
+                              "min-w-25 justify-center rounded-lg font-bold text-xs py-1 px-2.5",
                               complaint.status === "PENDING" && "border-slate-200 bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
                               complaint.status === "ASSIGNED" && "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400",
                               complaint.status === "IN_PROGRESS" && "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",
@@ -439,7 +438,7 @@ export default function ComplaintsPage() {
         </div>
 
         <AlertDialog open={!!targetDeleteComplaint} onOpenChange={(open) => !open && setTargetDeleteComplaint(null)}>
-          <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogContent className="sm:max-w-105">
             <AlertDialogHeader>
               <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
                 <Trash2 className="size-6 text-destructive" />

@@ -24,6 +24,15 @@ export interface ProfileUser {
   phone?: string;
 }
 
+type UserPayload = {
+  name: string;
+  userName: string;
+  email?: string;
+  phone?: string | null;
+  password?: string;
+  role?: string;
+};
+
 interface UserState {
   users: User[];
   loading: boolean;
@@ -32,16 +41,16 @@ interface UserState {
   deletingId: string | null;
   changingPasswordId: string | null;
 
+  createUser: (data: UserPayload) => Promise<void>;
+  updateUser: (id: string, data: UserPayload) => Promise<void>;
+  updateMyProfile: (data: UserPayload) => Promise<ProfileUser>;
   fetchUsers: () => Promise<void>;
-  createUser: (data: any) => Promise<void>;
-  updateUser: (id: string, data: any) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   changePassword: (id: string, newPassword: string) => Promise<void>;
-  updateMyProfile: (data: any) => Promise<ProfileUser>;
   changeMyPassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
-export const useUserStore = create<UserState>((set, get) => ({
+export const useUserStore = create<UserState>((set) => ({
   users: [],
   loading: false,
   creating: false,
@@ -62,7 +71,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-  createUser: async (data) => {
+  createUser: async (data: UserPayload) => {
     try {
       set({ creating: true });
       const response = await userService.create(data);
@@ -75,7 +84,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-  updateUser: async (id, data) => {
+  updateUser: async (id: string, data: UserPayload) => {
     try {
       set({ updating: true });
       const response = await userService.update(id, data);
@@ -114,7 +123,7 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   // Only for My Profile
 
-  updateMyProfile: async (data: any) => {
+  updateMyProfile: async (data: UserPayload) => {
     try {
       set({ updating: true });
 

@@ -218,7 +218,7 @@ export default function UserManagementPage() {
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+            <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
               <div className="border-b px-6 py-5">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -343,7 +343,7 @@ export default function UserManagementPage() {
                     </Button>
                   </DialogClose>
 
-                  <Button type="submit" disabled={creating} className="min-w-[130px] gap-2 px-5">
+                  <Button type="submit" disabled={creating} className="min-w-32.5 gap-2 px-5">
                     {creating ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
@@ -364,13 +364,13 @@ export default function UserManagementPage() {
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-              <div className="relative w-full lg:w-[350px] group">
+              <div className="relative w-full lg:w-87.5 group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
               </div>
 
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectTrigger className="w-full sm:w-37.5">
                   <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
                 <SelectContent>
@@ -401,13 +401,13 @@ export default function UserManagementPage() {
               <Table>
                 <TableHeader className="bg-gray-50 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">Name</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Name</TableHead>
 
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[180px]">Role</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Role</TableHead>
 
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">Created At</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
 
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-[50px] sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-12.5 sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
                       <span className="hidden md:block">Actions</span>
                     </TableHead>
                   </TableRow>
@@ -422,7 +422,7 @@ export default function UserManagementPage() {
                       return (
                         <TableRow key={u.id} className="hover:bg-muted/20 transition-colors">
                           <TableCell className="py-4 align-top">
-                            <div className="space-y-1 max-w-[250px]">
+                            <div className="space-y-1 max-w-62.5">
                               <p className="font-semibold text-foreground">{u.name || u.userName}</p>
 
                               <p className="text-sm text-muted-foreground">{u.email ?? "No Email"}</p>
@@ -504,7 +504,7 @@ export default function UserManagementPage() {
       </div>
 
       <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
-        <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -622,7 +622,7 @@ export default function UserManagementPage() {
                 </Button>
               </DialogClose>
 
-              <Button type="submit" disabled={updating} className="min-w-[130px] gap-2 px-5">
+              <Button type="submit" disabled={updating} className="min-w-32.5 gap-2 px-5">
                 {updating ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
@@ -641,7 +641,7 @@ export default function UserManagementPage() {
       </Dialog>
 
       <AlertDialog open={deleteUserOpen} onOpenChange={setDeleteUserOpen}>
-        <AlertDialogContent className="sm:max-w-[420px]">
+        <AlertDialogContent className="sm:max-w-105">
           <AlertDialogHeader>
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
               <Trash2 className="size-6 text-destructive" />

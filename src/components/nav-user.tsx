@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 

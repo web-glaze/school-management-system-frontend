@@ -136,7 +136,7 @@ export default function DepartmentPage() {
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+            <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
               <div className="border-b px-6 py-5">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -164,7 +164,7 @@ export default function DepartmentPage() {
                     </Button>
                   </DialogClose>
 
-                  <Button type="submit" disabled={loading} className="min-w-[130px] gap-2 px-5">
+                  <Button type="submit" disabled={loading} className="min-w-32.5 gap-2 px-5">
                     {loading ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
@@ -184,7 +184,7 @@ export default function DepartmentPage() {
         </div>
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60  space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full lg:w-[350px] group">
+            <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input type="text" placeholder="Search by department name..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
@@ -218,9 +218,9 @@ export default function DepartmentPage() {
               <Table>
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-[180px]">Title</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-[120px] hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-[50px]">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Title</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/30">
@@ -228,7 +228,7 @@ export default function DepartmentPage() {
                     return (
                       <TableRow key={department.id} className="hover:bg-muted/20 transition-colors">
                         <TableCell className="py-4 pl-6 align-top">
-                          <div className="space-y-1 max-w-[180px]">
+                          <div className="space-y-1 max-w-45">
                             <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{department.name}</p>
                             <p className="text-sm text-foreground/50">{department.departmentCode}</p>
                           </div>
@@ -251,7 +251,7 @@ export default function DepartmentPage() {
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className="py-4 pr-6 text-right align-top max-w-[50px]">
+                        <TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
                           <div className="hidden md:flex justify-end gap-1">
                             <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit Department" onClick={() => openEditDialog(department)}>
                               <Pencil className="size-5" />
@@ -294,7 +294,7 @@ export default function DepartmentPage() {
       </div>
 
       <Dialog open={editDepartmentOpen} onOpenChange={setEditDepartmentOpen}>
-        <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -325,7 +325,7 @@ export default function DepartmentPage() {
                 </Button>
               </DialogClose>
 
-              <Button type="submit" disabled={loading} className="min-w-[130px] gap-2 px-5">
+              <Button type="submit" disabled={loading} className="min-w-32.5 gap-2 px-5">
                 {loading ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
@@ -344,7 +344,7 @@ export default function DepartmentPage() {
       </Dialog>
 
       <AlertDialog open={deleteDepartmentOpen} onOpenChange={setDeleteDepartmentOpen}>
-        <AlertDialogContent className="sm:max-w-[420px]">
+        <AlertDialogContent className="sm:max-w-105">
           <AlertDialogHeader>
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
               <Trash2 className="size-6 text-destructive" />

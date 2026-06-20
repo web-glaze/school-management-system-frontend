@@ -10,11 +10,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useLocationStore, useComplaintStore, Location } from "@/store/maintenanceStore";
+import { useComplaintStore, Location } from "@/store/maintenanceStore";
 import apiClient from "@/services/api";
-import { Building2, Layers, MapPin, ArrowUp, ArrowLeft, ArrowRight, AlertCircle, Flame, ShieldAlert, CheckCircle2, Loader2, Check, ChevronRight, RefreshCw, Trash2, Plus, X, ImagePlus, Ticket, Navigation } from "lucide-react";
+import { Building2, Layers, MapPin, ArrowUp, ArrowLeft, ArrowRight, AlertCircle, Flame, ShieldAlert, CheckCircle2, Loader2, Check, ChevronRight, RefreshCw, Trash2, Plus, X, ImagePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 export default function RaiseTicketPage() {
   const router = useRouter();
@@ -68,14 +67,13 @@ export default function RaiseTicketPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const uploadedFiles = response.data?.data?.files ?? [];
-
+      const uploadedFiles: { url: string; type: "IMAGE" | "VIDEO" }[] = response.data?.data?.files ?? [];
       setIssues((prev) =>
         prev.map((issue) =>
           issue.id === issueId
             ? {
                 ...issue,
-                attachments: [...issue.attachments, ...uploadedFiles.map((file: any) => ({ url: file.url, type: file.type }))],
+                attachments: [...issue.attachments, ...uploadedFiles.map((file) => ({ url: file.url, type: file.type }))],
               }
             : issue
         )
@@ -250,7 +248,7 @@ export default function RaiseTicketPage() {
                   step > 1 ? "bg-green-700 border-green-700  text-white" : step === 1 ? "bg-primary border-primary text-white" : "border-border bg-muted text-muted-foreground"
                 }`}
               >
-                {step > 1 ? <Check className="size-4 stroke-[3]" /> : "1"}
+                {step > 1 ? <Check className="size-4 stroke-3" /> : "1"}
               </div>
               <div className="hidden sm:block">
                 <p className={`text-sm font-semibold transition-colors ${step === 1 ? "text-foreground" : "text-muted-foreground"}`}>Select Location</p>
@@ -353,7 +351,7 @@ export default function RaiseTicketPage() {
 
                           {isSelected ? (
                             <div className="size-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                              <Check className="size-3.5 text-white stroke-[3]" />
+                              <Check className="size-3.5 text-white stroke-3" />
                             </div>
                           ) : (
                             hasChildren && <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-primary/60 shrink-0 transition-colors" />

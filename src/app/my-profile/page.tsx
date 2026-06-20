@@ -15,21 +15,28 @@ import { useUserStore } from "@/store/userStore";
 
 export default function SettingsPage() {
   const { updateMyProfile, changeMyPassword, updating, changingPasswordId } = useUserStore();
-
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
   const [name, setName] = useState("");
   const [userName, setUserName] = useState("");
   const [phone, setPhone] = useState("");
-
   const [originalName, setOriginalName] = useState("");
   const [originalUserName, setOriginalUserName] = useState("");
   const [originalPhone, setOriginalPhone] = useState("");
-
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  interface CurrentUser {
+    id: string;
+    name: string;
+    userName: string;
+    email: string;
+    phone?: string | null;
+    roles: string[];
+    createdAt: string;
+  }
+
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -79,7 +86,14 @@ export default function SettingsPage() {
         phone: phone.trim() || null,
       });
 
-      setCurrentUser(updatedUser);
+      setCurrentUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...updatedUser,
+            }
+          : null
+      );
 
       setName(updatedUser.name || "");
       setUserName(updatedUser.userName || "");
@@ -90,8 +104,10 @@ export default function SettingsPage() {
       setOriginalPhone(updatedUser.phone || "");
 
       toast.success("Profile updated successfully");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to update profile");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update profile";
+
+      toast.error(message);
     }
   };
 
@@ -115,8 +131,10 @@ export default function SettingsPage() {
       setConfirmPassword("");
 
       toast.success("Password changed successfully");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to change password");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to change password";
+
+      toast.error(message);
     }
   };
 

@@ -50,6 +50,7 @@ export const locationService = {
 
 // ====================== Complaint / Ticket ======================
 
+type ComplaintPayload = Record<string, unknown>;
 export const complaintService = {
   getAll: () => apiClient.get("/complaints"),
 
@@ -57,17 +58,15 @@ export const complaintService = {
 
   getAssignOptions: () => apiClient.get("/complaints/assign-options"),
 
-  create: (complaints: any[]) => apiClient.post("/complaints", { complaints }),
-
-  update: (id: string, data: any) => apiClient.patch(`/complaints/${id}`, data),
-
+  create: (complaints: ComplaintPayload[]) => apiClient.post("/complaints", { complaints }),
+  update: (id: string, data: Record<string, unknown>) => apiClient.patch(`/complaints/${id}`, data),
   delete: (id: string) => apiClient.delete(`/complaints/${id}`),
 };
 
 // ====================== Reports ======================
 
 export const reportsService = {
-  getAll: (params?: Record<string, any>) =>
+  getAll: (params?: Record<string, string | number | boolean>) =>
     apiClient.get("/reports", {
       params,
     }),

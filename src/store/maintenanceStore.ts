@@ -271,7 +271,7 @@ interface ComplaintState {
   loading: boolean;
 
   fetchComplaints: () => Promise<void>;
-  createComplaints: (complaints: unknown[]) => Promise<void>;
+  createComplaints: (complaints: Record<string, unknown>[]) => Promise<void>;
   updateComplaint: (id: string, data: Record<string, unknown>) => Promise<void>;
   deleteComplaint: (id: string) => Promise<void>;
 }
@@ -297,7 +297,7 @@ export const useComplaintStore = create<ComplaintState>((set) => ({
     }
   },
 
-  createComplaints: async (complaints: unknown[]) => {
+  createComplaints: async (complaints: Record<string, unknown>[]) => {
     try {
       set({ loading: true });
       await complaintService.create(complaints);

@@ -145,14 +145,14 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
-            <h1 className="text-2xl md:text-4xl font-extrabold text-foreground tracking-tight text-sky-600">Welcome back, {user?.name || user?.email.split("@")[0]}!</h1>
+            <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-sky-600">Welcome back, {user?.name || user?.email.split("@")[0]}!</h1>
             <p className="mt-1.5 text-base md:text-lg">Here is a summary of the school management and maintenance status.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Badge
               variant="outline"
               className={cn(
-                "text-xs font-bold uppercase tracking-wider px-3 py-1 border shadow-sm capitalize",
+                "text-xs font-bold uppercase tracking-wider px-3 py-1 border shadow-sm ",
                 role === "superadmin" && "border-purple-200 bg-purple-50 text-purple-700 dark:bg-purple-950/20 dark:text-purple-400",
                 role === "admin" && "border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/20 dark:text-sky-400",
                 role === "manager" && "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400",

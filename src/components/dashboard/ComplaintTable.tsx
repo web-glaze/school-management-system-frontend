@@ -97,7 +97,7 @@ export default function ComplaintsPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden">
+        <div className="bg-linear-to-r from-blue-600 via-cyan-500 to-sky-400 rounded-4xl p-10 text-white shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
 
           <div className="relative z-10">
@@ -119,7 +119,7 @@ export default function ComplaintsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-lg border border-gray-100 flex flex-col lg:flex-row gap-4 justify-between">
+        <div className="bg-white rounded-4xl p-6 shadow-lg border border-gray-100 flex flex-col lg:flex-row gap-4 justify-between">
           <input
             type="text"
             placeholder="Search complaints..."
@@ -166,7 +166,7 @@ export default function ComplaintsPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-4xl shadow-lg border border-gray-100 overflow-hidden">
           <div className="p-8 border-b">
             <h2 className="text-3xl font-bold text-gray-800">
               Recent Complaints

@@ -2,12 +2,8 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ShieldX } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 
 export default function ForbiddenPage() {
-  const router = useRouter();
-
   return (
     <DashboardLayout>
       <div className="flex items-center justify-center min-h-[70vh]">

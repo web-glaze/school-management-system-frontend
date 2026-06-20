@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Loader2, Plus, Save, Search, Shield, ShieldAlert, ShieldCheck, Trash2, Check, RotateCcw, Info, Building2, AlertCircle } from "lucide-react";
+import { Loader2, Plus, Save, Search, Shield, ShieldAlert, ShieldCheck, Trash2, RotateCcw, Info, AlertCircle } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useRoleStore, Permission, Role } from "@/store/roleStore";
+import { useRoleStore, Permission } from "@/store/roleStore";
 import { Field, FieldGroup } from "@/components/ui/field";
 
 export default function RolesPage() {
@@ -276,7 +276,7 @@ export default function RolesPage() {
                 </Button>
               </DialogTrigger>
 
-              <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+              <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
                 <div className="border-b px-6 py-5">
                   <div className="flex items-center gap-3">
                     <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -329,7 +329,7 @@ export default function RolesPage() {
                         Cancel
                       </Button>
                     </DialogClose>
-                    <Button onClick={handleCreateRole} disabled={creatingRole || !newRoleName.trim()} className="min-w-[130px] gap-2 px-5">
+                    <Button onClick={handleCreateRole} disabled={creatingRole || !newRoleName.trim()} className="min-w-32.5 gap-2 px-5">
                       {creatingRole ? (
                         <>
                           <Loader2 className="size-4 animate-spin" />
@@ -357,10 +357,10 @@ export default function RolesPage() {
               </Label>
               <div className="flex flex-row items-center gap-3">
                 {loading && roles.length === 0 ? (
-                  <div className="w-[280px] h-11 bg-muted animate-pulse rounded-xl" />
+                  <div className="w-70 h-11 bg-muted animate-pulse rounded-xl" />
                 ) : (
                   <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                    <SelectTrigger id="role-select" className="w-[150px]">
+                    <SelectTrigger id="role-select" className="w-37.5">
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent className="rounded-md">

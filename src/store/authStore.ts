@@ -2,9 +2,16 @@ import { create } from "zustand";
 import { authService } from "@/services/api";
 import axios from "axios";
 
+interface UserData {
+  id: string;
+  email: string;
+  role: string;
+  roles: string[];
+}
+
 interface GlobalState {
-  user: any | null;
-  setUser: (user: any) => void;
+  user: UserData | null;
+  setUser: (user: UserData | null) => void;
   logout: () => void;
 }
 
