@@ -3,20 +3,18 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Save, Upload, Trash2, Loader2, Eye, FileText, User, Building, MapPin, Clock, Paperclip, CheckCircle2, AlertCircle, PlusCircle, ArrowRightLeft, UserCheck, Building2 } from "lucide-react";
+import { ArrowLeft, Save, Upload, Trash2, Loader2, Eye, Clock, Paperclip, AlertCircle, PlusCircle, ArrowRightLeft, UserCheck, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
-import { useComplaintStore, useTechnicianStore, useDepartmentStore, Complaint } from "@/store/maintenanceStore";
+import { useComplaintStore, Complaint } from "@/store/maintenanceStore";
 import { complaintService } from "@/services/maintenance.service";
 import apiClient from "@/services/api";
 import "yet-another-react-lightbox/styles.css";
@@ -33,8 +31,8 @@ export default function TicketManagementPage() {
   const id = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [originalComplaint, setOriginalComplaint] = useState<Complaint | null>(null);
-  const [technicians, setTechnicians] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [technicians, setTechnicians] = useState<{ id: string; name: string }[]>([]);
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const { updateComplaint, loading: saving } = useComplaintStore();
   const [loading, setLoading] = useState(true);
   const [complaint, setComplaint] = useState<Complaint | null>(null);
@@ -42,6 +40,7 @@ export default function TicketManagementPage() {
   const [priority, setPriority] = useState("");
   const [technicianId, setTechnicianId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
+  const [timelineSort, setTimelineSort] = useState<"newest" | "oldest">("newest");
   // Attachments already saved on the server (loaded on mount)
   const [savedAttachments, setSavedAttachments] = useState<{ url: string; type: "IMAGE" | "VIDEO" }[]>([]);
   // Only newly uploaded attachments (not yet saved to the ticket)
@@ -59,16 +58,8 @@ export default function TicketManagementPage() {
     }[]
   >([]);
 
-  const [userRole, setUserRole] = useState("");
-
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const role = user?.roles?.[0] || "";
-    setUserRole(role);
-  }, []);
-
+  const userRole = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}")?.roles?.[0] || "" : "";
   const canManageTicket = ["SUPER_ADMIN", "ADMIN", "MANAGER"].includes(userRole);
-
   const fetchData = async () => {
     try {
       const cRes = await complaintService.getById(id);
@@ -89,9 +80,9 @@ export default function TicketManagementPage() {
       setDepartmentId(cData.department?.id || "");
 
       // Load existing admin attachments from the server into savedAttachments
-      const existingAdmin = cData.attachments?.filter((f: any) => f.owner === "ADMIN") || [];
+      const existingAdmin = cData.attachments?.filter((f: { owner: string; url: string; type: "IMAGE" | "VIDEO" }) => f.owner === "ADMIN") || [];
       setSavedAttachments(
-        existingAdmin.map((file: any) => ({
+        existingAdmin.map((file: { url: string; type: "IMAGE" | "VIDEO" }) => ({
           url: file.url,
           type: file.type,
         }))
@@ -132,7 +123,7 @@ export default function TicketManagementPage() {
       // Only append to newAttachments — do NOT touch savedAttachments
       setNewAttachments((prev) => [
         ...prev,
-        ...uploadedFiles.map((file: any) => ({
+        ...uploadedFiles.map((file: { url: string; type: "IMAGE" | "VIDEO" }) => ({
           url: file.url,
           type: file.type,
         })),
@@ -253,7 +244,7 @@ export default function TicketManagementPage() {
                   {/* Description */}
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-[180px] w-full rounded-md" />
+                    <Skeleton className="h-45 w-full rounded-md" />
                   </div>
 
                   {/* Select Fields */}
@@ -350,6 +341,13 @@ export default function TicketManagementPage() {
     );
   }
 
+  const sortedActivities = [...(complaint.activities || [])].sort((a, b) => {
+    const aTime = new Date(a.createdAt).getTime();
+    const bTime = new Date(b.createdAt).getTime();
+
+    return timelineSort === "newest" ? bTime - aTime : aTime - bTime;
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "PENDING":
@@ -417,7 +415,7 @@ export default function TicketManagementPage() {
     }
   };
 
-  const getActivityTitle = (activity: any) => {
+  const getActivityTitle = (activity: { action: string }) => {
     switch (activity.action) {
       case "TICKET_CREATED":
         return "Ticket Created";
@@ -485,7 +483,7 @@ export default function TicketManagementPage() {
                           })
                         }
                         disabled={saving}
-                        className="min-h-[180px]"
+                        className="min-h-45"
                       />
                     </Field>
                   </FieldGroup>
@@ -705,13 +703,28 @@ export default function TicketManagementPage() {
                   <p className="text-muted-foreground">Complaint history and updates</p>
                 </div>
 
-                <Badge variant="outline" className="bg-sky-50 text-sky-600 h-8 px-4 text-sm">
-                  {complaint.activities?.length || 0} Events
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-sky-50 text-sky-600 h-8 px-4 text-sm">
+                    {complaint.activities?.length || 0} Events
+                  </Badge>
+
+                  {(complaint.activities?.length || 0) > 1 && (
+                    <Select value={timelineSort} onValueChange={(value: "newest" | "oldest") => setTimelineSort(value)}>
+                      <SelectTrigger className="w-40 h-8 bg-white shadow-none ring-0 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+                        <SelectValue />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="oldest">Oldest First</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-4">
-                {complaint.activities?.map((activity, index) => (
+                {sortedActivities.map((activity, index) => (
                   <div key={activity.id} className="flex gap-5">
                     {/* Timeline Line */}
                     <div className="relative flex flex-col items-center shrink-0">
