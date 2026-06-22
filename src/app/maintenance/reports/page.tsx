@@ -144,7 +144,7 @@ function RankedCard({ title, icon: Icon, iconColor, items, color, onViewAll }: {
   const sorted = useMemo(() => [...items].sort((a, b) => (b.count ?? 0) - (a.count ?? 0)), [items]);
   const preview = sorted.slice(0, RANKED_PREVIEW);
   return (
-    <Card className="border shadow-sm min-w-0">
+    <Card className=" min-w-0">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <Icon className={`size-4 ${iconColor}`} />
@@ -176,7 +176,7 @@ function Modal({ title, description, onClose, children }: { title: string; descr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-lg border bg-card shadow-xl max-h-[80vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-lg rounded-lg border bg-card max-h-[80vh] overflow-y-auto">
         <div className="flex items-start justify-between gap-4 border-b p-4 sticky top-0 bg-card">
           <div>
             <h3 className="font-semibold">{title}</h3>
@@ -452,7 +452,7 @@ export default function ReportsPage() {
     <DashboardLayout>
       <div className="space-y-3">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-black">Reports</h1>
             <p className="mt-1 text-sm text-muted-foreground">Analytics and maintenance insights</p>
@@ -618,9 +618,9 @@ export default function ReportsPage() {
         </div>
 
         {/* KPI ribbon */}
-        <Card className="border shadow-sm overflow-hidden">
+        <Card className=" overflow-hidden">
           <CardContent className="p-0">
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 divide-x divide-y xl:divide-y-0 divide-border">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 divide-x divide-y xl:divide-y-0  divide-border">
               {stats.map((stat) => {
                 const Icon = stat.icon;
                 const tone = ACCENTS[stat.accent];
@@ -658,7 +658,7 @@ export default function ReportsPage() {
         {activeTab === "overview" && (
           <div className="space-y-5">
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-              <Card className="border shadow-sm xl:col-span-2 min-w-0">
+              <Card className=" xl:col-span-2 min-w-0">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="size-4 text-indigo-600" />
@@ -694,7 +694,7 @@ export default function ReportsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border shadow-sm min-w-0">
+              <Card className=" min-w-0">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <PieChartIcon className="size-4 text-rose-600" />
@@ -753,7 +753,7 @@ export default function ReportsPage() {
 
         {/* Tickets tab */}
         {activeTab === "tickets" && (
-          <Card className="border shadow-sm">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Recent Tickets</CardTitle>
               <CardDescription>{hasActiveFilters ? `${filteredTickets.length} ticket(s) match the current filters` : "Latest maintenance tickets"}</CardDescription>

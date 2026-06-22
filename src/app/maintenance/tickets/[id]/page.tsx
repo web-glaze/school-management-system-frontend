@@ -437,28 +437,33 @@ export default function TicketManagementPage() {
     <DashboardLayout>
       <div className="space-y-8 mx-auto max-w-7xl w-full">
         {/* Top Header */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-start justify-between mb-10 max-sm:gap-3">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-foreground">Ticket #{complaint.ticketCode}</h1>
-              <Badge variant="outline" className={getStatusBadge(complaint.status)}>
+
+              {/* <Badge variant="outline" className={getStatusBadge(complaint.status)}>
                 {complaint.status.replaceAll("_", " ")}
               </Badge>
+
               <Badge variant="outline" className={getPriorityBadge(complaint.priority)}>
                 {complaint.priority}
-              </Badge>
+              </Badge> */}
             </div>
+
             <p className="text-muted-foreground">Ticket Detail Page</p>
           </div>
+
           <Button className="bg-primary text-white hover:bg-primary/90" onClick={() => router.back()}>
-            <ArrowLeft size={18} className="mr-2" /> Back
+            <ArrowLeft size={18} className="mr-2" />
+            Back
           </Button>
         </div>
 
         {/* Main Content Grid */}
         <div className="grid gap-4 lg:grid-cols-12">
           {/* Left Column: Ticket Info */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-6 order-2 lg:order-1">
             {canManageTicket ? (
               /* MANAGER / ADMIN EDIT VIEW */
               <Card>
@@ -696,14 +701,14 @@ export default function TicketManagementPage() {
               </Card>
             )}
 
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="space-y-6 order-3 lg:order-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-xl font-bold">Activity Timeline</h2>
                   <p className="text-muted-foreground">Complaint history and updates</p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-4">
                   <Badge variant="outline" className="bg-sky-50 text-sky-600 h-8 px-4 text-sm">
                     {complaint.activities?.length || 0} Events
                   </Badge>
@@ -794,7 +799,7 @@ export default function TicketManagementPage() {
           </div>
 
           {/* Right Column: Ticket Metadata & User Attachments */}
-          <Card className="lg:col-span-4 h-fit sticky top-24">
+          <Card className="lg:col-span-4 h-fit lg:sticky top-24 order-1 lg:order-2">
             <CardHeader>
               <CardTitle>Ticket Details</CardTitle>
               <CardDescription>Overview and assignment information</CardDescription>
