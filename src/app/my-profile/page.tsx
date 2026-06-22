@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, ShieldUser, Calendar, Loader2, Save, KeyRound } from "lucide-react";
+import { User, Mail, Phone, ShieldUser, Calendar, Loader2, Save, KeyRound, EyeOff, Eye } from "lucide-react";
 
 import { authService } from "@/services/api";
 import { useUserStore } from "@/store/userStore";
@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
   interface CurrentUser {
     id: string;
@@ -299,21 +300,37 @@ export default function SettingsPage() {
               <FieldGroup>
                 <Field>
                   <Label>Current Password</Label>
-                  <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+                  <div className="relative">
+                    <Input type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="pr-10" />
+                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                      {showCurrentPassword ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
+                    </button>
+                  </div>
                 </Field>
               </FieldGroup>
 
               <FieldGroup>
                 <Field>
                   <Label>New Password</Label>
-                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                  <div className="relative">
+                    <Input type={showCurrentPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pr-10" />
+                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                      {showCurrentPassword ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
+                    </button>
+                  </div>
                 </Field>
               </FieldGroup>
 
               <FieldGroup>
+                k
                 <Field>
                   <Label>Confirm Password</Label>
-                  <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                  <div className="relative">
+                    <Input type={showCurrentPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pr-10" />
+                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                      {showCurrentPassword ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
+                    </button>
+                  </div>
                 </Field>
               </FieldGroup>
 

@@ -8,12 +8,15 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
+import { Eye, EyeOff } from "lucide-react";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"form">) {
   const router = useRouter();
   const { login, loading } = useAuthStore();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await login({ identifier, password });
@@ -42,7 +45,14 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"form">)
 
         <Field>
           <FieldLabel htmlFor="password">Password</FieldLabel>
-          <Input id="password" type="password" placeholder="Enter Your Password" required className="bg-background" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
+
+          <div className="relative">
+            <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter Your Password" required className="bg-background pr-10" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
+
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+              {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+            </button>
+          </div>
         </Field>
 
         <div className="flex justify-end">
