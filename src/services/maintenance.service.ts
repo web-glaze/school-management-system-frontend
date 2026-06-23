@@ -65,9 +65,8 @@ export const complaintService = {
 
 // ====================== Reports ======================
 
-export const reportsService = {
-  getAll: (params?: Record<string, string | number | boolean>) =>
-    apiClient.get("/reports", {
-      params,
-    }),
+export const reportService = {
+  getDashboard: (params?: Record<string, string>) => apiClient.get("/reports", { params }),
+
+  getFilterOptions: () => apiClient.get("/reports/filter-options"),
 };

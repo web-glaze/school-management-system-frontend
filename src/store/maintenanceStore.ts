@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { departmentService, technicianService, locationService, complaintService, reportsService } from "@/services/maintenance.service";
+import { departmentService, technicianService, locationService, complaintService, reportService } from "@/services/maintenance.service";
 
 // ====================== Department ======================
 
@@ -329,35 +329,61 @@ export const useComplaintStore = create<ComplaintState>((set) => ({
 }));
 
 // ====================== Reports ======================
-export interface ReportData {
-  tickets: Complaint[];
+interface FilterOptions {
+  departments: {
+    id: string;
+    name: string;
+  }[];
+
+  technicians: {
+    id: string;
+    name: string;
+  }[];
+
+  locations: string[];
+
+  statuses: string[];
+
+  priorities: string[];
 }
+
 interface ReportState {
-  report: ReportData | null;
+  report: any;
+  filters: FilterOptions | null;
+
   loading: boolean;
 
-  fetchReports: (params?: Record<string, string | number | boolean>) => Promise<void>;
+  fetchReports: (params?: Record<string, string>) => Promise<void>;
+
+  fetchFilterOptions: () => Promise<void>;
 }
 
 export const useReportStore = create<ReportState>((set) => ({
   report: null,
+
+  filters: null,
+
   loading: false,
 
-  fetchReports: async (params = {}) => {
+  fetchReports: async (params) => {
     try {
       set({ loading: true });
 
-      const response = await reportsService.getAll(params);
-
-      if (!response) return;
+      const res = await reportService.getDashboard(params);
 
       set({
-        report: response.data?.data || response.data,
+        report: res.data.data ?? res.data,
       });
-    } catch {
-      // interceptor handles redirect
     } finally {
       set({ loading: false });
     }
+  },
+
+  fetchFilterOptions: async () => {
+    const res = await reportService.getFilterOptions();
+
+    set({
+      filters: res.data.data ?? res.data,
+    });
   },
 }));
