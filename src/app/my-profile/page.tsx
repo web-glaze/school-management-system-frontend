@@ -322,7 +322,6 @@ export default function SettingsPage() {
               </FieldGroup>
 
               <FieldGroup>
-                k
                 <Field>
                   <Label>Confirm Password</Label>
                   <div className="relative">

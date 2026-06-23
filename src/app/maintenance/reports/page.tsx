@@ -386,27 +386,10 @@ export default function ReportsPage() {
     fetchReports(params);
   }, [appliedPeriod, appliedDateRange, fetchReports]);
 
-  // ── Derived data ──
-  const summary = report?.summary;
-  const priorityChart = report?.charts?.priorityChart?.map((item) => ({ name: item.priority, value: item._count })) || [];
-  const totalPriorityTickets = priorityChart.reduce((sum, item) => sum + item.value, 0);
-  const departmentChartAll = report?.charts?.departmentChart?.map((item) => ({ name: item.name || "Unassigned", count: item.count })) || [];
-  const technicianChartAll = report?.charts?.technicianChart?.map((item) => ({ name: item.name || "Unassigned", count: item.count })) || [];
-  const locationChartAll = report?.charts?.locationChart?.map((item) => ({ name: item.locationType || "Unassigned", count: item._count })) || [];
-  const trendChart = report?.charts?.trendChart || [];
-
   // ── Filter options ──
-  const departmentOptions = useMemo(() => {
-    const names = Array.from(new Set(departmentChartAll.map((d) => d.name).filter((n) => n && !isUnassignedValue(n))));
-    return (report?.tickets || []).some((t) => !t.department?.name) ? [...names, "Unassigned"] : names;
-  }, [departmentChartAll, report]);
-
-  const locationOptions = useMemo(() => {
-    const names = Array.from(new Set(locationChartAll.map((l) => l.name).filter((n) => n && !isUnassignedValue(n))));
-    return (report?.tickets || []).some((t) => !t.locationType) ? [...names, "Unassigned"] : names;
-  }, [locationChartAll, report]);
-
-  const statusOptions = useMemo(() => Array.from(new Set((report?.tickets || []).map((t) => t.status).filter(Boolean))), [report]);
+  const departmentOptions = useMemo(() => Array.from(new Set((report?.tickets || []).map((t) => t.department?.name).filter((name): name is string => Boolean(name)))), [report]);
+  const locationOptions = useMemo(() => Array.from(new Set((report?.tickets || []).map((t) => t.locationType).filter((location): location is string => Boolean(location)))), [report]);
+  const statusOptions = useMemo(() => Array.from(new Set((report?.tickets || []).map((t) => t.status).filter((status): status is string => Boolean(status)))), [report]);
   const technicianOptions = useMemo(() => Array.from(new Set((report?.tickets || []).map((t) => t.assignedTechnician?.name).filter((n): n is string => Boolean(n)))), [report]);
   const priorityOptions = useMemo(() => Array.from(new Set((report?.tickets || []).map((t) => t.priority).filter((p): p is string => Boolean(p)))), [report]);
 
@@ -435,6 +418,94 @@ export default function ReportsPage() {
     });
   }, [report, appliedFilters, sortDir, search]);
 
+  const liveSummary = useMemo(() => {
+    return computeLiveSummary(filteredTickets);
+  }, [filteredTickets]);
+
+  const priorityChart = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    filteredTickets.forEach((ticket) => {
+      const key = ticket.priority || "Unknown";
+      map[key] = (map[key] || 0) + 1;
+    });
+
+    return Object.entries(map).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }, [filteredTickets]);
+
+  const totalPriorityTickets = priorityChart.reduce((sum, item) => sum + item.value, 0);
+
+  const departmentChartAll = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    filteredTickets.forEach((ticket) => {
+      const key = ticket.department?.name || "Unassigned";
+
+      map[key] = (map[key] || 0) + 1;
+    });
+
+    return Object.entries(map)
+      .map(([name, count]) => ({
+        name,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredTickets]);
+
+  const technicianChartAll = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    filteredTickets.forEach((ticket) => {
+      const key = ticket.assignedTechnician?.name || "Unassigned";
+
+      map[key] = (map[key] || 0) + 1;
+    });
+
+    return Object.entries(map)
+      .map(([name, count]) => ({
+        name,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredTickets]);
+
+  const locationChartAll = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    filteredTickets.forEach((ticket) => {
+      const key = ticket.locationType || "Unassigned";
+
+      map[key] = (map[key] || 0) + 1;
+    });
+
+    return Object.entries(map)
+      .map(([name, count]) => ({
+        name,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredTickets]);
+
+  const trendChart = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    filteredTickets.forEach((ticket) => {
+      const date = new Date(ticket.createdAt).toISOString().split("T")[0];
+
+      map[date] = (map[date] || 0) + 1;
+    });
+
+    return Object.entries(map)
+      .map(([date, count]) => ({
+        date,
+        count,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [filteredTickets]);
+
   const hasActiveFilters =
     appliedFilters.department !== "all" ||
     appliedFilters.location !== "all" ||
@@ -443,8 +514,6 @@ export default function ReportsPage() {
     appliedFilters.priority !== "all" ||
     appliedPeriod !== "" ||
     !!appliedDateRange?.from;
-
-  const liveSummary = hasActiveFilters ? computeLiveSummary(filteredTickets) : summary;
 
   const filtersChanged =
     department !== appliedFilters.department ||
@@ -460,12 +529,42 @@ export default function ReportsPage() {
   const pendingFilterCount = [department !== "all", location !== "all", status !== "all", technician !== "all", priority !== "all", !!period, !!dateRange?.from].filter(Boolean).length;
 
   const stats = [
-    { label: "Total Tickets", value: liveSummary?.totalTickets ?? 0, icon: ClipboardList, accent: "indigo" },
-    { label: "Pending", value: liveSummary?.pending ?? 0, icon: Clock, accent: "amber" },
-    { label: "Assigned", value: liveSummary?.assigned ?? 0, icon: UserCog, accent: "blue" },
-    { label: "In Progress", value: liveSummary?.inProgress ?? 0, icon: Activity, accent: "sky" },
-    { label: "Resolved", value: liveSummary?.resolved ?? 0, icon: CheckCircle2, accent: "emerald" },
-    { label: "Closed", value: liveSummary?.closed ?? 0, icon: XCircle, accent: "slate" },
+    {
+      label: "Total Tickets",
+      value: liveSummary.totalTickets,
+      icon: ClipboardList,
+      accent: "indigo",
+    },
+    {
+      label: "Pending",
+      value: liveSummary.pending,
+      icon: Clock,
+      accent: "amber",
+    },
+    {
+      label: "Assigned",
+      value: liveSummary.assigned,
+      icon: UserCog,
+      accent: "blue",
+    },
+    {
+      label: "In Progress",
+      value: liveSummary.inProgress,
+      icon: Activity,
+      accent: "sky",
+    },
+    {
+      label: "Resolved",
+      value: liveSummary.resolved,
+      icon: CheckCircle2,
+      accent: "emerald",
+    },
+    {
+      label: "Closed",
+      value: liveSummary.closed,
+      icon: XCircle,
+      accent: "slate",
+    },
   ] as const;
 
   const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));

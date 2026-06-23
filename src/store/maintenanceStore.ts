@@ -330,45 +330,8 @@ export const useComplaintStore = create<ComplaintState>((set) => ({
 
 // ====================== Reports ======================
 export interface ReportData {
-  summary: {
-    totalTickets: number;
-    pending: number;
-    assigned: number;
-    inProgress: number;
-    resolved: number;
-    closed: number;
-  };
-
-  charts: {
-    locationChart: {
-      locationType: string;
-      _count: number;
-    }[];
-
-    departmentChart: {
-      name: string;
-      count: number;
-    }[];
-
-    technicianChart: {
-      name: string;
-      count: number;
-    }[];
-
-    priorityChart: {
-      priority: string;
-      _count: number;
-    }[];
-
-    trendChart: {
-      date: string;
-      count: number;
-    }[];
-  };
-
   tickets: Complaint[];
 }
-
 interface ReportState {
   report: ReportData | null;
   loading: boolean;
