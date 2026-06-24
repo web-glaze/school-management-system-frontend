@@ -523,7 +523,7 @@ export default function ReportsPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleExport}>
                 <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                Spreadsheet (Coming Soon)
+                Spreadsheet
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
