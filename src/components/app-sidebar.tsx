@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus , User } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -72,6 +72,29 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     },
   ].filter(Boolean);
 
+  const academicItems = [
+    permissions.includes("academic-session.read") && {
+      title: "Academic Sessions",
+      url: "/academic/sessions",
+      icon: Calendars,
+      isActive: pathname.startsWith("/academic/sessions"),
+    },
+
+    permissions.includes("class.read") && {
+      title: "Classes",
+      url: "/academic/classes",
+      icon: School,
+      isActive: pathname.startsWith("/academic/classes"),
+    },
+
+    permissions.includes("section.read") && {
+      title: "Sections",
+      url: "/academic/sections",
+      icon: Landmark,
+      isActive: pathname.startsWith("/academic/sections"),
+    },
+  ].filter(Boolean);
+
   const data = {
     user: {
       name: user.name || "",
@@ -112,7 +135,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
       {/* Content */}
       <SidebarContent>
-        <NavMain maintenanceItems={maintenanceItems} settingItems={settingItems} />
+        <NavMain maintenanceItems={maintenanceItems} academicItems={academicItems} settingItems={settingItems} />
       </SidebarContent>
     </Sidebar>
   );

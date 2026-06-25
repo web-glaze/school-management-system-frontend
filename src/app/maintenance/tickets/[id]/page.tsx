@@ -454,7 +454,14 @@ export default function TicketManagementPage() {
             <p className="text-muted-foreground">Ticket Detail Page</p>
           </div>
 
-          <Button className="bg-primary text-white hover:bg-primary/90" onClick={() => router.back()}>
+          <Button
+            className="bg-primary text-white hover:bg-primary/90"
+            onClick={() => {
+              const page = new URLSearchParams(window.location.search).get("page") || "1";
+
+              router.push(`/maintenance/tickets?page=${page}`);
+            }}
+          >
             <ArrowLeft size={18} className="mr-2" />
             Back
           </Button>
@@ -685,7 +692,12 @@ export default function TicketManagementPage() {
                     {adminAttachments.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {adminAttachments.map((file, idx) => (
-                          <button key={idx} type="button" onClick={() => openLightbox(adminAttachments, idx)} className="relative group rounded border overflow-hidden h-16 w-16 bg-muted hover:opacity-90 transition-opacity">
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => openLightbox(adminAttachments, idx)}
+                            className="relative group rounded border overflow-hidden h-16 w-16 bg-muted hover:opacity-90 transition-opacity"
+                          >
                             {file.type === "IMAGE" ? <img src={file.url} alt="" className="h-full w-full object-cover" /> : <video src={file.url} className="h-full w-full object-cover" />}
                             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
                               <Eye className="size-4 text-white" />
@@ -779,7 +791,11 @@ export default function TicketManagementPage() {
                                   onClick={() => openLightbox(activity.attachments!, idx)}
                                   className="group relative h-20 w-20 overflow-hidden rounded-xl border border-border hover:border-primary/50 transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30"
                                 >
-                                  {file.type === "IMAGE" ? <img src={file.url} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <video src={file.url} className="h-full w-full object-cover" />}
+                                  {file.type === "IMAGE" ? (
+                                    <img src={file.url} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                  ) : (
+                                    <video src={file.url} className="h-full w-full object-cover" />
+                                  )}
 
                                   {/* Overlay indicator */}
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

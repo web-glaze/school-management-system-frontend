@@ -15,10 +15,11 @@ type NavItem = {
 
 interface NavMainProps {
   maintenanceItems: NavItem[];
+  academicItems:NavItem[];
   settingItems: NavItem[];
 }
 
-export function NavMain({ maintenanceItems, settingItems }: NavMainProps) {
+export function NavMain({ maintenanceItems, settingItems, academicItems }: NavMainProps) {
   const pathname = usePathname();
   return (
     <SidebarGroup className="flex flex-col gap-0">
@@ -43,6 +44,25 @@ export function NavMain({ maintenanceItems, settingItems }: NavMainProps) {
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild isActive={item.isActive} className="h-9 hover:bg-sky-50 hover:text-sky-600 data-[active=true]:bg-sky-50 data-[active=true]:text-sky-600">
                   <Link href={item.url}>
+                    <item.icon className="w-5! h-5!" />
+                    <span className="text-lg">{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </>
+      )}
+      
+      {/* Academics */}
+      {academicItems.length > 0 && (
+        <>
+          <SidebarGroupLabel className="mt-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Academics</SidebarGroupLabel>
+          <SidebarMenu>
+            {academicItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild isActive={item.isActive} className="h-9 hover:bg-sky-50 hover:text-sky-600 data-[active=true]:bg-sky-50 data-[active=true]:text-sky-600">
+                  <Link href={item.url} className="w-full block">
                     <item.icon className="w-5! h-5!" />
                     <span className="text-lg">{item.title}</span>
                   </Link>

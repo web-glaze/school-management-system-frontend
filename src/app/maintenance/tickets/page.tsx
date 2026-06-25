@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import {
   ClipboardList,
   Clock,
@@ -37,6 +37,17 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useComplaintStore, Complaint } from "@/store/maintenanceStore";
 import { usePermission } from "@/hooks/usePermission";
+import { useSearchParams, useRouter } from "next/navigation";
+
+function PageInitializer({ setCurrentPage }: { setCurrentPage: React.Dispatch<React.SetStateAction<number>> }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    setCurrentPage(Number(searchParams.get("page")) || 1);
+  }, [searchParams, setCurrentPage]);
+
+  return null;
+}
 
 export default function ComplaintsPage() {
   const { complaints, loading, fetchComplaints, deleteComplaint } = useComplaintStore();
@@ -44,6 +55,7 @@ export default function ComplaintsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("NEWEST");
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const userRole = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}")?.roles?.[0] || "" : "";
@@ -53,14 +65,17 @@ export default function ComplaintsPage() {
   const [targetDeleteComplaint, setTargetDeleteComplaint] = useState<Complaint | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const changePage = (page: number) => {
+    setCurrentPage(page);
+
+    router.replace(`/maintenance/tickets?page=${page}`, {
+      scroll: false,
+    });
+  };
+
   useEffect(() => {
     fetchComplaints();
   }, []);
-
-  // Reset page when filters, sorting or page size changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter, sortBy, pageSize]);
 
   // Client side filtration and sorting
   const filteredAndSortedComplaints = useMemo(() => {
@@ -155,6 +170,9 @@ export default function ComplaintsPage() {
 
   return (
     <DashboardLayout>
+      <Suspense fallback={null}>
+        <PageInitializer setCurrentPage={setCurrentPage} />
+      </Suspense>
       <div className="space-y-8">
         <div className="flex items-center justify-between mb-10">
           <div>
@@ -216,10 +234,26 @@ export default function ComplaintsPage() {
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input type="text" placeholder="Search by title, location, email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+              <Input
+                type="text"
+                placeholder="Search by title, location, email..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  changePage(1);
+                }}
+                className="pl-11"
+              />
             </div>
 
-            <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
+            <Tabs
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                changePage(1);
+              }}
+              className="w-full lg:w-auto"
+            >
               <TabsList className="w-full lg:w-auto rounded-full bg-muted/60 p-1 overflow-x-auto no-scrollbar">
                 {statusStats.map((stat) => (
                   <TabsTrigger key={stat.id} value={stat.id} className="rounded-full px-2 md:px-4 py-2 whitespace-nowrap text-sm data-[state=active]:shadow-sm">
@@ -234,7 +268,13 @@ export default function ComplaintsPage() {
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-muted-foreground">
                   <SlidersHorizontal className="size-3.5" />
                 </div>
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select
+                  value={sortBy}
+                  onValueChange={(value) => {
+                    setSortBy(value);
+                    changePage(1);
+                  }}
+                >
                   <SelectTrigger className="w-full max-w-40 pl-8">
                     <SelectValue placeholder="Sort Tickets" />
                   </SelectTrigger>
@@ -249,7 +289,13 @@ export default function ComplaintsPage() {
               </div>
 
               <div>
-                <Select value={String(pageSize)} onValueChange={(val) => setPageSize(Number(val))}>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(val) => {
+                    setPageSize(Number(val));
+                    changePage(1);
+                  }}
+                >
                   <SelectTrigger className="w-27.5">
                     <SelectValue />
                   </SelectTrigger>
@@ -374,20 +420,25 @@ export default function ComplaintsPage() {
                           <div className="hidden md:flex justify-end gap-1">
                             {canEditTickets ? (
                               <>
-                                <Link href={`/maintenance/tickets/${complaint.id}`}>
+                                <Link href={`/maintenance/tickets/${complaint.id}?page=${currentPage}`}>
                                   <Button variant="ghost" size="icon" className="size-10 text-muted-foreground hover:bg-blue-600/10 hover:text-blue-600 transition-all">
                                     <Pencil className="size-5" />
                                   </Button>
                                 </Link>
 
                                 {canDeleteTickets && (
-                                  <Button variant="ghost" size="icon" className="size-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => setTargetDeleteComplaint(complaint)}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                    onClick={() => setTargetDeleteComplaint(complaint)}
+                                  >
                                     <Trash2 className="size-5" />
                                   </Button>
                                 )}
                               </>
                             ) : (
-                              <Link href={`/maintenance/tickets/${complaint.id}`}>
+                              <Link href={`/maintenance/tickets/${complaint.id}?page=${currentPage}`}>
                                 <Button variant="ghost" size="icon" className="size-10 text-muted-foreground hover:bg-blue-600/10 hover:text-blue-600 transition-all">
                                   <Eye className="size-5" />
                                 </Button>
@@ -405,7 +456,7 @@ export default function ComplaintsPage() {
 
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem asChild>
-                                    <Link href={`/maintenance/tickets/${complaint.id}`}>
+                                    <Link href={`/maintenance/tickets/${complaint.id}?page=${currentPage}`}>
                                       <Pencil className="mr-2 size-4" />
                                       Edit
                                     </Link>
@@ -420,7 +471,7 @@ export default function ComplaintsPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             ) : (
-                              <Link href={`/maintenance/tickets/${complaint.id}`}>
+                              <Link href={`/maintenance/tickets/${complaint.id}?page=${currentPage}`}>
                                 <Button variant="ghost" size="icon">
                                   <Eye className="size-5" />
                                 </Button>
@@ -445,7 +496,8 @@ export default function ComplaintsPage() {
               </div>
               <AlertDialogTitle className="w-full text-center text-xl">Delete Ticket?</AlertDialogTitle>
               <AlertDialogDescription className="text-center">
-                This action cannot be undone. This will permanently remove ticket <span className="font-semibold text-foreground">{`"${targetDeleteComplaint?.title || targetDeleteComplaint?.description.slice(0, 25)}..."`}</span>
+                This action cannot be undone. This will permanently remove ticket{" "}
+                <span className="font-semibold text-foreground">{`"${targetDeleteComplaint?.title || targetDeleteComplaint?.description.slice(0, 25)}..."`}</span>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="mt-4 gap-2">
@@ -478,15 +530,16 @@ export default function ComplaintsPage() {
         {filteredAndSortedComplaints.length > 0 && (
           <div className="bg-card rounded-lg p-5 border border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-sm font-medium text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-semibold text-foreground">{Math.min(currentPage * pageSize, filteredAndSortedComplaints.length)}</span> of{" "}
+              Showing <span className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}</span> to{" "}
+              <span className="font-semibold text-foreground">{Math.min(currentPage * pageSize, filteredAndSortedComplaints.length)}</span> of{" "}
               <span className="font-semibold text-foreground">{filteredAndSortedComplaints.length}</span> complaints
             </div>
 
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="size-8">
+              <Button variant="outline" size="icon" onClick={() => changePage(1)} disabled={currentPage === 1} className="size-8">
                 <ChevronsLeft className="size-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="size-8">
+              <Button variant="outline" size="icon" onClick={() => changePage(Math.max(currentPage - 1, 1))} disabled={currentPage === 1} className="size-8">
                 <ChevronLeft className="size-4" />
               </Button>
 
@@ -504,17 +557,22 @@ export default function ComplaintsPage() {
                     return null;
                   }
                   return (
-                    <Button key={pageNum} variant={currentPage === pageNum ? "default" : "outline"} onClick={() => setCurrentPage(pageNum)} className={cn("size-8 font-bold text-xs", currentPage === pageNum ? "bg-sky-600 text-white" : "")}>
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      onClick={() => changePage(pageNum)}
+                      className={cn("size-8 font-bold text-xs", currentPage === pageNum ? "bg-sky-600 text-white" : "")}
+                    >
                       {pageNum}
                     </Button>
                   );
                 })}
               </div>
 
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="size-8">
+              <Button variant="outline" size="icon" onClick={() => changePage(Math.min(currentPage + 1, totalPages))} disabled={currentPage === totalPages} className="size-8">
                 <ChevronRight className="size-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="size-8">
+              <Button variant="outline" size="icon" onClick={() => changePage(totalPages)} disabled={currentPage === totalPages} className="size-8">
                 <ChevronsRight className="size-4" />
               </Button>
             </div>

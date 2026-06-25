@@ -155,6 +155,13 @@ export default function UserManagementPage() {
     }
   };
 
+  const clearEditError = (field: string) => {
+    setEditErrors((prev) => ({
+      ...prev,
+      [field]: "",
+    }));
+  };
+
   const grouped = useMemo(() => {
     return [
       {
@@ -162,7 +169,8 @@ export default function UserManagementPage() {
         name: "Users",
         users: users.filter((u) => {
           const needle = search.toLowerCase();
-          const matchSearch = !needle || u.email?.toLowerCase().includes(needle) || u.name?.toLowerCase().includes(needle) || u.userName?.toLowerCase().includes(needle) || (u.userCode || "").toLowerCase().includes(needle);
+          const matchSearch =
+            !needle || u.email?.toLowerCase().includes(needle) || u.name?.toLowerCase().includes(needle) || u.userName?.toLowerCase().includes(needle) || (u.userCode || "").toLowerCase().includes(needle);
           const matchRole = roleFilter === "all" || u.userRoles?.some((r) => r.role.name === roleFilter);
           return matchSearch && matchRole;
         }),
@@ -456,12 +464,24 @@ export default function UserManagementPage() {
 
                           <TableCell className="py-4 text-right align-top sticky right-0 bg-card shadow-lg md:shadow-none">
                             <div className="hidden md:flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit User" onClick={() => openEditDialog(u)}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                                title="Edit User"
+                                onClick={() => openEditDialog(u)}
+                              >
                                 <Pencil className="size-5" />
                               </Button>
 
                               {!isSystemUser && (
-                                <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" title="Delete User" onClick={() => openDeleteDialog(u)}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                  title="Delete User"
+                                  onClick={() => openDeleteDialog(u)}
+                                >
                                   <Trash2 className="size-5" />
                                 </Button>
                               )}
@@ -527,7 +547,7 @@ export default function UserManagementPage() {
                   value={editName}
                   onChange={(e) => {
                     setEditName(e.target.value);
-                    clearError("name");
+                    clearEditError("name");
                   }}
                 />
                 {editErrors.name && <p className="text-sm text-red-500 -mt-2"> {editErrors.name}</p>}
@@ -542,7 +562,7 @@ export default function UserManagementPage() {
                   value={editUserName}
                   onChange={(e) => {
                     setEditUserName(e.target.value);
-                    clearError("userName");
+                    clearEditError("userName");
                   }}
                 />
                 {editErrors.userName && <p className="text-sm text-red-500 -mt-2"> {editErrors.userName}</p>}
@@ -557,7 +577,7 @@ export default function UserManagementPage() {
                   value={editEmail}
                   onChange={(e) => {
                     setEditEmail(e.target.value);
-                    clearError("email");
+                    clearEditError("email");
                   }}
                 />
                 {editErrors.email && <p className="text-sm text-red-500 -mt-2"> {editErrors.email}</p>}
@@ -572,7 +592,7 @@ export default function UserManagementPage() {
                   value={editPhone}
                   onChange={(e) => {
                     setEditPhone(e.target.value);
-                    clearError("phone");
+                    clearEditError("phone");
                   }}
                 />
                 {editErrors.phone && <p className="text-sm text-red-500 -mt-2"> {editErrors.phone}</p>}
@@ -587,7 +607,7 @@ export default function UserManagementPage() {
                   value={editPassword}
                   onChange={(e) => {
                     setEditPassword(e.target.value);
-                    clearError("password");
+                    clearEditError("password");
                   }}
                 />
                 {editErrors.password && <p className="text-sm text-red-500 -mt-2"> {editErrors.password}</p>}

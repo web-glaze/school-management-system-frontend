@@ -769,7 +769,7 @@ export default function ReportsPage() {
                       {priorityChart.length === 0 ? (
                         <ChartEmptyState />
                       ) : (
-                        <ChartContainer config={priorityChartConfig} className="mx-auto aspect-square max-h-[280px]">
+                        <ChartContainer config={priorityChartConfig} className="mx-auto aspect-square max-h-70">
                           <PieChart>
                             <ShadcnChartTooltip cursor={false} content={<ShadcnChartTooltipContent hideLabel />} />
                             <Pie data={priorityChart} dataKey="value" nameKey="name" innerRadius={70} outerRadius={95} strokeWidth={5}>
