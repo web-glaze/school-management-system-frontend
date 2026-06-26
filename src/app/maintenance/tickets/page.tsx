@@ -171,7 +171,7 @@ export default function ComplaintsPage() {
   return (
     <DashboardLayout>
       <Suspense fallback={null}>
-        <PageInitializer setCurrentPage={setCurrentPage} />
+        <PageInitializer setCurrentPage={setCurrentPage}/>
       </Suspense>
       <div className="space-y-8">
         <div className="flex items-center justify-between mb-10">

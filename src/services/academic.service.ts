@@ -36,6 +36,16 @@ export interface UpdateSectionPayload {
   isActive?: boolean;
 }
 
+export interface CreateSubjectPayload {
+  name: string;
+  isOptional?: boolean;
+}
+
+export interface UpdateSubjectPayload {
+  name?: string;
+  isOptional?: boolean;
+}
+
 export const academicService = {
   sessions: {
     getAll: () =>
@@ -124,4 +134,35 @@ export const academicService = {
         `/academic/sections/${id}`,
       ),
   },
+
+  subjects: {
+  getAll: () =>
+    apiClient.get("/academic/subjects"),
+
+  getById: (id: string) =>
+    apiClient.get(`/academic/subjects/${id}`),
+
+  create: (
+    data: CreateSubjectPayload,
+  ) =>
+    apiClient.post(
+      "/academic/subjects",
+      data,
+    ),
+
+  update: (
+    id: string,
+    data: UpdateSubjectPayload,
+  ) =>
+    apiClient.patch(
+      `/academic/subjects/${id}`,
+      data,
+    ),
+
+  delete: (id: string) =>
+    apiClient.delete(
+      `/academic/subjects/${id}`,
+    ),
+},
 };
+

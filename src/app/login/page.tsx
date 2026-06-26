@@ -26,7 +26,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right Login */}
-
+        
         <div className="hidden lg:flex p-5">
           <div className="relative flex h-full p-5 w-full flex-col items-center justify-center rounded-[28px] bg-[#e8f8fe] overflow-hidden">
             {/* Illustration */}

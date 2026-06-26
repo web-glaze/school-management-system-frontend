@@ -14,7 +14,6 @@ import { useComplaintStore, Location } from "@/store/maintenanceStore";
 import apiClient from "@/services/api";
 import { Building2, Layers, MapPin, ArrowUp, ArrowLeft, ArrowRight, AlertCircle, Flame, ShieldAlert, CheckCircle2, Loader2, Check, ChevronRight, RefreshCw, Trash2, Plus, X, ImagePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
 export default function RaiseTicketPage() {
   const router = useRouter();
   const { createComplaints, loading: submitting } = useComplaintStore();
