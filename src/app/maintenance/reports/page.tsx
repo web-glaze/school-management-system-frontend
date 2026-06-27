@@ -456,10 +456,10 @@ export default function ReportsPage() {
     })) || [];
 
   const technicianOptions =
-    filters?.technicians?.map((t) => ({
-      label: t.name,
-      value: t.id,
-    })) || [];
+  filters?.technicians?.map((t) => ({
+    label: t.name,
+    value: t.id,
+  })) || [];
 
   const statusOptions = filters?.statuses || [];
 
