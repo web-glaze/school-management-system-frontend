@@ -9,6 +9,8 @@ import {
   UpdateSectionPayload,
   CreateSubjectPayload,
   UpdateSubjectPayload,
+  CreateTeacherPayload,
+  UpdateTeacherPayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -50,11 +52,25 @@ export interface Subject {
   updatedAt: string;
 }
 
+export interface Teacher {
+  id: string;
+  teacherCode: string;
+  name: string;
+  email: string;
+  phone: string;
+  designation: string;
+  joiningDate: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface AcademicStore {
   sessions: AcademicSession[];
   classes: AcademicClass[];
   sections: Section[];
   subjects: Subject[];
+  teachers: Teacher[];
 
   loading: boolean;
 
@@ -78,10 +94,16 @@ interface AcademicStore {
   updateSubject: (id: string, data: UpdateSubjectPayload) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
 
+  fetchTeachers: () => Promise<void>;
+  createTeacher: (data: CreateTeacherPayload) => Promise<void>;
+  updateTeacher: (id: string, data: UpdateTeacherPayload) => Promise<void>;
+  deleteTeacher: (id: string) => Promise<void>;
+
   clearSessions: () => void;
   clearClasses: () => void;
   clearSections: () => void;
   clearSubjects: () => void;
+  clearTeachers: () => void;
 }
 
 export const useAcademicStore = create<AcademicStore>((set, get) => ({
@@ -89,6 +111,7 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   classes: [],
   sections: [],
   subjects: [],
+  teachers: [],
   loading: false,
 
   // ======================
@@ -250,65 +273,108 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       sections: [],
     }),
 
-    clearSubjects: () =>
-  set({
-    subjects: [],
-  }),
-
-    // ======================
-// Subjects
-// ======================
-
-fetchSubjects: async () => {
-  try {
-    set({ loading: true });
-
-    const response =
-      await academicService.subjects.getAll();
-
+  clearSubjects: () =>
     set({
-      subjects: response.data.data ?? [],
-    });
-  } catch (error) {
-    console.error(
-      "Failed to fetch subjects",
-      error,
-    );
-    throw error;
-  } finally {
-    set({ loading: false });
-  }
-},
+      subjects: [],
+    }),
 
-createSubject: async (data) => {
-  try {
-    await academicService.subjects.create(
-      data,
-    );
-    await get().fetchSubjects();
-  } catch (error) {
-    throw error;
-  }
-},
+  clearTeachers: () =>
+    set({
+      teachers: [],
+    }),
 
-updateSubject: async (id, data) => {
-  try {
-    await academicService.subjects.update(
-      id,
-      data,
-    );
-    await get().fetchSubjects();
-  } catch (error) {
-    throw error;
-  }
-},
+  // ======================
+  // Subjects
+  // ======================
 
-deleteSubject: async (id) => {
-  try {
-    await academicService.subjects.delete(id);
-    await get().fetchSubjects();
-  } catch (error) {
-    throw error;
-  }
-},
+  fetchSubjects: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.subjects.getAll();
+
+      set({
+        subjects: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch subjects", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createSubject: async (data) => {
+    try {
+      await academicService.subjects.create(data);
+      await get().fetchSubjects();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateSubject: async (id, data) => {
+    try {
+      await academicService.subjects.update(id, data);
+      await get().fetchSubjects();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteSubject: async (id) => {
+    try {
+      await academicService.subjects.delete(id);
+      await get().fetchSubjects();
+    } catch (error) {
+      throw error;
+    }
+  },
+  // ======================
+  // Teachers
+  // ======================
+
+  fetchTeachers: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.teachers.getAll();
+
+      set({
+        teachers: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch teachers data", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createTeacher: async (data) => {
+    try {
+      await academicService.teachers.create(data);
+      await get().fetchTeachers();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateTeacher: async (id, data) => {
+    try {
+      await academicService.teachers.update(id, data);
+      await get().fetchTeachers();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteTeacher: async (id) => {
+    try {
+      await academicService.teachers.delete(id);
+      await get().fetchTeachers();
+    } catch (error) {
+      throw error;
+    }
+  },
 }));

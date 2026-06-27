@@ -46,6 +46,24 @@ export interface UpdateSubjectPayload {
   isOptional?: boolean;
 }
 
+export interface CreateTeacherPayload {
+  name: string;
+  email: string;
+  phone: string;
+  designation: string;
+  joiningDate: string;
+  isActive: boolean;
+}
+
+export interface UpdateTeacherPayload {
+  name: string;
+  email: string;
+  phone: string;
+  designation: string;
+  joiningDate: string;
+  isActive: boolean;
+}
+
 export const academicService = {
   sessions: {
     getAll: () =>
@@ -162,6 +180,36 @@ export const academicService = {
   delete: (id: string) =>
     apiClient.delete(
       `/academic/subjects/${id}`,
+    ),
+},
+
+teachers: {
+  getAll: () =>
+    apiClient.get("/academic/teachers"),
+
+  getById: (id: string) =>
+    apiClient.get(`/academic/teachers/${id}`),
+
+  create: (
+    data: CreateTeacherPayload,
+  ) =>
+    apiClient.post(
+      "/academic/teachers",
+      data,
+    ),
+
+  update: (
+    id: string,
+    data: UpdateTeacherPayload,
+  ) =>
+    apiClient.patch(
+      `/academic/teachers/${id}`,
+      data,
+    ),
+
+  delete: (id: string) =>
+    apiClient.delete(
+      `/academic/teachers/${id}`,
     ),
 },
 };

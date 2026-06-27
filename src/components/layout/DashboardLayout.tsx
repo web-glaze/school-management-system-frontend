@@ -23,8 +23,16 @@ function getBreadcrumb(pathname: string): { parent: string | null; parentHref: s
   if (pathname === "/maintenance/departments") return { parent: "Maintenance", parentHref: "/maintenance", current: "Departments" };
   if (pathname === "/maintenance/technician") return { parent: "Maintenance", parentHref: "/maintenance", current: "Technicians" };
   if (pathname === "/maintenance/location") return { parent: "Maintenance", parentHref: "/maintenance", current: "Locations" };
-  if (pathname === "/user") return { parent: "Dashboard", parentHref: "/dashboard", current: "Users" };
-  if (pathname === "/roles") return { parent: "Dashboard", parentHref: "/dashboard", current: "Roles & Permissions" };
+  if (pathname === "/maintenance/reports") return { parent: "Maintenance", parentHref: "/maintenance", current:"Reports" };
+  if (pathname === "/academic") return { parent: "Dashboard", parentHref: "/dashboard", current: "Academic" };
+  if (pathname === "/academic/sessions") return { parent: "Academic", parentHref: "/academic", current:"Sessions" };
+  if (pathname === "/academic/classes") return { parent: "Academic", parentHref: "/academic", current:"Classes" };
+  if (pathname === "/academic/sections") return { parent: "Academic", parentHref: "/academic", current:"Sections" };
+  if (pathname === "/academic/subjects") return { parent: "Academic", parentHref: "/academic", current:"Subjects" };
+  if (pathname === "/academic/teachers") return { parent: "Academic", parentHref: "/academic", current:"Teachers" };
+  if (pathname === "/my-profile") return { parent: "Settings", parentHref: "/settings", current: "My Profile" };
+  if (pathname === "/user") return { parent: "Settings", parentHref: "/settings", current: "Users" };
+  if (pathname === "/roles") return { parent: "Settings", parentHref: "/settings", current: "Roles & Permissions" };
   return { parent: null, parentHref: "/dashboard", current: "Dashboard" };
 }
 
