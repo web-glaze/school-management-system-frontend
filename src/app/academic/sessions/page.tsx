@@ -8,7 +8,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CalendarDays, Calendar, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
+import { CalendarDays, Calendar as CalendarIcon, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
 import { useAcademicStore } from "@/store/academicStore";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -17,6 +17,10 @@ import { useEffect, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 type ApiErrorResponse = {
   message?: string;
@@ -47,10 +51,12 @@ export default function AcademicSessionPage() {
   const [addSessionOpen, setAddSessionOpen] = useState(false);
   const [editSessionOpen, setEditSessionOpen] = useState(false);
   const [deleteSessionOpen, setDeleteSessionOpen] = useState(false);
-
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
+  const [editStartDateOpen, setEditStartDateOpen] = useState(false);
+  const [editEndDateOpen, setEditEndDateOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<AcademicSession | null>(null);
   const [deletingSession, setDeletingSession] = useState<AcademicSession | null>(null);
-
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -183,13 +189,8 @@ export default function AcademicSessionPage() {
   }
 
   const isSessionChanged =
-  editingSession &&
-  (
-    editName.trim() !== editingSession.name ||
-    editStartDate !== editingSession.startDate.split("T")[0] ||
-    editEndDate !== editingSession.endDate.split("T")[0] ||
-    editIsActive !== editingSession.isActive
-  );
+    editingSession &&
+    (editName.trim() !== editingSession.name || editStartDate !== editingSession.startDate.split("T")[0] || editEndDate !== editingSession.endDate.split("T")[0] || editIsActive !== editingSession.isActive);
 
   const filteredSessions = sessions.filter((session) => session.name.toLowerCase().includes(search.toLowerCase()) || session.sessionCode.toLowerCase().includes(search.toLowerCase()));
 
@@ -248,38 +249,68 @@ export default function AcademicSessionPage() {
 
                   <Field>
                     <Label>Start Date</Label>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value);
 
-                        setFormErrors((prev) => ({
-                          ...prev,
-                          startDate: "",
-                        }));
-                      }}
-                      className="mt-2"
-                    />
+                    <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !startDate && "text-muted-foreground", formErrors.startDate && "border-red-500")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(new Date(startDate), "dd MMM yyyy") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                        <Calendar
+                          mode="single"
+                          selected={startDate ? new Date(startDate) : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            setStartDate(format(date, "yyyy-MM-dd"));
+
+                            setFormErrors((prev) => ({
+                              ...prev,
+                              startDate: "",
+                            }));
+
+                            setStartDateOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+
                     {formErrors.startDate && <p className="text-sm text-red-500 mt-1">{formErrors.startDate}</p>}
                   </Field>
 
                   <Field>
                     <Label>End Date</Label>
 
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => {
-                        setEndDate(e.target.value);
+                    <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !endDate && "text-muted-foreground", formErrors.endDate && "border-red-500")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {endDate ? format(new Date(endDate), "dd MMM yyyy") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
 
-                        setFormErrors((prev) => ({
-                          ...prev,
-                          endDate: "",
-                        }));
-                      }}
-                      className="mt-2"
-                    />
+                      <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                        <Calendar
+                          mode="single"
+                          selected={endDate ? new Date(endDate) : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            setEndDate(format(date, "yyyy-MM-dd"));
+
+                            setFormErrors((prev) => ({
+                              ...prev,
+                              endDate: "",
+                            }));
+
+                            setEndDateOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
 
                     {formErrors.endDate && <p className="text-sm text-red-500 mt-1">{formErrors.endDate}</p>}
                   </Field>
@@ -385,7 +416,7 @@ export default function AcademicSessionPage() {
                         {/* Created At */}
                         <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
                           <div className="flex items-center gap-1.5">
-                            <Calendar className="size-5 text-muted-foreground/80" />
+                            <CalendarIcon className="size-5 text-muted-foreground/80" />
                             <span className="text-sm">
                               {new Date(session.createdAt).toLocaleString("en-IN", {
                                 day: "2-digit",
@@ -497,19 +528,34 @@ export default function AcademicSessionPage() {
               <Field>
                 <Label>Start Date</Label>
 
-                <Input
-                  type="date"
-                  value={editStartDate}
-                  onChange={(e) => {
-                    setEditStartDate(e.target.value);
+                <Popover open={editStartDateOpen} onOpenChange={setEditStartDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !editStartDate && "text-muted-foreground", editErrors.startDate && "border-red-500")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editStartDate ? format(new Date(editStartDate), "dd MMM yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
 
-                    setEditErrors((prev) => ({
-                      ...prev,
-                      startDate: "",
-                    }));
-                  }}
-                  className="mt-2"
-                />
+                  <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <Calendar
+                      mode="single"
+                      selected={editStartDate ? new Date(editStartDate) : undefined}
+                      defaultMonth={editStartDate ? new Date(editStartDate) : new Date()}
+                      onSelect={(date) => {
+                        if (!date) return;
+
+                        setEditStartDate(format(date, "yyyy-MM-dd"));
+
+                        setEditErrors((prev) => ({
+                          ...prev,
+                          startDate: "",
+                        }));
+
+                        setEditStartDateOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
 
                 {editErrors.startDate && <p className="text-sm text-red-500 mt-1">{editErrors.startDate}</p>}
               </Field>
@@ -517,19 +563,34 @@ export default function AcademicSessionPage() {
               <Field>
                 <Label>End Date</Label>
 
-                <Input
-                  type="date"
-                  value={editEndDate}
-                  onChange={(e) => {
-                    setEditEndDate(e.target.value);
+                <Popover open={editEndDateOpen} onOpenChange={setEditEndDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !editEndDate && "text-muted-foreground", editErrors.endDate && "border-red-500")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editEndDate ? format(new Date(editEndDate), "dd MMM yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
 
-                    setEditErrors((prev) => ({
-                      ...prev,
-                      endDate: "",
-                    }));
-                  }}
-                  className="mt-2"
-                />
+                  <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <Calendar
+                      mode="single"
+                      selected={editEndDate ? new Date(editEndDate) : undefined}
+                      defaultMonth={editEndDate ? new Date(editEndDate) : new Date()}
+                      onSelect={(date) => {
+                        if (!date) return;
+
+                        setEditEndDate(format(date, "yyyy-MM-dd"));
+
+                        setEditErrors((prev) => ({
+                          ...prev,
+                          endDate: "",
+                        }));
+
+                        setEditEndDateOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
 
                 {editErrors.endDate && <p className="text-sm text-red-500 mt-1">{editErrors.endDate}</p>}
               </Field>

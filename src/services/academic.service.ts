@@ -63,154 +63,100 @@ export interface UpdateTeacherPayload {
   joiningDate: string;
   isActive: boolean;
 }
+export interface CreateStudentPayload {
+  admissionNo: string;
+  firstName: string;
+  lastName: string;
+  dob: string;
+  fatherName: string;
+  motherName: string;
+  phone?: string;
+  email?: string;
+  admissionDate: string;
+}
+
+export interface UpdateStudentPayload {
+  admissionNo?: string;
+  firstName?: string;
+  lastName?: string;
+  dob?: string;
+  fatherName?: string;
+  motherName?: string;
+  phone?: string;
+  email?: string;
+  admissionDate?: string;
+  status?: "ACTIVE" | "INACTIVE" | "GRADUATED" | "TRANSFERRED";
+}
 
 export const academicService = {
   sessions: {
-    getAll: () =>
-      apiClient.get("/academic/sessions"),
+    getAll: () => apiClient.get("/academic/sessions"),
 
-    getById: (id: string) =>
-      apiClient.get(`/academic/sessions/${id}`),
+    getById: (id: string) => apiClient.get(`/academic/sessions/${id}`),
 
-    create: (
-      data: CreateAcademicSessionPayload,
-    ) =>
-      apiClient.post(
-        "/academic/sessions",
-        data,
-      ),
+    create: (data: CreateAcademicSessionPayload) => apiClient.post("/academic/sessions", data),
 
-    update: (
-      id: string,
-      data: UpdateAcademicSessionPayload,
-    ) =>
-      apiClient.patch(
-        `/academic/sessions/${id}`,
-        data,
-      ),
+    update: (id: string, data: UpdateAcademicSessionPayload) => apiClient.patch(`/academic/sessions/${id}`, data),
 
-    delete: (id: string) =>
-      apiClient.delete(
-        `/academic/sessions/${id}`,
-      ),
+    delete: (id: string) => apiClient.delete(`/academic/sessions/${id}`),
   },
 
   classes: {
-    getAll: () =>
-      apiClient.get("/academic/classes"),
+    getAll: () => apiClient.get("/academic/classes"),
 
-    getById: (id: string) =>
-      apiClient.get(`/academic/classes/${id}`),
+    getById: (id: string) => apiClient.get(`/academic/classes/${id}`),
 
-    create: (data: CreateClassPayload) =>
-      apiClient.post(
-        "/academic/classes",
-        data,
-      ),
+    create: (data: CreateClassPayload) => apiClient.post("/academic/classes", data),
 
-    update: (
-      id: string,
-      data: UpdateClassPayload,
-    ) =>
-      apiClient.patch(
-        `/academic/classes/${id}`,
-        data,
-      ),
+    update: (id: string, data: UpdateClassPayload) => apiClient.patch(`/academic/classes/${id}`, data),
 
-    delete: (id: string) =>
-      apiClient.delete(
-        `/academic/classes/${id}`,
-      ),
+    delete: (id: string) => apiClient.delete(`/academic/classes/${id}`),
   },
 
   sections: {
-    getAll: () =>
-      apiClient.get("/academic/sections"),
+    getAll: () => apiClient.get("/academic/sections"),
 
-    getById: (id: string) =>
-      apiClient.get(`/academic/sections/${id}`),
+    getById: (id: string) => apiClient.get(`/academic/sections/${id}`),
 
-    create: (
-      data: CreateSectionPayload,
-    ) =>
-      apiClient.post(
-        "/academic/sections",
-        data,
-      ),
+    create: (data: CreateSectionPayload) => apiClient.post("/academic/sections", data),
 
-    update: (
-      id: string,
-      data: UpdateSectionPayload,
-    ) =>
-      apiClient.patch(
-        `/academic/sections/${id}`,
-        data,
-      ),
+    update: (id: string, data: UpdateSectionPayload) => apiClient.patch(`/academic/sections/${id}`, data),
 
-    delete: (id: string) =>
-      apiClient.delete(
-        `/academic/sections/${id}`,
-      ),
+    delete: (id: string) => apiClient.delete(`/academic/sections/${id}`),
   },
 
   subjects: {
-  getAll: () =>
-    apiClient.get("/academic/subjects"),
+    getAll: () => apiClient.get("/academic/subjects"),
 
-  getById: (id: string) =>
-    apiClient.get(`/academic/subjects/${id}`),
+    getById: (id: string) => apiClient.get(`/academic/subjects/${id}`),
 
-  create: (
-    data: CreateSubjectPayload,
-  ) =>
-    apiClient.post(
-      "/academic/subjects",
-      data,
-    ),
+    create: (data: CreateSubjectPayload) => apiClient.post("/academic/subjects", data),
 
-  update: (
-    id: string,
-    data: UpdateSubjectPayload,
-  ) =>
-    apiClient.patch(
-      `/academic/subjects/${id}`,
-      data,
-    ),
+    update: (id: string, data: UpdateSubjectPayload) => apiClient.patch(`/academic/subjects/${id}`, data),
 
-  delete: (id: string) =>
-    apiClient.delete(
-      `/academic/subjects/${id}`,
-    ),
-},
+    delete: (id: string) => apiClient.delete(`/academic/subjects/${id}`),
+  },
 
-teachers: {
-  getAll: () =>
-    apiClient.get("/academic/teachers"),
+  teachers: {
+    getAll: () => apiClient.get("/academic/teachers"),
 
-  getById: (id: string) =>
-    apiClient.get(`/academic/teachers/${id}`),
+    getById: (id: string) => apiClient.get(`/academic/teachers/${id}`),
 
-  create: (
-    data: CreateTeacherPayload,
-  ) =>
-    apiClient.post(
-      "/academic/teachers",
-      data,
-    ),
+    create: (data: CreateTeacherPayload) => apiClient.post("/academic/teachers", data),
 
-  update: (
-    id: string,
-    data: UpdateTeacherPayload,
-  ) =>
-    apiClient.patch(
-      `/academic/teachers/${id}`,
-      data,
-    ),
+    update: (id: string, data: UpdateTeacherPayload) => apiClient.patch(`/academic/teachers/${id}`, data),
 
-  delete: (id: string) =>
-    apiClient.delete(
-      `/academic/teachers/${id}`,
-    ),
-},
+    delete: (id: string) => apiClient.delete(`/academic/teachers/${id}`),
+  },
+  students: {
+    getAll: () => apiClient.get("/academic/students"),
+
+    getById: (id: string) => apiClient.get(`/academic/students/${id}`),
+
+    create: (data: CreateStudentPayload) => apiClient.post("/academic/students", data),
+
+    update: (id: string, data: UpdateStudentPayload) => apiClient.patch(`/academic/students/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/students/${id}`),
+  },
 };
-

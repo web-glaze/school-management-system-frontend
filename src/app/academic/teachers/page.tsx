@@ -8,7 +8,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CalendarDays, Calendar, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
+import { CalendarDays, Calendar as CalendarIcon, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
 import { useAcademicStore } from "@/store/academicStore";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -17,6 +17,10 @@ import { useEffect, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 type ApiErrorResponse = {
   message?: string;
@@ -53,6 +57,8 @@ export default function TeachersPage() {
   const [addTeacherOpen, setAddTeacherOpen] = useState(false);
   const [editTeacherOpen, setEditTeacherOpen] = useState(false);
   const [deleteTeacherOpen, setDeleteTeacherOpen] = useState(false);
+  const [joiningDateOpen, setJoiningDateOpen] = useState(false);
+  const [editJoiningDateOpen, setEditJoiningDateOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [deletingTeacher, setDeletingTeacher] = useState<Teacher | null>(null);
   const [search, setSearch] = useState("");
@@ -116,9 +122,9 @@ export default function TeachersPage() {
         joiningDate: editJoiningDate,
         isActive: editIsActive,
       });
-
       setEditTeacherOpen(false);
       setEditingTeacher(null);
+      setEditErrors({});
 
       toast.success("Teacher data updated successfully");
     } catch (error) {
@@ -221,7 +227,21 @@ export default function TeachersPage() {
             <p className="text-muted-foreground">Manage teachers data</p>
           </div>
 
-          <Dialog open={addTeacherOpen} onOpenChange={setAddTeacherOpen}>
+          <Dialog
+            open={addTeacherOpen}
+            onOpenChange={(open) => {
+              setAddTeacherOpen(open);
+              if (!open) {
+                setName("");
+                setEmail("");
+                setPhone("");
+                setDesignation("");
+                setJoiningDate("");
+                setIsActive(false);
+                setFormErrors({});
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2 px-5">
                 <Plus className="size-4" />
@@ -276,8 +296,11 @@ export default function TeachersPage() {
                     <Label>Phone</Label>
                     <Input
                       value={phone}
+                      inputMode="numeric"
+                      maxLength={10}
                       onChange={(e) => {
-                        setPhone(e.target.value);
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setPhone(value);
                         clearFormError("phone");
                       }}
                       className="mt-2"
@@ -300,15 +323,28 @@ export default function TeachersPage() {
 
                   <Field>
                     <Label>Joining Date</Label>
-                    <Input
-                      type="date"
-                      value={joiningDate}
-                      onChange={(e) => {
-                        setJoiningDate(e.target.value);
-                        clearFormError("joiningDate");
-                      }}
-                      className="mt-2"
-                    />
+                    <Popover open={joiningDateOpen} onOpenChange={setJoiningDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !joiningDate && "text-muted-foreground", formErrors.joiningDate && "border-red-500")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {joiningDate ? format(new Date(joiningDate), "dd MMM yyyy") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                        <Calendar
+                          mode="single"
+                          selected={joiningDate ? new Date(joiningDate) : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            setJoiningDate(format(date, "yyyy-MM-dd"));
+                            clearFormError("joiningDate");
+                            setJoiningDateOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     {formErrors.joiningDate && <p className="text-sm text-red-500 mt-1">{formErrors.joiningDate}</p>}
                   </Field>
 
@@ -389,7 +425,6 @@ export default function TeachersPage() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Teacher</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Email</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Phone</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Designation</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Joining Date</TableHead>
@@ -405,10 +440,10 @@ export default function TeachersPage() {
                       <TableCell className="py-4 pl-6 align-top">
                         <div className="space-y-1 max-w-45">
                           <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{teacher.name}</p>
+                          <p className="text-xs text-muted-foreground">{teacher.email || "--"}</p>
                         </div>
                       </TableCell>
                       <TableCell className="py-4">{teacher.teacherCode}</TableCell>
-                      <TableCell className="py-4">{teacher.email}</TableCell>
                       <TableCell className="py-4">{teacher.phone}</TableCell>
                       <TableCell className="py-4">{teacher.designation}</TableCell>
                       <TableCell className="py-4">{new Date(teacher.joiningDate).toLocaleDateString("en-IN")}</TableCell>
@@ -419,7 +454,7 @@ export default function TeachersPage() {
 
                       <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
                         <div className="flex items-center gap-1.5">
-                          <Calendar className="size-5 text-muted-foreground/80" />
+                          <CalendarIcon className="size-5 text-muted-foreground/80" />
 
                           <span className="text-sm">
                             {new Date(teacher.createdAt).toLocaleString("en-IN", {
@@ -475,7 +510,17 @@ export default function TeachersPage() {
         </div>
       </div>
 
-      <Dialog open={editTeacherOpen} onOpenChange={setEditTeacherOpen}>
+      <Dialog
+        open={editTeacherOpen}
+        onOpenChange={(open) => {
+          setEditTeacherOpen(open);
+
+          if (!open) {
+            setEditingTeacher(null);
+            setEditErrors({});
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">
@@ -523,8 +568,11 @@ export default function TeachersPage() {
                 <Label>Phone</Label>
                 <Input
                   value={editPhone}
+                  inputMode="numeric"
+                  maxLength={10}
                   onChange={(e) => {
-                    setEditPhone(e.target.value);
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setEditPhone(value);
                     clearEditError("phone");
                   }}
                   className="mt-2"
@@ -547,15 +595,29 @@ export default function TeachersPage() {
 
               <Field>
                 <Label>Joining Date</Label>
-                <Input
-                  type="date"
-                  value={editJoiningDate}
-                  onChange={(e) => {
-                    setEditJoiningDate(e.target.value);
-                    clearEditError("joiningDate");
-                  }}
-                  className="mt-2"
-                />
+                <Popover open={editJoiningDateOpen} onOpenChange={setEditJoiningDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !editJoiningDate && "text-muted-foreground", editErrors.joiningDate && "border-red-500")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editJoiningDate ? format(new Date(editJoiningDate), "dd MMM yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <Calendar
+                      mode="single"
+                      selected={editJoiningDate ? new Date(editJoiningDate) : undefined}
+                      defaultMonth={editJoiningDate ? new Date(editJoiningDate) : new Date()}
+                      onSelect={(date) => {
+                        if (!date) return;
+
+                        setEditJoiningDate(format(date, "yyyy-MM-dd"));
+                        clearEditError("joiningDate");
+                        setEditJoiningDateOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
                 {editErrors.joiningDate && <p className="text-sm text-red-500 mt-1">{editErrors.joiningDate}</p>}
               </Field>
 
@@ -628,4 +690,4 @@ export default function TeachersPage() {
       </AlertDialog>
     </DashboardLayout>
   );
-}  
+}
