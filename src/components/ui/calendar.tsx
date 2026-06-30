@@ -21,7 +21,7 @@ function CalendarDropdown(props: DropdownProps) {
   };
 
   return (
-    <Select modal={false} value={String(value)} onValueChange={handleValueChange}>
+    <Select {...({ modal: false } as object)} value={String(value)} onValueChange={handleValueChange}>
       <SelectTrigger size="sm" className="h-full w-full cursor-pointer [&>span]:flex-1" aria-label={ariaLabel}>
         <SelectValue />
       </SelectTrigger>
