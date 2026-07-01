@@ -305,9 +305,9 @@ export default function SectionsPage() {
                 <Inbox className="size-6 stroke-[1.5]" />
               </div>
 
-              <h3 className="text-lg font-bold text-foreground">No sections created yet.</h3>
+              <h3 className="text-lg font-bold text-foreground">{sections.length === 0 ? "No sections created yet." : "No sections found."}</h3>
 
-              <p className="text-muted-foreground mt-1.5 max-w-sm">No matching records were found in the database. Check search queries or reset parameters.</p>
+              <p className="text-muted-foreground mt-1.5 max-w-sm">{sections.length === 0 ? "Add your first section to get started." : `Try adjusting your search or filters.`}</p>
             </div>
           ) : (
             <div className="relative w-full overflow-x-auto">

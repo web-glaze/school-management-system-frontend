@@ -298,9 +298,8 @@ export default function SubjectsPage() {
                 <Inbox className="size-6 stroke-[1.5]" />
               </div>
 
-              <h3 className="text-lg font-bold text-foreground">No subjects created yet.</h3>
-
-              <p className="text-muted-foreground mt-1.5 max-w-sm">No matching records were found in the database. Check search queries or reset parameters.</p>
+              <h3 className="text-lg font-bold text-foreground">{subjects.length === 0 ? "No subject created yet." : "No subject found."}</h3>
+              <p className="text-muted-foreground mt-1.5 max-w-sm">{subjects.length === 0 ? "Add your first subject to get started." : `Try adjusting your search or filters.`}</p>
             </div>
           ) : (
             <div className="relative w-full overflow-x-auto">

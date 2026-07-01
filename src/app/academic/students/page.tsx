@@ -435,12 +435,14 @@ export default function StudentsPage() {
                         <Input
                           className={`mt-2 h-10 ${formErrors.phone ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                           value={phone}
+                          inputMode="numeric"
+                          maxLength={10}
                           onChange={(e) => {
-                            setPhone(e.target.value);
+                            const value = e.target.value.replace(/\D/g, "");
+                            setPhone(value);
                             clearFormError("phone");
                           }}
                           placeholder="+91 00000 00000"
-                          inputMode="tel"
                         />
                         {editErrors.phone && <p className="text-xs text-red-500 mt-1.5">{editErrors.phone}</p>}
 
@@ -569,9 +571,8 @@ export default function StudentsPage() {
                 <Inbox className="size-6 stroke-[1.5]" />
               </div>
 
-              <h3 className="text-lg font-bold text-foreground">No students created yet.</h3>
-
-              <p className="text-muted-foreground mt-1.5 max-w-sm">No matching records were found in the database.</p>
+              <h3 className="text-lg font-bold text-foreground">{students.length === 0 ? "No students created yet." : "No students found."}</h3>
+              <p className="text-muted-foreground mt-1.5 max-w-sm">{students.length === 0 ? "Add your first student to get started." : `Try adjusting your search or filters.`}</p>
             </div>
           ) : (
             <div className="relative w-full overflow-x-auto">
@@ -819,8 +820,11 @@ export default function StudentsPage() {
                   <Input
                     className={`mt-2 h-10 ${editErrors.phone ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                     value={editPhone}
+                    inputMode="numeric"
+                    maxLength={10}
                     onChange={(e) => {
-                      setEditPhone(e.target.value);
+                      const value = e.target.value.replace(/\D/g, "");
+                      setEditPhone(value);
                       clearEditError("phone");
                     }}
                   />

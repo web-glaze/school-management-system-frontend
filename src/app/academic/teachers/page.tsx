@@ -414,9 +414,8 @@ export default function TeachersPage() {
                 <Inbox className="size-6 stroke-[1.5]" />
               </div>
 
-              <h3 className="text-lg font-bold text-foreground">No teachers created yet.</h3>
-
-              <p className="text-muted-foreground mt-1.5 max-w-sm">No matching records were found in the database. Check search queries or reset parameters.</p>
+              <h3 className="text-lg font-bold text-foreground">{teachers.length === 0 ? "No teachers created yet." : "No teachers found."}</h3>
+              <p className="text-muted-foreground mt-1.5 max-w-sm">{teachers.length === 0 ? "Add your first teacher to get started." : `Try adjusting your search or filters.`}</p>
             </div>
           ) : (
             <div className="relative w-full overflow-x-auto">
