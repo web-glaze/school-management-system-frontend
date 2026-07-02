@@ -307,13 +307,9 @@ export default function SubjectsPage() {
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Subject</TableHead>
-
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
-
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Optional</TableHead>
-
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
-
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Optional</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -323,17 +319,21 @@ export default function SubjectsPage() {
                     <TableRow key={subject.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="py-4 pl-6 align-top">
                         <div className="space-y-1 max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{subject.name}</p>
+                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={subject.name}>
+                            {subject.name.length > 15 ? `${subject.name.slice(0, 15)}...` : subject.name}
+                          </p>
+
+                          <p className="text-sm text-foreground/50 md:hidden">{subject.subjectCode}</p>
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-4">{subject.subjectCode}</TableCell>
+                      <TableCell className="hidden md:table-cell py-4">{subject.subjectCode}</TableCell>
 
-                      <TableCell className="py-4">
+                      <TableCell className="hidden md:table-cell py-4">
                         <Badge className={subject.isOptional ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : "bg-muted text-muted-foreground"}>{subject.isOptional ? "Yes" : "No"}</Badge>
                       </TableCell>
 
-                      <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
+                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden md:table-cell">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="size-5 text-muted-foreground/80" />
 
@@ -468,7 +468,7 @@ export default function SubjectsPage() {
 
             <AlertDialogDescription className="text-center">
               This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingSubject?.name}</span>.
+              <span className="font-semibold text-foreground"> {deletingSubject?.name && (deletingSubject.name.length > 10 ? `${deletingSubject.name.slice(0,10)}...` : deletingSubject.name)}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 

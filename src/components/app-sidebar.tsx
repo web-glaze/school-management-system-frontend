@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -113,6 +113,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       url: "/academic/students",
       icon: BookUser,
       isActive: pathname.startsWith("/academic/students"),
+    },
+
+    permissions.includes("student-enrollment.read") && {
+      title: "Student Enrollment",
+      url: "/academic/enrollment",
+      icon: FileUser,
+      isActive: pathname.startsWith("/academic/enrollment"),
     },
   ].filter(Boolean);
 

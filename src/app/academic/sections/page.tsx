@@ -181,12 +181,7 @@ export default function SectionsPage() {
     }));
   };
 
-  const isSectionChanged =
-  editingSection &&
-  (
-    editName.trim() !== editingSection.name ||
-    editIsActive !== editingSection.isActive
-  );
+  const isSectionChanged = editingSection && (editName.trim() !== editingSection.name || editIsActive !== editingSection.isActive);
 
   const filteredSections = sections.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()) || item.sectionCode.toLowerCase().includes(search.toLowerCase()));
 
@@ -315,13 +310,9 @@ export default function SectionsPage() {
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Section</TableHead>
-
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
-
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
-
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
-
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -331,17 +322,23 @@ export default function SectionsPage() {
                     <TableRow key={section.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="py-4 pl-6 align-top">
                         <div className="space-y-1 max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{section.name}</p>
+                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={section.name}>
+                            {section.name.length > 15 ? `${section.name.slice(0, 15)}...` : section.name}
+                          </p>
+
+                          <p className="text-sm text-foreground/50 md:hidden">{section.sectionCode}</p>
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-4">{section.sectionCode}</TableCell>
+                      <TableCell className="hidden md:table-cell py-4">{section.sectionCode}</TableCell>
 
-                      <TableCell className="py-4">
-                        <Badge className={section.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{section.isActive ? "Active" : "Inactive"}</Badge>
+                      <TableCell className="hidden md:table-cell py-4">
+                        <Badge className={`text-xs px-2 py-0.5 whitespace-nowrap ${section.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}`}>
+                          {section.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </TableCell>
 
-                      <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
+                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="size-5 text-muted-foreground/80" />
 
@@ -476,7 +473,7 @@ export default function SectionsPage() {
 
             <AlertDialogDescription className="text-center">
               This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingSection?.name}</span>.
+              <span className="font-semibold text-foreground"> {deletingSection?.name && (deletingSection.name.length > 10 ? `${deletingSection.name.slice(0, 10)}...` : deletingSection.name)}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 

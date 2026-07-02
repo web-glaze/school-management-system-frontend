@@ -145,17 +145,17 @@ export default function ClassesPage() {
     }
   };
 
-  const openEditDialog = (session: AcademicClass) => {
-    setEditingClass(session);
-    setEditName(session.name);
-    setEditSortOrder(String(session.sortOrder));
-    setEditIsActive(session.isActive);
+  const openEditDialog = (classItem: AcademicClass) => {
+    setEditingClass(classItem);
+    setEditName(classItem.name);
+    setEditSortOrder(String(classItem.sortOrder));
+    setEditIsActive(classItem.isActive);
     setEditErrors({});
     setEditClassOpen(true);
   };
 
-  const openDeleteDialog = (session: AcademicClass) => {
-    setDeletingClass(session);
+  const openDeleteDialog = (classItem: AcademicClass) => {
+    setDeletingClass(classItem);
     setDeleteClassOpen(true);
   };
 
@@ -179,13 +179,7 @@ export default function ClassesPage() {
     }));
   };
 
-  const isClassChanged =
-  editingClass &&
-  (
-    editName.trim() !== editingClass.name ||
-    Number(editSortOrder) !== editingClass.sortOrder ||
-    editIsActive !== editingClass.isActive
-  );
+  const isClassChanged = editingClass && (editName.trim() !== editingClass.name || Number(editSortOrder) !== editingClass.sortOrder || editIsActive !== editingClass.isActive);
 
   const filteredClasses = classes.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()) || item.classCode.toLowerCase().includes(search.toLowerCase()));
 
@@ -315,44 +309,50 @@ export default function ClassesPage() {
               <h3 className="text-lg font-bold text-foreground">{classes.length === 0 ? "No classes created yet." : "No classes found."}</h3>
 
               <p className="text-muted-foreground mt-1.5 max-w-sm">{classes.length === 0 ? "Add your first class to get started." : `Try adjusting your search or filters.`}</p>
-           </div>
+            </div>
           ) : (
             <div className="relative w-full overflow-x-auto">
               <Table>
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Class</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Sort order</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45 ">Class</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Code</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Sort order</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell ">Created At</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none">
+                      <span className=" md:block">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/30">
-                  {filteredClasses.map((session) => {
+                  {filteredClasses.map((classItem) => {
                     return (
-                      <TableRow key={session.id} className="hover:bg-muted/20 transition-colors">
+                      <TableRow key={classItem.id} className="hover:bg-muted/20 transition-colors">
                         <TableCell className="py-4 pl-6 align-top">
                           <div className="space-y-1 max-w-45">
-                            <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{session.name}</p>
+                            <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={classItem.name}>
+                              {classItem.name.length > 15 ? `${classItem.name.slice(0, 15)}...` : classItem.name}
+                            </p>
+
+                            <p className="text-sm text-foreground/50 md:hidden">{classItem.classCode}</p>
                           </div>
                         </TableCell>
 
-                        <TableCell className="py-4">{session.classCode}</TableCell>
+                        <TableCell className="hidden md:table-cell py-4">{classItem.classCode}</TableCell>
 
-                        <TableCell className="py-4">{session.sortOrder}</TableCell>
+                        <TableCell className="hidden md:table-cell py-4">{classItem.sortOrder}</TableCell>
 
-                        <TableCell className="py-4">
-                          <Badge className={session.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{session.isActive ? "Active" : "Inactive"}</Badge>
+                        <TableCell className="md:table-cell py-4">
+                          <Badge className={classItem.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{classItem.isActive ? "Active" : "Inactive"}</Badge>
                         </TableCell>
 
                         {/* Created At */}
-                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
                             <span className="text-sm">
-                              {new Date(session.createdAt).toLocaleString("en-IN", {
+                              {new Date(classItem.createdAt).toLocaleString("en-IN", {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
@@ -364,14 +364,14 @@ export default function ClassesPage() {
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
+                        <TableCell className="py-4 pr-6 text-right align-top max-w-12.5 sticky right-0 bg-card shadow-lg md:shadow-none">
                           <div className="hidden md:flex justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
                               className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                              title="Edit session"
-                              onClick={() => openEditDialog(session)}
+                              title="Edit class"
+                              onClick={() => openEditDialog(classItem)}
                             >
                               <Pencil className="size-5" />
                             </Button>
@@ -381,7 +381,7 @@ export default function ClassesPage() {
                               size="icon"
                               className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
                               title="Delete class"
-                              onClick={() => openDeleteDialog(session)}
+                              onClick={() => openDeleteDialog(classItem)}
                             >
                               <Trash2 className="size-5" />
                             </Button>
@@ -395,12 +395,12 @@ export default function ClassesPage() {
                               </DropdownMenuTrigger>
 
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditDialog(session)}>
+                                <DropdownMenuItem onClick={() => openEditDialog(classItem)}>
                                   <Pencil className="mr-2 size-4" />
                                   Edit
                                 </DropdownMenuItem>
 
-                                <DropdownMenuItem onClick={() => openDeleteDialog(session)} className="text-destructive">
+                                <DropdownMenuItem onClick={() => openDeleteDialog(classItem)} className="text-destructive">
                                   <Trash2 className="mr-2 size-4" />
                                   Delete
                                 </DropdownMenuItem>
@@ -511,7 +511,7 @@ export default function ClassesPage() {
 
             <AlertDialogDescription className="text-center">
               This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingClass?.name}</span>.
+              <span className="font-semibold text-foreground"> {deletingClass?.name && (deletingClass.name.length > 20 ? `${deletingClass.name.slice(0, 20)}...` : deletingClass.name)}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
 

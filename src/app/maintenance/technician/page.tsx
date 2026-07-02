@@ -273,11 +273,9 @@ export default function TechnicianPage() {
                 <TableHeader className="bg-gray-50 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Name</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Contact</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-12.5 sticky right-0 bg-gray-50 shadow-lg md:shadow-none">
-                      <span className="hidden md:block">Actions</span>
-                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45 hidden md:table-cell">Contact</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-right min-w-12.5 sticky right-0 bg-gray-50 shadow-lg md:shadow-none">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/30">
@@ -286,14 +284,16 @@ export default function TechnicianPage() {
                       <TableRow key={technician.id} className="hover:bg-muted/20 transition-colors">
                         <TableCell className="py-4 align-top">
                           <div className="space-y-1 max-w-45">
-                            <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{technician.name}</p>
+                            <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors truncate" title={technician.name}>
+                              {technician.name.length > 20 ? `${technician.name.slice(0, 20)}...` : technician.name}
+                            </p>
                             <p className="text-sm text-foreground/50">
-                              {technician.technicianCode} | {technician.department?.name || "NA"}
+                              {technician.technicianCode} | {technician.department?.name ? (technician.department.name.length > 15 ? `${technician.department.name.slice(0, 15)}...` : technician.department.name) : "NA"}
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="py-4 align-top">
-                          <div className="space-y-1 max-w-45">
+                        <TableCell className="py-4 align-top hidden md:table-cell">
+                          <div className="space-y-1 max-w-45 ">
                             <p className="text-foreground text-sm leading-tight hover:text-primary transition-colors">
                               <span className="flex gap-1">
                                 <Phone size={18} />
@@ -303,14 +303,14 @@ export default function TechnicianPage() {
                             <p className="text-foreground text-sm leading-tight hover:text-primary transition-colors">
                               <span className="flex gap-1">
                                 <MailIcon size={18} />
-                                <span>{technician.email || "-"}</span>
+                                <span title={technician.email || ""}>{technician.email ? (technician.email.length > 22 ? `${technician.email.slice(0, 22)}...` : technician.email) : "-"}</span>
                               </span>
                             </p>
                           </div>
                         </TableCell>
 
                         {/* Created At */}
-                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden md:table-cell">
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
                             <span className="text-sm">
@@ -328,11 +328,23 @@ export default function TechnicianPage() {
                         {/* Actions */}
                         <TableCell className="py-4 text-right align-top max-w-12.5 sticky right-0 bg-card shadow-lg md:shadow-none">
                           <div className="hidden md:flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit Technician" onClick={() => openEditDialog(technician)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              title="Edit Technician"
+                              onClick={() => openEditDialog(technician)}
+                            >
                               <Pencil className="size-5" />
                             </Button>
 
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" title="Delete Technician" onClick={() => openDeleteDialog(technician)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                              title="Delete Technician"
+                              onClick={() => openDeleteDialog(technician)}
+                            >
                               <Trash2 className="size-5" />
                             </Button>
                           </div>
@@ -464,8 +476,8 @@ export default function TechnicianPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete Technician?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingTechnician?.name}</span>.
+              This action cannot be undone. This will permanently remove 
+              <span className="font-semibold text-foreground"> {deletingTechnician?.name && (deletingTechnician.name.length > 20 ? `${deletingTechnician.name.slice(0, 20)}...` : deletingTechnician.name)}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 

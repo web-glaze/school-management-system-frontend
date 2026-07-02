@@ -88,6 +88,20 @@ export interface UpdateStudentPayload {
   status?: "ACTIVE" | "INACTIVE" | "GRADUATED" | "TRANSFERRED";
 }
 
+export interface CreateStudentEnrollmentPayload {
+  studentId: string;
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+}
+
+export interface UpdateStudentEnrollmentPayload {
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  enrollmentStatus: "ACTIVE" | "PROMOTED" | "TRANSFERRED" | "GRADUATED" | "DROPPED";
+}
+
 export const academicService = {
   sessions: {
     getAll: () => apiClient.get("/academic/sessions"),
@@ -158,5 +172,17 @@ export const academicService = {
     update: (id: string, data: UpdateStudentPayload) => apiClient.patch(`/academic/students/${id}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/students/${id}`),
+  },
+
+  studentEnrollments: {
+    getAll: () => apiClient.get("/academic/enrollment"),
+
+    getById: (id: string) => apiClient.get(`/academic/enrollment/${id}`),
+
+    create: (data: CreateStudentEnrollmentPayload) => apiClient.post("/academic/enrollment", data),
+
+    update: (id: string, data: UpdateStudentEnrollmentPayload) => apiClient.patch(`/academic/enrollment/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/enrollment/${id}`),
   },
 };

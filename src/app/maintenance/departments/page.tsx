@@ -235,7 +235,7 @@ export default function DepartmentPage() {
                         </TableCell>
 
                         {/* Created At */}
-                        <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
                           <div className="flex items-center gap-1.5">
                             <Calendar className="size-5 text-muted-foreground/80" />
                             <span className="text-sm">

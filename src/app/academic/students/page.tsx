@@ -579,38 +579,40 @@ export default function StudentsPage() {
               <Table>
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-6">Student</TableHead>
-                    <TableHead>Student Code</TableHead>
-                    <TableHead>Admission No</TableHead>
-                    <TableHead>Date Of Birth</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="pr-6 text-right">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Student</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Student Code</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Admission No</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Date Of Birth</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Status</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
-                <TableBody>
+                <TableBody className="divide-y divide-border/30">
                   {filteredStudents.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell className="pl-6">
-                        <div>
-                          <p className="font-semibold">
-                            {student.firstName} {student.lastName}
+                    <TableRow key={student.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="py-4 pl-6 align-top">
+                        <div className="space-y-1 max-w-45">
+                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={`${student.firstName} ${student.lastName}`}>
+                            {`${student.firstName} ${student.lastName}`.length > 15 ? `${`${student.firstName} ${student.lastName}`.slice(0, 15)}...` : `${student.firstName} ${student.lastName}`}
                           </p>
 
-                          <p className="text-xs text-muted-foreground">{student.email || "--"}</p>
+                          <p className="text-xs text-muted-foreground">{student.email ? (student.email.length > 25 ? `${student.email.slice(0, 25)}...` : student.email) : "--"}</p>
+
+                          <p className="text-sm text-foreground/50 md:hidden">{student.studentCode}</p>
                         </div>
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <span className="font-mono text-sm">{student.studentCode}</span>
                       </TableCell>
 
-                      <TableCell>{student.admissionNo}</TableCell>
+                      <TableCell className="hidden md:table-cell">{student.admissionNo}</TableCell>
 
-                      <TableCell>{new Date(student.dob).toLocaleDateString("en-GB")}</TableCell>
+                      <TableCell className="hidden md:table-cell">{new Date(student.dob).toLocaleDateString("en-GB")}</TableCell>
 
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Badge
                           className={
                             student.status === "ACTIVE"
@@ -626,20 +628,29 @@ export default function StudentsPage() {
                         </Badge>
                       </TableCell>
 
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="flex items-center gap-2">
-                          <CalendarIconTable className="size-4" />
-                          {new Date(student.createdAt).toLocaleDateString("en-IN")}
+                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden md:table-cell">
+                        <div className="flex items-center gap-1.5">
+                          <CalendarIconTable className="size-5 text-muted-foreground/80" />
+
+                          <span className="text-sm">
+                            {new Date(student.createdAt).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
                         </div>
                       </TableCell>
 
                       <TableCell className="pr-6 text-right">
                         <div className="hidden md:flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(student)}>
+                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(student)}>
                             <Pencil className="size-5" />
                           </Button>
 
-                          <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(student)}>
+                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => openDeleteDialog(student)}>
                             <Trash2 className="size-5" />
                           </Button>
                         </div>
@@ -943,27 +954,29 @@ export default function StudentsPage() {
       </Dialog>
 
       <AlertDialog open={deleteStudentOpen} onOpenChange={setDeleteStudentOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-105">
           <AlertDialogHeader>
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
               <Trash2 className="size-6 text-destructive" />
             </div>
 
-            <AlertDialogTitle className="text-center">Delete student?</AlertDialogTitle>
+            <AlertDialogTitle className="w-full text-center text-xl">Delete student?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove{" "}
-              <span className="font-semibold text-foreground">
-                {deletingStudent?.firstName} {deletingStudent?.lastName}
+              This action cannot be undone. This will permanently remove
+              <span className="font-semibold text-foreground"> {deletingStudent &&
+                  (`${deletingStudent.firstName} ${deletingStudent.lastName}`.length > 10
+                    ? `${`${deletingStudent.firstName} ${deletingStudent.lastName}`.slice(0, 10)}...`
+                    : `${deletingStudent.firstName} ${deletingStudent.lastName}`)}
               </span>
               .
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
-            <AlertDialogAction onClick={handleDelete} disabled={!!deletingId} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleDelete} disabled={!!deletingId} className="h-11 bg-destructive text-white hover:bg-destructive/90">
               {deletingId ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
@@ -972,7 +985,7 @@ export default function StudentsPage() {
               ) : (
                 <>
                   <Trash2 className="mr-2 size-4" />
-                  Delete Student
+                  Delete student
                 </>
               )}
             </AlertDialogAction>

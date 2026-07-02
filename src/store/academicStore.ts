@@ -13,6 +13,8 @@ import {
   UpdateTeacherPayload,
   CreateStudentPayload,
   UpdateStudentPayload,
+  CreateStudentEnrollmentPayload,
+  UpdateStudentEnrollmentPayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -85,6 +87,22 @@ export interface Student {
   updatedAt: string;
 }
 
+export interface StudentEnrollment {
+  id: string;
+  studentId: string;
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  enrollmentStatus: "ACTIVE" | "PROMOTED" | "TRANSFERRED" | "GRADUATED" | "DROPPED";
+  createdAt: string;
+  updatedAt: string;
+
+  student: Student;
+  session: AcademicSession;
+  class: AcademicClass;
+  section: Section;
+}
+
 interface AcademicStore {
   sessions: AcademicSession[];
   classes: AcademicClass[];
@@ -92,6 +110,7 @@ interface AcademicStore {
   subjects: Subject[];
   teachers: Teacher[];
   students: Student[];
+  studentEnrollments: StudentEnrollment[];
 
   loading: boolean;
 
@@ -125,12 +144,18 @@ interface AcademicStore {
   updateStudent: (id: string, data: UpdateStudentPayload) => Promise<void>;
   deleteStudent: (id: string) => Promise<void>;
 
+  fetchStudentEnrollments: () => Promise<void>;
+  createStudentEnrollment: (data: CreateStudentEnrollmentPayload) => Promise<void>;
+  updateStudentEnrollment: (id: string, data: UpdateStudentEnrollmentPayload) => Promise<void>;
+  deleteStudentEnrollment: (id: string) => Promise<void>;
+
   clearSessions: () => void;
   clearClasses: () => void;
   clearSections: () => void;
   clearSubjects: () => void;
   clearTeachers: () => void;
   clearStudents: () => void;
+  clearStudentEnrollments: () => void;
 }
 
 export const useAcademicStore = create<AcademicStore>((set, get) => ({
@@ -139,7 +164,8 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   sections: [],
   subjects: [],
   teachers: [],
-  students:[],
+  students: [],
+  studentEnrollments: [],
   loading: false,
 
   // ======================
@@ -311,10 +337,15 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       teachers: [],
     }),
 
-    clearStudents: () =>
-  set({
-    students: [],
-  }),
+  clearStudents: () =>
+    set({
+      students: [],
+    }),
+
+  clearStudentEnrollments: () =>
+    set({
+      studentEnrollments: [],
+    }),
 
   // ======================
   // Subjects
@@ -410,52 +441,100 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       throw error;
     }
   },
-  
+
   // ======================
-// Students
-// ======================
+  // Students
+  // ======================
 
-fetchStudents: async () => {
-  try {
-    set({ loading: true });
+  fetchStudents: async () => {
+    try {
+      set({ loading: true });
 
-    const response = await academicService.students.getAll();
+      const response = await academicService.students.getAll();
 
-    set({
-      students: response.data.data ?? [],
-    });
-  } catch (error) {
-    console.error("Failed to fetch students", error);
-    throw error;
-  } finally {
-    set({ loading: false });
-  }
-},
+      set({
+        students: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch students", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
 
-createStudent: async (data) => {
-  try {
-    await academicService.students.create(data);
-    await get().fetchStudents();
-  } catch (error) {
-    throw error;
-  }
-},
+  createStudent: async (data) => {
+    try {
+      await academicService.students.create(data);
+      await get().fetchStudents();
+    } catch (error) {
+      throw error;
+    }
+  },
 
-updateStudent: async (id, data) => {
-  try {
-    await academicService.students.update(id, data);
-    await get().fetchStudents();
-  } catch (error) {
-    throw error;
-  }
-},
+  updateStudent: async (id, data) => {
+    try {
+      await academicService.students.update(id, data);
+      await get().fetchStudents();
+    } catch (error) {
+      throw error;
+    }
+  },
 
-deleteStudent: async (id) => {
-  try {
-    await academicService.students.delete(id);
-    await get().fetchStudents();
-  } catch (error) {
-    throw error;
-  }
-},
+  deleteStudent: async (id) => {
+    try {
+      await academicService.students.delete(id);
+      await get().fetchStudents();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Student Enrollments
+  // ======================
+
+  fetchStudentEnrollments: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.studentEnrollments.getAll();
+
+      set({
+        studentEnrollments: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch student enrollments", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createStudentEnrollment: async (data) => {
+    try {
+      await academicService.studentEnrollments.create(data);
+      await get().fetchStudentEnrollments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateStudentEnrollment: async (id, data) => {
+    try {
+      await academicService.studentEnrollments.update(id, data);
+      await get().fetchStudentEnrollments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteStudentEnrollment: async (id) => {
+    try {
+      await academicService.studentEnrollments.delete(id);
+      await get().fetchStudentEnrollments();
+    } catch (error) {
+      throw error;
+    }
+  },
 }));

@@ -423,12 +423,12 @@ export default function TeachersPage() {
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Teacher</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Phone</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Designation</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Joining Date</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Phone</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Designation</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Joining Date</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30">Created At</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -438,20 +438,38 @@ export default function TeachersPage() {
                     <TableRow key={teacher.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="py-4 pl-6 align-top">
                         <div className="space-y-1 max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors">{teacher.name}</p>
-                          <p className="text-xs text-muted-foreground">{teacher.email || "--"}</p>
+                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={teacher.name}>
+                            {teacher.name.length > 15 ? `${teacher.name.slice(0, 15)}...` : teacher.name}
+                          </p>
+
+                          <p className="text-xs text-muted-foreground">{teacher.email ? (teacher.email.length > 25 ? `${teacher.email.slice(0, 25)}...` : teacher.email) : "--"}</p>
+
+                          <p className="text-sm text-foreground/50 md:hidden">{teacher.teacherCode}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="py-4">{teacher.teacherCode}</TableCell>
-                      <TableCell className="py-4">{teacher.phone}</TableCell>
-                      <TableCell className="py-4">{teacher.designation}</TableCell>
-                      <TableCell className="py-4">{new Date(teacher.joiningDate).toLocaleDateString("en-IN")}</TableCell>
+                      <TableCell className="hidden md:table-cell py-4">{teacher.teacherCode}</TableCell>
+                      <TableCell className="hidden md:table-cell py-4">{teacher.phone}</TableCell>
+                      <TableCell className="hidden md:table-cell py-4">{teacher.designation}</TableCell>
+                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden md:table-cell">
+                        <div className="flex items-center gap-1.5">
+                          <CalendarIcon className="size-5 text-muted-foreground/80" />
 
-                      <TableCell className="py-4">
+                          <span className="text-sm">
+                            {new Date(teacher.joiningDate).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell py-4">
                         <Badge className={teacher.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{teacher.isActive ? "Active" : "Inactive"}</Badge>
                       </TableCell>
 
-                      <TableCell className="py-4 text-xs font-medium text-muted-foreground align-top hidden lg:table-cell">
+                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden md:table-cell">
                         <div className="flex items-center gap-1.5">
                           <CalendarIcon className="size-5 text-muted-foreground/80" />
 
@@ -664,7 +682,7 @@ export default function TeachersPage() {
 
             <AlertDialogDescription className="text-center">
               This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingTeacher?.name}</span>.
+              <span className="font-semibold text-foreground"> {deletingTeacher?.name && (deletingTeacher.name.length > 10 ? `${deletingTeacher.name.slice(0, 10)}...` : deletingTeacher.name)}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 
