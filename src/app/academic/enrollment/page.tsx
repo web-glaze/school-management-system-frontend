@@ -10,10 +10,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { Calendar, Check, ChevronDown, GraduationCap, Inbox, Loader2, MoreVertical, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Calendar, Check, ChevronDown, GraduationCap, Inbox, Loader2, MoreVertical, Pencil, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { useAcademicStore } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -79,6 +79,11 @@ export default function StudentEnrollmentsPage() {
 
   const authorized = usePermission("student-enrollment.read");
   const [search, setSearch] = useState("");
+  const [classFilter, setClassFilter] = useState("all");
+  const [sectionFilter, setSectionFilter] = useState("all");
+  const [sessionFilter, setSessionFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [appliedFilters, setAppliedFilters] = useState({ class: "all", section: "all", session: "all", status: "all" });
   const [studentId, setStudentId] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [classId, setClassId] = useState("");
@@ -95,6 +100,56 @@ export default function StudentEnrollmentsPage() {
   const [deletingEnrollment, setDeletingEnrollment] = useState<StudentEnrollment | null>(null);
   const [studentOpen, setStudentOpen] = useState(false);
 
+  const filteredSections = useMemo(() => {
+    if (classFilter === "all") return sections;
+    return sections.filter((section) => studentEnrollments.some((enrollment) => enrollment.class.id === classFilter && enrollment.section.id === section.id));
+  }, [classFilter, sections, studentEnrollments]);
+
+  const filteredEnrollments = studentEnrollments.filter((item) => {
+    const studentName = `${item.student.firstName} ${item.student.lastName}`.toLowerCase();
+
+    const matchesSearch = studentName.includes(search.toLowerCase()) || item.student.admissionNo.toLowerCase().includes(search.toLowerCase());
+
+    const matchesClass = appliedFilters.class === "all" || item.class.id === appliedFilters.class;
+
+    const matchesSection = appliedFilters.section === "all" || item.section.id === appliedFilters.section;
+
+    const matchesSession = appliedFilters.session === "all" || item.session.id === appliedFilters.session;
+
+    const matchesStatus = appliedFilters.status === "all" || item.enrollmentStatus === appliedFilters.status;
+
+    return matchesSearch && matchesClass && matchesSection && matchesSession && matchesStatus;
+  });
+
+  const hasActiveFilters = appliedFilters.class !== "all" || appliedFilters.section !== "all" || appliedFilters.session !== "all" || appliedFilters.status !== "all";
+
+  const filtersChanged = classFilter !== appliedFilters.class || sectionFilter !== appliedFilters.section || sessionFilter !== appliedFilters.session || statusFilter !== appliedFilters.status;
+
+  const pendingFilterCount = [classFilter !== "all", sectionFilter !== "all", sessionFilter !== "all", statusFilter !== "all"].filter(Boolean).length;
+
+  function applyFilters() {
+    setAppliedFilters({
+      class: classFilter,
+      section: sectionFilter,
+      session: sessionFilter,
+      status: statusFilter,
+    });
+  }
+
+  function clearFilters() {
+    setClassFilter("all");
+    setSectionFilter("all");
+    setSessionFilter("all");
+    setStatusFilter("all");
+
+    setAppliedFilters({
+      class: "all",
+      section: "all",
+      session: "all",
+      status: "all",
+    });
+  }
+
   useEffect(() => {
     fetchStudents();
     fetchSessions();
@@ -105,12 +160,6 @@ export default function StudentEnrollmentsPage() {
   if (authorized === null) {
     return null;
   }
-
-  const filteredEnrollments = studentEnrollments.filter((item) => {
-    const studentName = `${item.student.firstName} ${item.student.lastName}`.toLowerCase();
-
-    return studentName.includes(search.toLowerCase()) || item.student.admissionNo.toLowerCase().includes(search.toLowerCase());
-  });
 
   const resetForm = () => {
     setStudentId("");
@@ -433,11 +482,278 @@ export default function StudentEnrollmentsPage() {
         </div>
 
         <div className="bg-card rounded-md border p-6 space-y-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <div className="space-y-3">
+            <div className="hidden md:flex md:flex-wrap md:items-center md:gap-2">
+              <div className="flex shrink-0 items-center gap-1.5 mr-1">
+                <SlidersHorizontal className="size-3.5 text-muted-foreground" />
 
-            <Input placeholder="Search student..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
+
+                {pendingFilterCount > 0 && <span className="flex size-4 items-center justify-center rounded-full bg-sky-600 text-[10px] font-bold leading-none text-white">{pendingFilterCount}</span>}
+              </div>
+
+              <div className="relative w-64">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+
+                <Input placeholder="Search student..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
+              </div>
+
+              <Select
+                value={classFilter}
+                onValueChange={(value) => {
+                  setClassFilter(value);
+                  setSectionFilter("all");
+                }}
+              >
+                <SelectTrigger className="h-10 w-40">
+                  <SelectValue placeholder="Class" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">Class</SelectItem>
+
+                  {classes.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sectionFilter} onValueChange={setSectionFilter} disabled={classFilter === "all"}>
+                <SelectTrigger className="h-10 w-40">
+                  <SelectValue placeholder="Section" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">Section</SelectItem>
+
+                  {filteredSections.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sessionFilter} onValueChange={setSessionFilter}>
+                <SelectTrigger className="h-10 w-44">
+                  <SelectValue placeholder="Session" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">Session</SelectItem>
+
+                  {sessions.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-10 w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">Status</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="PROMOTED">Promoted</SelectItem>
+                  <SelectItem value="TRANSFERRED">Transferred</SelectItem>
+                  <SelectItem value="GRADUATED">Graduated</SelectItem>
+                  <SelectItem value="DROPPED">Dropped</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button onClick={applyFilters} disabled={!filtersChanged} className="ml-auto h-10 min-w-28 px-6 font-medium shadow-sm">
+                Apply Filters
+              </Button>
+            </div>
+
+            {/* Mobile */}
+            <div className="space-y-3 md:hidden">
+              <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <SlidersHorizontal className="size-3.5 text-muted-foreground" />
+
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
+
+                  {pendingFilterCount > 0 && <span className="flex size-4 items-center justify-center rounded-full bg-sky-600 text-[10px] font-bold text-white">{pendingFilterCount}</span>}
+                </div>
+
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+
+                  <Input placeholder="Search student..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-9" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={classFilter}
+                  onValueChange={(value) => {
+                    setClassFilter(value);
+                    setSectionFilter("all");
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Class" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="all">Class</SelectItem>
+
+                    {classes.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={sectionFilter} onValueChange={setSectionFilter} disabled={classFilter === "all"}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Section" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="all">Section</SelectItem>
+
+                    {filteredSections.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={sessionFilter} onValueChange={setSessionFilter}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Session" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="all">Session</SelectItem>
+
+                    {sessions.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="all">Status</SelectItem>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="PROMOTED">Promoted</SelectItem>
+                    <SelectItem value="TRANSFERRED">Transferred</SelectItem>
+                    <SelectItem value="GRADUATED">Graduated</SelectItem>
+                    <SelectItem value="DROPPED">Dropped</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button onClick={applyFilters} disabled={!filtersChanged} className="h-10 w-full">
+                Apply Filters
+              </Button>
+            </div>
           </div>
+
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground shrink-0">Active filters:</span>
+
+              {appliedFilters.class !== "all" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                  Class:
+                  {classes.find((c) => c.id === appliedFilters.class)?.name}
+                  <button
+                    onClick={() => {
+                      setClassFilter("all");
+                      setSectionFilter("all");
+                      setAppliedFilters((p) => ({
+                        ...p,
+                        class: "all",
+                        section: "all",
+                      }));
+                    }}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              )}
+
+              {appliedFilters.section !== "all" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                  Section:
+                  {sections.find((s) => s.id === appliedFilters.section)?.name}
+                  <button
+                    onClick={() => {
+                      setSectionFilter("all");
+
+                      setAppliedFilters((p) => ({
+                        ...p,
+                        section: "all",
+                      }));
+                    }}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              )}
+
+              {appliedFilters.session !== "all" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                  Session:
+                  {sessions.find((s) => s.id === appliedFilters.session)?.name}
+                  <button
+                    onClick={() => {
+                      setSessionFilter("all");
+
+                      setAppliedFilters((p) => ({
+                        ...p,
+                        session: "all",
+                      }));
+                    }}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              )}
+
+              {appliedFilters.status !== "all" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                  Status:
+                  {appliedFilters.status}
+                  <button
+                    onClick={() => {
+                      setStatusFilter("all");
+
+                      setAppliedFilters((p) => ({
+                        ...p,
+                        status: "all",
+                      }));
+                    }}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              )}
+
+              <button onClick={clearFilters} className="ml-1 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline">
+                Clear all
+              </button>
+            </div>
+          )}
+
           {loading && studentEnrollments.length === 0 ? (
             <div className="space-y-4">
               <div className="flex gap-4 border-b pb-3">
@@ -462,7 +778,7 @@ export default function StudentEnrollmentsPage() {
 
               <h3 className="text-lg font-semibold">{studentEnrollments.length === 0 ? "No enrollments created yet." : "No enrollments found."}</h3>
 
-              <p className="mt-2 text-muted-foreground">{studentEnrollments.length === 0 ? "Create your first student enrollment." : "Try a different search."}</p>
+              <p className="mt-2 text-muted-foreground">{studentEnrollments.length === 0 ? "Create your first student enrollment." : "Try adjusting your search or filters."}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -584,7 +900,15 @@ export default function StudentEnrollmentsPage() {
         </div>
       </div>
 
-      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) { setEditingEnrollment(null);}}}>
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open);
+          if (!open) {
+            setEditingEnrollment(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-125 p-0 overflow-hidden">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">

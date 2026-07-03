@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser, BookOpenCheck } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -120,6 +120,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       url: "/academic/enrollment",
       icon: FileUser,
       isActive: pathname.startsWith("/academic/enrollment"),
+    },
+
+    permissions.includes("subject-allocation.read") && {
+      title: "Subject Allocation",
+      url: "/academic/subjectAllocation",
+      icon: BookOpenCheck,
+      isActive: pathname.startsWith("/academic/subjectAllocation"),
     },
   ].filter(Boolean);
 

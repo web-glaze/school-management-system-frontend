@@ -15,6 +15,8 @@ import {
   UpdateStudentPayload,
   CreateStudentEnrollmentPayload,
   UpdateStudentEnrollmentPayload,
+  CreateSubjectAllocationPayload,
+  UpdateSubjectAllocationPayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -103,6 +105,22 @@ export interface StudentEnrollment {
   section: Section;
 }
 
+export interface SubjectAllocation {
+  id: string;
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  subjectId: string;
+  teacherId: string;
+  createdAt: string;
+  updatedAt: string;
+  session: AcademicSession;
+  class: AcademicClass;
+  section: Section;
+  subject: Subject;
+  teacher: Teacher;
+}
+
 interface AcademicStore {
   sessions: AcademicSession[];
   classes: AcademicClass[];
@@ -111,6 +129,7 @@ interface AcademicStore {
   teachers: Teacher[];
   students: Student[];
   studentEnrollments: StudentEnrollment[];
+  subjectAllocations: SubjectAllocation[];
 
   loading: boolean;
 
@@ -149,6 +168,11 @@ interface AcademicStore {
   updateStudentEnrollment: (id: string, data: UpdateStudentEnrollmentPayload) => Promise<void>;
   deleteStudentEnrollment: (id: string) => Promise<void>;
 
+  fetchSubjectAllocations: () => Promise<void>;
+  createSubjectAllocation: (data: CreateSubjectAllocationPayload) => Promise<void>;
+  updateSubjectAllocation: (id: string, data: UpdateSubjectAllocationPayload) => Promise<void>;
+  deleteSubjectAllocation: (id: string) => Promise<void>;
+
   clearSessions: () => void;
   clearClasses: () => void;
   clearSections: () => void;
@@ -156,6 +180,7 @@ interface AcademicStore {
   clearTeachers: () => void;
   clearStudents: () => void;
   clearStudentEnrollments: () => void;
+  clearSubjectAllocations: () => void;
 }
 
 export const useAcademicStore = create<AcademicStore>((set, get) => ({
@@ -166,6 +191,7 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   teachers: [],
   students: [],
   studentEnrollments: [],
+  subjectAllocations: [],
   loading: false,
 
   // ======================
@@ -345,6 +371,11 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   clearStudentEnrollments: () =>
     set({
       studentEnrollments: [],
+    }),
+
+  clearSubjectAllocations: () =>
+    set({
+      subjectAllocations: [],
     }),
 
   // ======================
@@ -533,6 +564,54 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.studentEnrollments.delete(id);
       await get().fetchStudentEnrollments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Subject Allocations
+  // ======================
+
+  fetchSubjectAllocations: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.subjectAllocations.getAll();
+
+      set({
+        subjectAllocations: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch subject allocations", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createSubjectAllocation: async (data) => {
+    try {
+      await academicService.subjectAllocations.create(data);
+      await get().fetchSubjectAllocations();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateSubjectAllocation: async (id, data) => {
+    try {
+      await academicService.subjectAllocations.update(id, data);
+      await get().fetchSubjectAllocations();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteSubjectAllocation: async (id) => {
+    try {
+      await academicService.subjectAllocations.delete(id);
+      await get().fetchSubjectAllocations();
     } catch (error) {
       throw error;
     }

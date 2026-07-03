@@ -318,7 +318,7 @@ export default function ClassesPage() {
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45 ">Class</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Code</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Sort order</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Status</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell ">Created At</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none">
                       <span className=" md:block">Actions</span>
@@ -343,7 +343,7 @@ export default function ClassesPage() {
 
                         <TableCell className="hidden md:table-cell py-4">{classItem.sortOrder}</TableCell>
 
-                        <TableCell className="md:table-cell py-4">
+                        <TableCell className="hidden md:table-cell py-4">
                           <Badge className={classItem.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{classItem.isActive ? "Active" : "Inactive"}</Badge>
                         </TableCell>
 
