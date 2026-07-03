@@ -807,9 +807,7 @@ export default function SubjectAllocationPage() {
                           {allocation.teacher.name.length > 18 ? `${allocation.teacher.name.slice(0, 18)}...` : allocation.teacher.name}
                         </p>
 
-                        <p className="text-sm text-muted-foreground">{allocation.teacher.email}</p>
-
-                        <p className="text-sm text-foreground/50 md:hidden">{allocation.subject.name}</p>
+                        <p className="text-sm text-muted-foreground md:hidden">{allocation.subject.name}</p>
                       </div>
                     </TableCell>
 
