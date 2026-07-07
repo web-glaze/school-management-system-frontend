@@ -600,7 +600,7 @@ export default function StudentsPage() {
 
                           <p className="text-xs text-muted-foreground">{student.email ? (student.email.length > 25 ? `${student.email.slice(0, 25)}...` : student.email) : "--"}</p>
 
-                          <p className="text-sm text-foreground/50 md:hidden">{student.studentCode}</p>
+                          <p className="text-sm text-foreground/50 md:hidden">{student.admissionNo}</p>
                         </div>
                       </TableCell>
 
@@ -610,7 +610,20 @@ export default function StudentsPage() {
 
                       <TableCell className="hidden md:table-cell">{student.admissionNo}</TableCell>
 
-                      <TableCell className="hidden md:table-cell">{new Date(student.dob).toLocaleDateString("en-GB")}</TableCell>
+                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarIcon className="size-5 text-muted-foreground/80" />
+                            <span className="text-sm">
+                              {new Date(student.dob).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
 
                       <TableCell className="hidden md:table-cell">
                         <Badge

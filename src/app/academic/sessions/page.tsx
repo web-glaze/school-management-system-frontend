@@ -405,9 +405,35 @@ export default function AcademicSessionPage() {
                           </div>
                         </TableCell>
 
-                        <TableCell className="py-4">{new Date(session.startDate).toLocaleDateString("en-IN")}</TableCell>
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarIcon className="size-5 text-muted-foreground/80" />
+                            <span className="text-sm">
+                              {new Date(session.startDate).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
 
-                        <TableCell className="py-4">{new Date(session.endDate).toLocaleDateString("en-IN")}</TableCell>
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarIcon className="size-5 text-muted-foreground/80" />
+                            <span className="text-sm">
+                              {new Date(session.endDate).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
 
                         <TableCell className="py-4">
                           <Badge className={session.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{session.isActive ? "Active" : "Inactive"}</Badge>
