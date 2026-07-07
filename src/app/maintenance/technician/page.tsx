@@ -136,6 +136,10 @@ export default function TechnicianPage() {
     setDeleteTechnicianOpen(true);
   };
 
+  const hasEditChanges =
+    editingTechnician &&
+    (editName !== editingTechnician.name || editPhone !== (editingTechnician.phone || "") || editEmail !== (editingTechnician.email || "") || editDepartmentId !== (editingTechnician.department?.id || ""));
+
   const filteredTechnicians = technicians.filter((technician) => [technician.name, technician.phone, technician.department?.name].filter(Boolean).some((field) => field!.toLowerCase().includes(search.toLowerCase())));
 
   const authorized = usePermission("technician.read");
@@ -448,7 +452,7 @@ export default function TechnicianPage() {
                 </Button>
               </DialogClose>
 
-              <Button type="submit" disabled={loading} className="min-w-32.5 gap-2 px-5">
+              <Button type="submit" disabled={loading || !hasEditChanges} className="min-w-32.5 gap-2 px-5">
                 {loading ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
@@ -476,7 +480,7 @@ export default function TechnicianPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete Technician?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove 
+              This action cannot be undone. This will permanently remove
               <span className="font-semibold text-foreground"> {deletingTechnician?.name && (deletingTechnician.name.length > 20 ? `${deletingTechnician.name.slice(0, 20)}...` : deletingTechnician.name)}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>

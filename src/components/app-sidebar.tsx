@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser, BookOpenCheck } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser, BookOpenCheck, UserStar, CalendarDays } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -128,6 +128,23 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       icon: BookOpenCheck,
       isActive: pathname.startsWith("/academic/subjectAllocation"),
     },
+
+    permissions.includes("teacher-assignment.read") && {
+      title: "Teacher Assisgnment",
+      url: "/academic/teacherAssignment",
+      icon: UserStar,
+      isActive: pathname.startsWith("/academic/teacherAssignment"),
+    },
+
+    permissions.includes("timetable.read") && {
+      title: "Timetable",
+      url: "/academic/timetables",
+      icon: CalendarDays,
+      isActive: pathname.startsWith("/academic/timetables"),
+    },
+
+
+
   ].filter(Boolean);
 
   const data = {

@@ -17,6 +17,10 @@ import {
   UpdateStudentEnrollmentPayload,
   CreateSubjectAllocationPayload,
   UpdateSubjectAllocationPayload,
+  CreateTeacherAssignmentPayload,
+  UpdateTeacherAssignmentPayload,
+  CreateTimetablePayload,
+  UpdateTimetablePayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -121,6 +125,39 @@ export interface SubjectAllocation {
   teacher: Teacher;
 }
 
+export interface TeacherAssignment {
+  id: string;
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  teacherId: string;
+  createdAt: string;
+  updatedAt: string;
+
+  session: AcademicSession;
+  class: AcademicClass;
+  section: Section;
+  teacher: Teacher;
+}
+
+export interface Timetable {
+  id: string;
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  subjectAllocationId: string;
+  dayOfWeek: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+  periodNo: number;
+  createdAt: string;
+  updatedAt: string;
+
+  session: AcademicSession;
+  class: AcademicClass;
+  section: Section;
+
+  subjectAllocation: SubjectAllocation;
+}
+
 interface AcademicStore {
   sessions: AcademicSession[];
   classes: AcademicClass[];
@@ -130,6 +167,8 @@ interface AcademicStore {
   students: Student[];
   studentEnrollments: StudentEnrollment[];
   subjectAllocations: SubjectAllocation[];
+  teacherAssignments: TeacherAssignment[];
+  timetables: Timetable[];
 
   loading: boolean;
 
@@ -173,6 +212,16 @@ interface AcademicStore {
   updateSubjectAllocation: (id: string, data: UpdateSubjectAllocationPayload) => Promise<void>;
   deleteSubjectAllocation: (id: string) => Promise<void>;
 
+  fetchTeacherAssignments: () => Promise<void>;
+  createTeacherAssignment: (data: CreateTeacherAssignmentPayload) => Promise<void>;
+  updateTeacherAssignment: (id: string, data: UpdateTeacherAssignmentPayload) => Promise<void>;
+  deleteTeacherAssignment: (id: string) => Promise<void>;
+
+  fetchTimetables: () => Promise<void>;
+  createTimetable: (data: CreateTimetablePayload) => Promise<void>;
+  updateTimetable: (id: string, data: UpdateTimetablePayload) => Promise<void>;
+  deleteTimetable: (id: string) => Promise<void>;
+
   clearSessions: () => void;
   clearClasses: () => void;
   clearSections: () => void;
@@ -181,6 +230,8 @@ interface AcademicStore {
   clearStudents: () => void;
   clearStudentEnrollments: () => void;
   clearSubjectAllocations: () => void;
+  clearTeacherAssignments: () => void;
+  clearTimetables: () => void;
 }
 
 export const useAcademicStore = create<AcademicStore>((set, get) => ({
@@ -192,6 +243,8 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   students: [],
   studentEnrollments: [],
   subjectAllocations: [],
+  teacherAssignments: [],
+  timetables: [],
   loading: false,
 
   // ======================
@@ -377,6 +430,16 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     set({
       subjectAllocations: [],
     }),
+
+  clearTeacherAssignments: () =>
+    set({
+      teacherAssignments: [],
+    }),
+
+    clearTimetables: () =>
+  set({
+    timetables: [],
+  }),
 
   // ======================
   // Subjects
@@ -616,4 +679,100 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       throw error;
     }
   },
+
+  // ======================
+  // Teacher Assignments
+  // ======================
+
+  fetchTeacherAssignments: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.teacherAssignments.getAll();
+
+      set({
+        teacherAssignments: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch teacher assignments", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createTeacherAssignment: async (data) => {
+    try {
+      await academicService.teacherAssignments.create(data);
+      await get().fetchTeacherAssignments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateTeacherAssignment: async (id, data) => {
+    try {
+      await academicService.teacherAssignments.update(id, data);
+      await get().fetchTeacherAssignments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteTeacherAssignment: async (id) => {
+    try {
+      await academicService.teacherAssignments.delete(id);
+      await get().fetchTeacherAssignments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+// Timetables
+// ======================
+
+fetchTimetables: async () => {
+  try {
+    set({ loading: true });
+
+    const response = await academicService.timetables.getAll();
+
+    set({
+      timetables: response.data.data ?? [],
+    });
+  } catch (error) {
+    console.error("Failed to fetch timetables", error);
+    throw error;
+  } finally {
+    set({ loading: false });
+  }
+},
+
+createTimetable: async (data) => {
+  try {
+    await academicService.timetables.create(data);
+    await get().fetchTimetables();
+  } catch (error) {
+    throw error;
+  }
+},
+
+updateTimetable: async (id, data) => {
+  try {
+    await academicService.timetables.update(id, data);
+    await get().fetchTimetables();
+  } catch (error) {
+    throw error;
+  }
+},
+
+deleteTimetable: async (id) => {
+  try {
+    await academicService.timetables.delete(id);
+    await get().fetchTimetables();
+  } catch (error) {
+    throw error;
+  }
+},
 }));

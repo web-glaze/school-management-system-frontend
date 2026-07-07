@@ -112,6 +112,8 @@ export default function DepartmentPage() {
     setDeleteDepartmentOpen(true);
   };
 
+  const hasEditChanges = editingDepartment && editName !== editingDepartment.name;
+
   const authorized = usePermission("department.read");
 
   if (authorized === null) {
@@ -253,11 +255,23 @@ export default function DepartmentPage() {
                         {/* Actions */}
                         <TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
                           <div className="hidden md:flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" title="Edit Department" onClick={() => openEditDialog(department)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              title="Edit Department"
+                              onClick={() => openEditDialog(department)}
+                            >
                               <Pencil className="size-5" />
                             </Button>
 
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" title="Delete Department" onClick={() => openDeleteDialog(department)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                              title="Delete Department"
+                              onClick={() => openDeleteDialog(department)}
+                            >
                               <Trash2 className="size-5" />
                             </Button>
                           </div>
@@ -325,7 +339,7 @@ export default function DepartmentPage() {
                 </Button>
               </DialogClose>
 
-              <Button type="submit" disabled={loading} className="min-w-32.5 gap-2 px-5">
+              <Button type="submit" disabled={loading || !hasEditChanges} className="min-w-32.5 gap-2 px-5">
                 {loading ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />

@@ -118,6 +118,38 @@ export interface UpdateSubjectAllocationPayload {
   teacherId: string;
 }
 
+export interface CreateTeacherAssignmentPayload {
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  teacherId: string;
+}
+
+export interface UpdateTeacherAssignmentPayload {
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  teacherId: string;
+}
+
+export interface CreateTimetablePayload {
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  dayOfWeek: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+  periodNo: number;
+  subjectAllocationId: string;
+}
+
+export interface UpdateTimetablePayload {
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  dayOfWeek: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+  periodNo: number;
+  subjectAllocationId: string;
+}
+
 export const academicService = {
   sessions: {
     getAll: () => apiClient.get("/academic/sessions"),
@@ -202,19 +234,39 @@ export const academicService = {
     delete: (id: string) => apiClient.delete(`/academic/enrollment/${id}`),
   },
 
-    subjectAllocations: {
+  subjectAllocations: {
     getAll: () => apiClient.get("/academic/subject-allocation"),
 
-    getById: (id: string) =>
-      apiClient.get(`/academic/subject-allocation/${id}`),
+    getById: (id: string) => apiClient.get(`/academic/subject-allocation/${id}`),
 
-    create: (data: CreateSubjectAllocationPayload) =>
-      apiClient.post("/academic/subject-allocation", data),
+    create: (data: CreateSubjectAllocationPayload) => apiClient.post("/academic/subject-allocation", data),
 
-    update: (id: string, data: UpdateSubjectAllocationPayload) =>
-      apiClient.patch(`/academic/subject-allocation/${id}`, data),
+    update: (id: string, data: UpdateSubjectAllocationPayload) => apiClient.patch(`/academic/subject-allocation/${id}`, data),
 
-    delete: (id: string) =>
-      apiClient.delete(`/academic/subject-allocation/${id}`),
+    delete: (id: string) => apiClient.delete(`/academic/subject-allocation/${id}`),
+  },
+
+  teacherAssignments: {
+    getAll: () => apiClient.get("/academic/teacher-assignment"),
+
+    getById: (id: string) => apiClient.get(`/academic/teacher-assignment/${id}`),
+
+    create: (data: CreateTeacherAssignmentPayload) => apiClient.post("/academic/teacher-assignment", data),
+
+    update: (id: string, data: UpdateTeacherAssignmentPayload) => apiClient.patch(`/academic/teacher-assignment/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/teacher-assignment/${id}`),
+  },
+
+  timetables: {
+    getAll: () => apiClient.get("/academic/timetable"),
+
+    getById: (id: string) => apiClient.get(`/academic/timetable/${id}`),
+
+    create: (data: CreateTimetablePayload) => apiClient.post("/academic/timetable", data),
+
+    update: (id: string, data: UpdateTimetablePayload) => apiClient.patch(`/academic/timetable/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/timetable/${id}`),
   },
 };

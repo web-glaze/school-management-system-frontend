@@ -9,13 +9,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, GraduationCap, Inbox, Loader2, MoreVertical, Pencil, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
 import { useAcademicStore } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
 
@@ -24,7 +22,7 @@ type ApiErrorResponse = {
   errors?: Record<string, string>;
 };
 
-interface SubjectAllocation {
+interface TeacherAssignment {
   id: string;
 
   session: {
@@ -42,11 +40,6 @@ interface SubjectAllocation {
     name: string;
   };
 
-  subject: {
-    id: string;
-    name: string;
-  };
-
   teacher: {
     id: string;
     name: string;
@@ -56,119 +49,87 @@ interface SubjectAllocation {
   createdAt: string;
 }
 
-export default function SubjectAllocationPage() {
+export default function TeacherAssignmentPage() {
   const {
     loading,
 
     sessions,
     classes,
     sections,
-    subjects,
     teachers,
-    subjectAllocations,
+    teacherAssignments,
 
     fetchSessions,
     fetchClasses,
     fetchSections,
-    fetchSubjects,
     fetchTeachers,
-    fetchSubjectAllocations,
+    fetchTeacherAssignments,
 
-    createSubjectAllocation,
-    updateSubjectAllocation,
-    deleteSubjectAllocation,
+    createTeacherAssignment,
+    updateTeacherAssignment,
+    deleteTeacherAssignment,
   } = useAcademicStore();
 
-  const authorized = usePermission("subject-allocation.read");
-
+  const authorized = usePermission("teacher-assignment.read");
   const [search, setSearch] = useState("");
-
   const [classFilter, setClassFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all");
   const [sessionFilter, setSessionFilter] = useState("all");
-  const [subjectFilter, setSubjectFilter] = useState("all");
-  const [appliedFilters, setAppliedFilters] = useState({
-    class: "all",
-    section: "all",
-    session: "all",
-    subject: "all",
-  });
+  const [appliedFilters, setAppliedFilters] = useState({ class: "all", section: "all", session: "all" });
   const [sessionId, setSessionId] = useState("");
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
-  const [subjectId, setSubjectId] = useState("");
   const [teacherId, setTeacherId] = useState("");
-
   const [editSessionId, setEditSessionId] = useState("");
   const [editClassId, setEditClassId] = useState("");
   const [editSectionId, setEditSectionId] = useState("");
-  const [editSubjectId, setEditSubjectId] = useState("");
   const [editTeacherId, setEditTeacherId] = useState("");
-
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  const [editingAllocation, setEditingAllocation] = useState<SubjectAllocation | null>(null);
-
-  const [deletingAllocation, setDeletingAllocation] = useState<SubjectAllocation | null>(null);
-
+  const [editingAssignment, setEditingAssignment] = useState<TeacherAssignment | null>(null);
+  const [deletingAssignment, setDeletingAssignment] = useState<TeacherAssignment | null>(null);
   const resetForm = () => {
     setSessionId("");
     setClassId("");
     setSectionId("");
-    setSubjectId("");
     setTeacherId("");
     setFormErrors({});
   };
-
   const filteredSections = useMemo(() => {
     if (classFilter === "all") return sections;
+    return sections.filter((section) => teacherAssignments.some((allocation) => allocation.class.id === classFilter && allocation.section.id === section.id));
+  }, [classFilter, sections, teacherAssignments]);
 
-    return sections.filter((section) => subjectAllocations.some((allocation) => allocation.class.id === classFilter && allocation.section.id === section.id));
-  }, [classFilter, sections, subjectAllocations]);
-
-  const filteredAllocations = subjectAllocations.filter((item) => {
-    const matchesSearch = item.teacher.name.toLowerCase().includes(search.toLowerCase()) || item.subject.name.toLowerCase().includes(search.toLowerCase());
-
+  const filteredAssignments = teacherAssignments.filter((item) => {
+    const matchesSearch = item.teacher.name.toLowerCase().includes(search.toLowerCase());
     const matchesClass = appliedFilters.class === "all" || item.class.id === appliedFilters.class;
-
     const matchesSection = appliedFilters.section === "all" || item.section.id === appliedFilters.section;
-
     const matchesSession = appliedFilters.session === "all" || item.session.id === appliedFilters.session;
-
-    const matchesSubject = appliedFilters.subject === "all" || item.subject.id === appliedFilters.subject;
-
-    return matchesSearch && matchesClass && matchesSection && matchesSession && matchesSubject;
+    return matchesSearch && matchesClass && matchesSection && matchesSession;
   });
 
   useEffect(() => {
     fetchSessions();
     fetchClasses();
     fetchSections();
-    fetchSubjects();
     fetchTeachers();
-    fetchSubjectAllocations();
-  }, [fetchSessions, fetchClasses, fetchSections, fetchSubjects, fetchTeachers, fetchSubjectAllocations]);
+    fetchTeacherAssignments();
+  }, [fetchSessions, fetchClasses, fetchSections, fetchTeachers, fetchTeacherAssignments]);
 
   if (authorized === null) {
     return null;
   }
 
-  const hasActiveFilters = appliedFilters.class !== "all" || appliedFilters.section !== "all" || appliedFilters.session !== "all" || appliedFilters.subject !== "all";
-
-  const filtersChanged = classFilter !== appliedFilters.class || sectionFilter !== appliedFilters.section || sessionFilter !== appliedFilters.session || subjectFilter !== appliedFilters.subject;
-
-  const pendingFilterCount = [classFilter !== "all", sectionFilter !== "all", sessionFilter !== "all", subjectFilter !== "all"].filter(Boolean).length;
-
+  const hasActiveFilters = appliedFilters.class !== "all" || appliedFilters.section !== "all" || appliedFilters.session !== "all";
+  const filtersChanged = classFilter !== appliedFilters.class || sectionFilter !== appliedFilters.section || sessionFilter !== appliedFilters.session;
+  const pendingFilterCount = [classFilter !== "all", sectionFilter !== "all", sessionFilter !== "all"].filter(Boolean).length;
   function applyFilters() {
     setAppliedFilters({
       class: classFilter,
       section: sectionFilter,
       session: sessionFilter,
-      subject: subjectFilter,
     });
   }
 
@@ -176,13 +137,11 @@ export default function SubjectAllocationPage() {
     setClassFilter("all");
     setSectionFilter("all");
     setSessionFilter("all");
-    setSubjectFilter("all");
 
     setAppliedFilters({
       class: "all",
       section: "all",
       session: "all",
-      subject: "all",
     });
   }
 
@@ -190,15 +149,14 @@ export default function SubjectAllocationPage() {
     e.preventDefault();
 
     try {
-      await createSubjectAllocation({
+      await createTeacherAssignment({
         sessionId,
         classId,
         sectionId,
-        subjectId,
         teacherId,
       });
 
-      toast.success("Subject allocation created successfully");
+      toast.success("Class teacher assignment created successfully");
 
       resetForm();
       setAddOpen(false);
@@ -213,39 +171,37 @@ export default function SubjectAllocationPage() {
         return;
       }
 
-      toast.error(err.response?.data?.message || "Failed to create subject allocation");
+      toast.error(err.response?.data?.message || "Failed to create class teacher assignment");
     }
   };
 
-  const openEditDialog = (allocation: SubjectAllocation) => {
-    setEditSessionId(allocation.session.id);
-    setEditClassId(allocation.class.id);
-    setEditSectionId(allocation.section.id);
-    setEditSubjectId(allocation.subject.id);
-    setEditTeacherId(allocation.teacher.id);
+  const openEditDialog = (assignment: TeacherAssignment) => {
+    setEditSessionId(assignment.session.id);
+    setEditClassId(assignment.class.id);
+    setEditSectionId(assignment.section.id);
+    setEditTeacherId(assignment.teacher.id);
 
-    setEditingAllocation(allocation);
+    setEditingAssignment(assignment);
     setEditOpen(true);
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!editingAllocation) return;
+    if (!editingAssignment) return;
 
     try {
-      await updateSubjectAllocation(editingAllocation.id, {
+      await updateTeacherAssignment(editingAssignment.id, {
         sessionId: editSessionId,
         classId: editClassId,
         sectionId: editSectionId,
-        subjectId: editSubjectId,
         teacherId: editTeacherId,
       });
 
-      toast.success("Subject allocation updated successfully");
+      toast.success("Class teacher assignment updated successfully");
 
       setEditOpen(false);
-      setEditingAllocation(null);
+      setEditingAssignment(null);
     } catch (error) {
       const err = error as AxiosError<ApiErrorResponse>;
 
@@ -256,45 +212,40 @@ export default function SubjectAllocationPage() {
         return;
       }
 
-      toast.error(err.response?.data?.message ?? "Failed to update subject allocation");
+      toast.error(err.response?.data?.message ?? "Failed to update class teacher assignment");
     }
   };
 
-  const openDeleteDialog = (allocation: SubjectAllocation) => {
-    setDeletingAllocation(allocation);
+  const openDeleteDialog = (assignment: TeacherAssignment) => {
+    setDeletingAssignment(assignment);
     setDeleteOpen(true);
   };
 
   const handleDelete = async () => {
-    if (!deletingAllocation) return;
+    if (!deletingAssignment) return;
 
     try {
-      await deleteSubjectAllocation(deletingAllocation.id);
+      await deleteTeacherAssignment(deletingAssignment.id);
 
-      toast.success("Subject allocation deleted successfully");
+      toast.success("Class teacher assignment deleted successfully");
 
       setDeleteOpen(false);
-      setDeletingAllocation(null);
+      setDeletingAssignment(null);
     } catch {
-      toast.error("Failed to delete subject allocation");
+      toast.error("Failed to delete class teacher assignment");
     }
   };
 
   const hasEditChanges =
-    editingAllocation &&
-    (editSessionId !== editingAllocation.session.id ||
-      editClassId !== editingAllocation.class.id ||
-      editSectionId !== editingAllocation.section.id ||
-      editSubjectId !== editingAllocation.subject.id ||
-      editTeacherId !== editingAllocation.teacher.id);
+    editingAssignment && (editSessionId !== editingAssignment.session.id || editClassId !== editingAssignment.class.id || editSectionId !== editingAssignment.section.id || editTeacherId !== editingAssignment.teacher.id);
 
   return (
     <DashboardLayout>
       <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Subject Allocations</h1>
+          <h1 className="text-2xl font-bold text-foreground">Class teacher assignments</h1>
 
-          <p className="text-muted-foreground">Manage subject allocations</p>
+          <p className="text-muted-foreground">Manage class teacher assignments</p>
         </div>
         <Dialog
           open={addOpen}
@@ -309,7 +260,7 @@ export default function SubjectAllocationPage() {
           <DialogTrigger asChild>
             <Button className="gap-2 px-5">
               <Plus className="size-4" />
-              New Allocation
+              New Assignment
             </Button>
           </DialogTrigger>
 
@@ -321,9 +272,9 @@ export default function SubjectAllocationPage() {
                 </div>
 
                 <div>
-                  <DialogTitle>Create Subject Allocation</DialogTitle>
+                  <DialogTitle>Create Class Teacher Assignment</DialogTitle>
 
-                  <DialogDescription>Assign a teacher to a subject.</DialogDescription>
+                  <DialogDescription>Assign a class teacher.</DialogDescription>
                 </div>
               </div>
             </div>
@@ -421,36 +372,6 @@ export default function SubjectAllocationPage() {
                 </Field>
 
                 <Field>
-                  <Label>Subject</Label>
-
-                  <Select
-                    value={subjectId}
-                    onValueChange={(value) => {
-                      setSubjectId(value);
-
-                      setFormErrors((p) => ({
-                        ...p,
-                        subjectId: "",
-                      }));
-                    }}
-                  >
-                    <SelectTrigger className="mt-2 h-11 w-full">
-                      <SelectValue placeholder="Select Subject" />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {subjects.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {formErrors.subjectId && <p className="mt-1 text-sm text-red-500">{formErrors.subjectId}</p>}
-                </Field>
-
-                <Field>
                   <Label>Teacher</Label>
 
                   <Select
@@ -519,7 +440,7 @@ export default function SubjectAllocationPage() {
           <div className="relative w-64">
             <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 
-            <Input placeholder="Search subject or teacher..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
+            <Input placeholder="Search teacher..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
           </div>
 
           <div className="flex items-center gap-2 flex-1">
@@ -576,22 +497,6 @@ export default function SubjectAllocationPage() {
                 ))}
               </SelectContent>
             </Select>
-
-            <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-              <SelectTrigger className="h-10 w-40">
-                <SelectValue placeholder="Subject" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="all">Subject</SelectItem>
-
-                {subjects.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <Button onClick={applyFilters} disabled={!filtersChanged} className="ml-auto h-10 min-w-28 px-6 font-medium shadow-sm">
@@ -613,7 +518,7 @@ export default function SubjectAllocationPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 
-              <Input placeholder="Search subject or teacher..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-9" />
+              <Input placeholder="Search teacher..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-9" />
             </div>
           </div>
 
@@ -665,22 +570,6 @@ export default function SubjectAllocationPage() {
                 <SelectItem value="all">Session</SelectItem>
 
                 {sessions.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="Subject" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="all">Subject</SelectItem>
-
-                {subjects.map((item) => (
                   <SelectItem key={item.id} value={item.id}>
                     {item.name}
                   </SelectItem>
@@ -752,44 +641,26 @@ export default function SubjectAllocationPage() {
               </span>
             )}
 
-            {appliedFilters.subject !== "all" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
-                Subject: {subjects.find((s) => s.id === appliedFilters.subject)?.name}
-                <button
-                  onClick={() => {
-                    setSubjectFilter("all");
-
-                    setAppliedFilters((p) => ({
-                      ...p,
-                      subject: "all",
-                    }));
-                  }}
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            )}
-
             <button onClick={clearFilters} className="ml-1 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline">
               Clear all
             </button>
           </div>
         )}
-        {loading && subjectAllocations.length === 0 ? (
+        {loading && teacherAssignments.length === 0 ? (
           <div className="space-y-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-10 rounded bg-muted animate-pulse" />
             ))}
           </div>
-        ) : filteredAllocations.length === 0 ? (
+        ) : filteredAssignments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
               <Inbox className="size-6" />
             </div>
 
-            <h3 className="text-lg font-semibold">{subjectAllocations.length === 0 ? "No subject allocations created yet." : "No subject allocations found."}</h3>
+            <h3 className="text-lg font-semibold">{teacherAssignments.length === 0 ? "No class teacher assignments created yet." : "No class teacher assignments found."}</h3>
 
-            <p className="mt-2 text-muted-foreground">{subjectAllocations.length === 0 ? "Create your first subject allocation." : "Try adjusting your search or filters."}</p>
+            <p className="mt-2 text-muted-foreground">{teacherAssignments.length === 0 ? "Assign your first class teacher." : "Try adjusting your search or filters."}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -797,7 +668,6 @@ export default function SubjectAllocationPage() {
               <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 w-52">Teacher</TableHead>
-                  <TableHead className="hidden md:table-cell w-36 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Subject</TableHead>
                   <TableHead className="hidden md:table-cell w-36 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Session</TableHead>
                   <TableHead className="hidden md:table-cell w-36 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Class</TableHead>
                   <TableHead className="hidden md:table-cell w-36 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Section</TableHead>
@@ -807,19 +677,15 @@ export default function SubjectAllocationPage() {
               </TableHeader>
 
               <TableBody className="divide-y divide-border/30">
-                {filteredAllocations.map((allocation) => (
+                {filteredAssignments.map((allocation) => (
                   <TableRow key={allocation.id} className="hover:bg-muted/20 transition-colors">
                     <TableCell className="py-4 pl-6">
                       <div className="space-y-1 max-w-45">
                         <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={allocation.teacher.name}>
                           {allocation.teacher.name.length > 18 ? `${allocation.teacher.name.slice(0, 18)}...` : allocation.teacher.name}
                         </p>
-
-                        <p className="text-sm text-muted-foreground md:hidden">{allocation.subject.name}</p>
                       </div>
                     </TableCell>
-
-                    <TableCell className="hidden md:table-cell">{allocation.subject.name}</TableCell>
 
                     <TableCell className="hidden md:table-cell">{allocation.session.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{allocation.class.name}</TableCell>
@@ -887,7 +753,7 @@ export default function SubjectAllocationPage() {
           setEditOpen(open);
 
           if (!open) {
-            setEditingAllocation(null);
+            setEditingAssignment(null);
             setFormErrors({});
           }
         }}
@@ -900,9 +766,9 @@ export default function SubjectAllocationPage() {
               </div>
 
               <div>
-                <DialogTitle>Edit Subject Allocation</DialogTitle>
+                <DialogTitle>Edit Class Teacher Assignment</DialogTitle>
 
-                <DialogDescription>Update subject allocation details.</DialogDescription>
+                <DialogDescription>Update class teacher assignment details.</DialogDescription>
               </div>
             </div>
           </div>
@@ -994,34 +860,6 @@ export default function SubjectAllocationPage() {
               </Field>
 
               <Field>
-                <Label>Subject</Label>
-
-                <Select
-                  value={editSubjectId}
-                  onValueChange={(value) => {
-                    setEditSubjectId(value);
-                    setFormErrors((prev) => ({
-                      ...prev,
-                      subjectId: "",
-                    }));
-                  }}
-                >
-                  <SelectTrigger className="mt-2 h-11 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-
-                  <SelectContent>
-                    {subjects.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formErrors.subjectId && <p className="mt-1 text-sm text-red-500">{formErrors.subjectId}</p>}
-              </Field>
-
-              <Field>
                 <Label>Teacher</Label>
 
                 <Select
@@ -1080,18 +918,16 @@ export default function SubjectAllocationPage() {
               <Trash2 className="size-6 text-destructive" />
             </div>
 
-            <AlertDialogTitle className="w-full text-center text-xl">Delete Subject Allocation?</AlertDialogTitle>
+            <AlertDialogTitle className="w-full text-center text-xl">Delete Class Teacher Assignment?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove the subject allocation for{" "}
+              This action cannot be undone. This will permanently remove the class teacher assignment for{" "}
               <span className="font-semibold text-foreground">
-                {deletingAllocation && (`${deletingAllocation.teacher.name}`.length > 10 ? `${deletingAllocation.teacher.name.slice(0, 10)}...` : deletingAllocation.teacher.name)}
+                {deletingAssignment && (`${deletingAssignment.teacher.name}`.length > 10 ? `${deletingAssignment.teacher.name.slice(0, 10)}...` : deletingAssignment.teacher.name)}
               </span>{" "}
-              assigned to{" "}
-              <span className="font-semibold text-foreground">
-                {deletingAllocation && (`${deletingAllocation.subject.name}`.length > 10 ? `${deletingAllocation.subject.name.slice(0, 10)}...` : deletingAllocation.subject.name)}
-              </span>
-              .
+              from <span className="font-semibold text-foreground">{deletingAssignment?.class.name}</span>
+              {" - "}
+              <span className="font-semibold text-foreground">{deletingAssignment?.section.name}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -1101,7 +937,7 @@ export default function SubjectAllocationPage() {
             <AlertDialogAction onClick={handleDelete} className="h-11 bg-destructive text-white hover:bg-destructive/90">
               <>
                 <Trash2 className="mr-2 size-4" />
-                Delete allocation
+                Delete assignment
               </>
             </AlertDialogAction>
           </AlertDialogFooter>

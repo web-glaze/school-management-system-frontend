@@ -252,6 +252,9 @@ export default function StudentEnrollmentsPage() {
     }
   };
 
+  const hasEditChanges =
+    editingEnrollment && (editSessionId !== editingEnrollment.session.id || editClassId !== editingEnrollment.class.id || editSectionId !== editingEnrollment.section.id || status !== editingEnrollment.enrollmentStatus);
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -1011,7 +1014,7 @@ export default function StudentEnrollmentsPage() {
                 <Button variant="outline">Cancel</Button>
               </DialogClose>
 
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !hasEditChanges}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />

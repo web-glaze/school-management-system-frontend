@@ -84,6 +84,8 @@ export default function LocationPage() {
     return null;
   }
 
+  const hasEditChanges = selectedLocation && (editLocationMap[selectedLocation.id] || "") !== selectedLocation.name;
+
   const handleRename = async () => {
     if (!selectedLocation) return;
     const name = editLocationMap[selectedLocation.id];
@@ -452,7 +454,7 @@ export default function LocationPage() {
           </div>
 
           <DialogFooter className="flex-row justify-end gap-2">
-            <Button className="gap-2 min-w-32.5" disabled={loading} onClick={handleRename}>
+            <Button className="gap-2 min-w-32.5" disabled={loading || !hasEditChanges} onClick={handleRename}>
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
