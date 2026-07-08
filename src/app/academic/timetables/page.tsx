@@ -9,17 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import {
-  BookOpen,
-  CalendarClock,
-  CalendarRange,
-  Loader2,
-  Pencil,
-  Plus,
-  Sparkles,
-  Trash2,
-  User,
-} from "lucide-react";
+import { BookOpen, CalendarClock, CalendarRange, Loader2, Pencil, Plus, Sparkles, Trash2, User } from "lucide-react";
 import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -89,22 +79,8 @@ const emptySlotForm: SlotFormState = {
 };
 
 export default function TimetablePage() {
-  const {
-    loading,
-    sessions,
-    classes,
-    sections,
-    subjectAllocations,
-    timetables,
-    fetchSessions,
-    fetchClasses,
-    fetchSections,
-    fetchSubjectAllocations,
-    fetchTimetables,
-    createTimetable,
-    updateTimetable,
-    deleteTimetable,
-  } = useAcademicStore();
+  const { loading, sessions, classes, sections, subjectAllocations, timetables, fetchSessions, fetchClasses, fetchSections, fetchSubjectAllocations, fetchTimetables, createTimetable, updateTimetable, deleteTimetable } =
+    useAcademicStore();
 
   const authorized = usePermission("timetable.read");
 
@@ -164,10 +140,13 @@ export default function TimetablePage() {
   const filledSlots = viewTimetables.length;
   const completionPct = totalSlots === 0 ? 0 : Math.round((filledSlots / totalSlots) * 100);
 
-  const mobileDayFilled = DAYS.reduce<Record<DayKey, number>>((acc, day) => {
-    acc[day.key] = viewTimetables.filter((t) => t.dayOfWeek === day.key).length;
-    return acc;
-  }, {} as Record<DayKey, number>);
+  const mobileDayFilled = DAYS.reduce<Record<DayKey, number>>(
+    (acc, day) => {
+      acc[day.key] = viewTimetables.filter((t) => t.dayOfWeek === day.key).length;
+      return acc;
+    },
+    {} as Record<DayKey, number>
+  );
 
   if (authorized === null) {
     return null;
@@ -180,6 +159,11 @@ export default function TimetablePage() {
   }
 
   function openCreateDialog(day?: DayKey, period?: number) {
+    if (scopedAllocations.length === 0) {
+      toast.error("No subjects have been allocated to this class section yet.");
+      return;
+    }
+
     setFormErrors({});
     setSlotForm({
       mode: "create",
@@ -207,7 +191,7 @@ export default function TimetablePage() {
     setDeleteOpen(true);
   }
 
-  const slotConflict = isSlotTaken(slotForm.day, slotForm.periodNo, slotForm.entryId);
+  const slotConflict = !submitting && isSlotTaken(slotForm.day, slotForm.periodNo, slotForm.entryId);
   const slotComplete = Boolean(slotForm.day && slotForm.periodNo && slotForm.subjectAllocationId);
 
   async function handleSlotSubmit(e: React.FormEvent) {
@@ -286,13 +270,7 @@ export default function TimetablePage() {
     const color = subjectColor(entry.subjectAllocation.subject.id);
 
     return (
-      <div
-        className={cn(
-          "group relative flex h-20 w-full min-w-0 flex-col justify-center gap-0.5 overflow-hidden rounded-xl border px-3 py-2 transition-shadow hover:shadow-sm",
-          color.bg,
-          color.border,
-        )}
-      >
+      <div className={cn("group relative flex h-20 w-full min-w-0 flex-col justify-center gap-0.5 overflow-hidden rounded-xl border px-3 py-2 transition-shadow hover:shadow-sm", color.bg, color.border)}>
         <div className="flex min-w-0 items-center gap-1.5">
           <span className={cn("size-1.5 shrink-0 rounded-full", color.dot)} />
           <p className={cn("min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight", color.text)} title={entry.subjectAllocation.subject.name}>
@@ -361,18 +339,10 @@ export default function TimetablePage() {
         </div>
 
         <div className="flex shrink-0 gap-1">
-          <button
-            type="button"
-            onClick={() => openEditDialog(entry)}
-            className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background"
-          >
+          <button type="button" onClick={() => openEditDialog(entry)} className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background">
             <Pencil className="size-3.5" />
           </button>
-          <button
-            type="button"
-            onClick={() => openDeleteDialog(entry)}
-            className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background"
-          >
+          <button type="button" onClick={() => openDeleteDialog(entry)} className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background">
             <Trash2 className="size-3.5 text-destructive" />
           </button>
         </div>
@@ -459,10 +429,7 @@ export default function TimetablePage() {
                 {filledSlots} / {totalSlots} periods scheduled
               </span>
               <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted sm:w-32">
-                <div
-                  className={cn("h-full rounded-full transition-all", completionPct === 100 ? "bg-emerald-500" : "bg-primary")}
-                  style={{ width: `${completionPct}%` }}
-                />
+                <div className={cn("h-full rounded-full transition-all", completionPct === 100 ? "bg-emerald-500" : "bg-primary")} style={{ width: `${completionPct}%` }} />
               </div>
               <span className="text-xs text-muted-foreground">{completionPct}%</span>
             </div>
@@ -517,11 +484,13 @@ export default function TimetablePage() {
                       className={cn(
                         "flex shrink-0 flex-col items-center rounded-xl border px-3.5 py-2 transition-colors",
                         isActive ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground",
-                        !isActive && day.key === todayKey && "border-primary/40 text-primary",
+                        !isActive && day.key === todayKey && "border-primary/40 text-primary"
                       )}
                     >
                       <span className="text-xs font-semibold">{day.short}</span>
-                      <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>{filled}/{PERIOD_COUNT}</span>
+                      <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                        {filled}/{PERIOD_COUNT}
+                      </span>
                     </button>
                   );
                 })}
@@ -537,24 +506,18 @@ export default function TimetablePage() {
             {/* Desktop: full week grid, fixed column widths so a long subject
                 name truncates instead of resizing the whole column */}
             <div className="hidden overflow-x-auto md:block">
-              <Table className="min-w-[960px] table-fixed border-separate border-spacing-y-2">
+              <Table className="min-w-240 table-fixed border-separate border-spacing-y-2">
                 <colgroup>
                   <col className="w-20" />
                   {DAYS.map((day) => (
-                    <col key={day.key} className="w-[150px]" />
+                    <col key={day.key} className="w-37.5" />
                   ))}
                 </colgroup>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="text-xs font-bold uppercase tracking-wider text-foreground/80">Period</TableHead>
                     {DAYS.map((day) => (
-                      <TableHead
-                        key={day.key}
-                        className={cn(
-                          "rounded-t-lg text-center text-xs font-bold uppercase tracking-wider text-foreground/80",
-                          day.key === todayKey && "bg-primary/5 text-primary",
-                        )}
-                      >
+                      <TableHead key={day.key} className={cn("rounded-t-lg text-center text-xs font-bold uppercase tracking-wider text-foreground/80", day.key === todayKey && "bg-primary/5 text-primary")}>
                         <div className="flex items-center justify-center gap-1.5">
                           {day.label}
                           {day.key === todayKey && <span className="size-1.5 rounded-full bg-primary" />}
@@ -569,7 +532,7 @@ export default function TimetablePage() {
                     <TableRow key={period} className="hover:bg-transparent">
                       <TableCell className="align-middle text-sm font-semibold text-muted-foreground">Period {period}</TableCell>
                       {DAYS.map((day) => (
-                        <TableCell key={day.key} className={cn("p-1.5 align-top", day.key === todayKey && "bg-primary/[0.02]")}>
+                        <TableCell key={day.key} className={cn("p-1.5 align-top", day.key === todayKey && "bg-primary/2")}>
                           {renderGridCell(day.key, period)}
                         </TableCell>
                       ))}
@@ -601,9 +564,7 @@ export default function TimetablePage() {
               </div>
               <div>
                 <DialogTitle>{slotForm.mode === "edit" ? "Edit Period" : "Schedule a Period"}</DialogTitle>
-                <DialogDescription>
-                  {slotForm.mode === "edit" ? "Update the day, period or subject for this slot." : "Assign a subject allocation to a day and period."}
-                </DialogDescription>
+                <DialogDescription>{slotForm.mode === "edit" ? "Update the day, period or subject for this slot." : "Assign a subject allocation to a day and period."}</DialogDescription>
               </div>
             </div>
           </div>
@@ -629,10 +590,7 @@ export default function TimetablePage() {
 
                 <Field>
                   <Label>Period</Label>
-                  <Select
-                    value={slotForm.periodNo ? String(slotForm.periodNo) : ""}
-                    onValueChange={(value) => setSlotForm((p) => ({ ...p, periodNo: Number(value) }))}
-                  >
+                  <Select value={slotForm.periodNo ? String(slotForm.periodNo) : ""} onValueChange={(value) => setSlotForm((p) => ({ ...p, periodNo: Number(value) }))}>
                     <SelectTrigger className="mt-2 h-11 w-full">
                       <SelectValue placeholder="Period" />
                     </SelectTrigger>
@@ -662,15 +620,11 @@ export default function TimetablePage() {
                     <SelectValue placeholder="Select Subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    {scopedAllocations.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">No subjects allocated to this class section yet.</div>
-                    ) : (
-                      scopedAllocations.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.subject.name} — {item.teacher.name}
-                        </SelectItem>
-                      ))
-                    )}
+                    {scopedAllocations.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.subject.name} — {item.teacher.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {formErrors.subjectAllocationId && <p className="mt-1 text-sm text-red-500">{formErrors.subjectAllocationId}</p>}
@@ -716,8 +670,7 @@ export default function TimetablePage() {
             </div>
             <AlertDialogTitle className="w-full text-center text-xl">Remove this period?</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              This will remove{" "}
-              <span className="font-semibold text-foreground">{deletingEntry?.subjectAllocation.subject.name}</span>
+              This will remove <span className="font-semibold text-foreground">{deletingEntry?.subjectAllocation.subject.name}</span>
               {" from "}
               <span className="font-semibold text-foreground">{deletingEntry ? DAYS.find((d) => d.key === deletingEntry.dayOfWeek)?.label : ""}</span>
               {", Period "}
