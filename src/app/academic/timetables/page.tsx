@@ -9,7 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { BookOpen, CalendarClock, CalendarRange, Loader2, Pencil, Plus, Sparkles, Trash2, User } from "lucide-react";
+import {
+  BookOpen,
+  CalendarClock,
+  CalendarRange,
+  Loader2,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+  User,
+} from "lucide-react";
 import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -23,7 +33,6 @@ type ApiErrorResponse = {
 
 type DayKey = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
 
-// ---- Fixed timetable shape. Adjust here if periods/days ever become dynamic. ----
 const DAYS: { key: DayKey; label: string; short: string }[] = [
   { key: "MONDAY", label: "Monday", short: "Mon" },
   { key: "TUESDAY", label: "Tuesday", short: "Tue" },
@@ -45,8 +54,6 @@ const JS_DAY_TO_KEY: Record<number, DayKey | null> = {
   6: "SATURDAY",
 };
 
-// Deterministic subject -> color mapping so the same subject always reads the
-// same color across the whole grid, like tabs on a physical timetable.
 const SUBJECT_PALETTE = [
   { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", dot: "bg-blue-500" },
   { bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700", dot: "bg-violet-500" },
@@ -82,8 +89,22 @@ const emptySlotForm: SlotFormState = {
 };
 
 export default function TimetablePage() {
-  const { loading, sessions, classes, sections, subjectAllocations, timetables, fetchSessions, fetchClasses, fetchSections, fetchSubjectAllocations, fetchTimetables, createTimetable, updateTimetable, deleteTimetable } =
-    useAcademicStore();
+  const {
+    loading,
+    sessions,
+    classes,
+    sections,
+    subjectAllocations,
+    timetables,
+    fetchSessions,
+    fetchClasses,
+    fetchSections,
+    fetchSubjectAllocations,
+    fetchTimetables,
+    createTimetable,
+    updateTimetable,
+    deleteTimetable,
+  } = useAcademicStore();
 
   const authorized = usePermission("timetable.read");
 
@@ -91,8 +112,12 @@ export default function TimetablePage() {
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
 
+  const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
+  const [mobileDay, setMobileDay] = useState<DayKey>(todayKey ?? "MONDAY");
+
   const [slotOpen, setSlotOpen] = useState(false);
   const [slotForm, setSlotForm] = useState<SlotFormState>(emptySlotForm);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -139,7 +164,10 @@ export default function TimetablePage() {
   const filledSlots = viewTimetables.length;
   const completionPct = totalSlots === 0 ? 0 : Math.round((filledSlots / totalSlots) * 100);
 
-  const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
+  const mobileDayFilled = DAYS.reduce<Record<DayKey, number>>((acc, day) => {
+    acc[day.key] = viewTimetables.filter((t) => t.dayOfWeek === day.key).length;
+    return acc;
+  }, {} as Record<DayKey, number>);
 
   if (authorized === null) {
     return null;
@@ -152,6 +180,7 @@ export default function TimetablePage() {
   }
 
   function openCreateDialog(day?: DayKey, period?: number) {
+    setFormErrors({});
     setSlotForm({
       mode: "create",
       day: day ?? "",
@@ -162,6 +191,7 @@ export default function TimetablePage() {
   }
 
   function openEditDialog(entry: Timetable) {
+    setFormErrors({});
     setSlotForm({
       mode: "edit",
       entryId: entry.id,
@@ -209,7 +239,12 @@ export default function TimetablePage() {
     } catch (error) {
       const err = error as AxiosError<ApiErrorResponse>;
 
-      toast.error(err.response?.data?.message || Object.values(err.response?.data?.errors || {})[0] || "Failed to save this period");
+      if (err.response?.data?.errors) {
+        setFormErrors(err.response.data.errors);
+        toast.error(Object.values(err.response.data.errors)[0]);
+      } else {
+        toast.error(err.response?.data?.message || "Failed to save this period");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -232,7 +267,7 @@ export default function TimetablePage() {
     }
   }
 
-  function renderCell(day: DayKey, period: number) {
+  function renderGridCell(day: DayKey, period: number) {
     const entry = cellMap[`${day}-${period}`];
 
     if (!entry) {
@@ -240,7 +275,7 @@ export default function TimetablePage() {
         <button
           type="button"
           onClick={() => openCreateDialog(day, period)}
-          className="group flex h-20 w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border text-muted-foreground/50 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+          className="group flex h-20 w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border text-muted-foreground/50 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
         >
           <Plus className="size-4 opacity-0 transition-opacity group-hover:opacity-100" />
           <span className="text-[11px] font-medium opacity-0 transition-opacity group-hover:opacity-100">Add</span>
@@ -251,17 +286,23 @@ export default function TimetablePage() {
     const color = subjectColor(entry.subjectAllocation.subject.id);
 
     return (
-      <div className={cn("group relative flex h-20 w-full flex-col justify-center gap-0.5 overflow-hidden rounded-xl border px-3 py-2 transition-shadow hover:shadow-sm", color.bg, color.border)}>
-        <div className="flex items-center gap-1.5">
+      <div
+        className={cn(
+          "group relative flex h-20 w-full min-w-0 flex-col justify-center gap-0.5 overflow-hidden rounded-xl border px-3 py-2 transition-shadow hover:shadow-sm",
+          color.bg,
+          color.border,
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-1.5">
           <span className={cn("size-1.5 shrink-0 rounded-full", color.dot)} />
-          <p className={cn("truncate text-[13px] font-semibold leading-tight", color.text)} title={entry.subjectAllocation.subject.name}>
+          <p className={cn("min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight", color.text)} title={entry.subjectAllocation.subject.name}>
             {entry.subjectAllocation.subject.name}
           </p>
         </div>
 
-        <div className="flex items-center gap-1 pl-3 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-1 pl-3 text-xs text-muted-foreground">
           <User className="size-3 shrink-0" />
-          <span className="truncate" title={entry.subjectAllocation.teacher.name}>
+          <span className="min-w-0 flex-1 truncate" title={entry.subjectAllocation.teacher.name}>
             {entry.subjectAllocation.teacher.name}
           </span>
         </div>
@@ -286,22 +327,75 @@ export default function TimetablePage() {
     );
   }
 
-  return (
-    <DashboardLayout>
-      <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Timetable</h1>
-          <p className="text-muted-foreground">Build and manage the weekly period schedule for a class section</p>
+  function renderMobileRow(period: number) {
+    const entry = cellMap[`${mobileDay}-${period}`];
+
+    if (!entry) {
+      return (
+        <button
+          type="button"
+          onClick={() => openCreateDialog(mobileDay, period)}
+          className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border px-4 py-3.5 text-muted-foreground/60 transition-colors active:bg-primary/5"
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">P{period}</span>
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <Plus className="size-4" />
+            Add period
+          </span>
+        </button>
+      );
+    }
+
+    const color = subjectColor(entry.subjectAllocation.subject.id);
+
+    return (
+      <div className={cn("flex w-full items-center gap-3 rounded-xl border px-4 py-3.5", color.bg, color.border)}>
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background/70 text-xs font-semibold text-muted-foreground">P{period}</span>
+
+        <div className="min-w-0 flex-1">
+          <p className={cn("truncate text-sm font-semibold leading-tight", color.text)}>{entry.subjectAllocation.subject.name}</p>
+          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="size-3 shrink-0" />
+            <span className="truncate">{entry.subjectAllocation.teacher.name}</span>
+          </div>
         </div>
 
-        <Button className="gap-2 px-5" disabled={!viewSelected} onClick={() => openCreateDialog()}>
+        <div className="flex shrink-0 gap-1">
+          <button
+            type="button"
+            onClick={() => openEditDialog(entry)}
+            className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background"
+          >
+            <Pencil className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => openDeleteDialog(entry)}
+            className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background"
+          >
+            <Trash2 className="size-3.5 text-destructive" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-xl font-bold text-foreground sm:text-2xl">Timetable</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">Build and manage the weekly period schedule for a class section</p>
+        </div>
+
+        <Button className="w-full gap-2 px-5 sm:w-auto" disabled={!viewSelected} onClick={() => openCreateDialog()}>
           <Plus className="size-4" />
           Add Period
         </Button>
       </div>
 
       {/* Scope selector */}
-      <div className="mb-6 rounded-md border bg-card p-5">
+      <div className="mb-6 rounded-md border bg-card p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-1.5">
           <CalendarRange className="size-3.5 text-muted-foreground" />
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Viewing timetable for</span>
@@ -359,20 +453,23 @@ export default function TimetablePage() {
 
         {viewSelected && (
           <div className="mt-5 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <CalendarClock className="size-4 text-muted-foreground" />
+            <div className="flex flex-wrap items-center gap-2">
+              <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">
                 {filledSlots} / {totalSlots} periods scheduled
               </span>
-              <div className="h-1.5 w-32 overflow-hidden rounded-full bg-muted">
-                <div className={cn("h-full rounded-full transition-all", completionPct === 100 ? "bg-emerald-500" : "bg-primary")} style={{ width: `${completionPct}%` }} />
+              <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted sm:w-32">
+                <div
+                  className={cn("h-full rounded-full transition-all", completionPct === 100 ? "bg-emerald-500" : "bg-primary")}
+                  style={{ width: `${completionPct}%` }}
+                />
               </div>
               <span className="text-xs text-muted-foreground">{completionPct}%</span>
             </div>
 
             {activeSubjects.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
-                <BookOpen className="size-3.5 text-muted-foreground" />
+                <BookOpen className="size-3.5 shrink-0 text-muted-foreground" />
                 {activeSubjects.map(([id, name]) => {
                   const color = subjectColor(id);
                   return (
@@ -389,9 +486,9 @@ export default function TimetablePage() {
       </div>
 
       {/* Grid */}
-      <div className="rounded-md border bg-card p-5">
+      <div className="rounded-md border bg-card p-4 sm:p-5">
         {!viewSelected ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center sm:py-20">
             <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-muted">
               <CalendarRange className="size-6 text-muted-foreground" />
             </div>
@@ -401,40 +498,87 @@ export default function TimetablePage() {
         ) : loading && timetables.length === 0 ? (
           <div className="space-y-3">
             {PERIODS.map((p) => (
-              <div key={p} className="h-20 rounded-xl bg-muted animate-pulse" />
+              <div key={p} className="h-16 rounded-xl bg-muted animate-pulse sm:h-20" />
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[900px] border-separate border-spacing-y-2">
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-20 text-xs font-bold uppercase tracking-wider text-foreground/80">Period</TableHead>
-                  {DAYS.map((day) => (
-                    <TableHead key={day.key} className={cn("rounded-t-lg text-center text-xs font-bold uppercase tracking-wider text-foreground/80", day.key === todayKey && "bg-primary/5 text-primary")}>
-                      <div className="flex items-center justify-center gap-1.5">
-                        {day.label}
-                        {day.key === todayKey && <span className="size-1.5 rounded-full bg-primary" />}
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
+          <>
+            {/* Mobile: day tabs + stacked periods for the selected day */}
+            <div className="md:hidden">
+              <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                {DAYS.map((day) => {
+                  const isActive = mobileDay === day.key;
+                  const filled = mobileDayFilled[day.key] ?? 0;
+                  return (
+                    <button
+                      key={day.key}
+                      type="button"
+                      onClick={() => setMobileDay(day.key)}
+                      className={cn(
+                        "flex shrink-0 flex-col items-center rounded-xl border px-3.5 py-2 transition-colors",
+                        isActive ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground",
+                        !isActive && day.key === todayKey && "border-primary/40 text-primary",
+                      )}
+                    >
+                      <span className="text-xs font-semibold">{day.short}</span>
+                      <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>{filled}/{PERIOD_COUNT}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-              <TableBody>
+              <div className="space-y-2">
                 {PERIODS.map((period) => (
-                  <TableRow key={period} className="hover:bg-transparent">
-                    <TableCell className="align-middle text-sm font-semibold text-muted-foreground">Period {period}</TableCell>
+                  <div key={period}>{renderMobileRow(period)}</div>
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop: full week grid, fixed column widths so a long subject
+                name truncates instead of resizing the whole column */}
+            <div className="hidden overflow-x-auto md:block">
+              <Table className="min-w-[960px] table-fixed border-separate border-spacing-y-2">
+                <colgroup>
+                  <col className="w-20" />
+                  {DAYS.map((day) => (
+                    <col key={day.key} className="w-[150px]" />
+                  ))}
+                </colgroup>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-xs font-bold uppercase tracking-wider text-foreground/80">Period</TableHead>
                     {DAYS.map((day) => (
-                      <TableCell key={day.key} className={cn("p-1.5 align-top", day.key === todayKey && "bg-primary/[0.02]")}>
-                        {renderCell(day.key, period)}
-                      </TableCell>
+                      <TableHead
+                        key={day.key}
+                        className={cn(
+                          "rounded-t-lg text-center text-xs font-bold uppercase tracking-wider text-foreground/80",
+                          day.key === todayKey && "bg-primary/5 text-primary",
+                        )}
+                      >
+                        <div className="flex items-center justify-center gap-1.5">
+                          {day.label}
+                          {day.key === todayKey && <span className="size-1.5 rounded-full bg-primary" />}
+                        </div>
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+
+                <TableBody>
+                  {PERIODS.map((period) => (
+                    <TableRow key={period} className="hover:bg-transparent">
+                      <TableCell className="align-middle text-sm font-semibold text-muted-foreground">Period {period}</TableCell>
+                      {DAYS.map((day) => (
+                        <TableCell key={day.key} className={cn("p-1.5 align-top", day.key === todayKey && "bg-primary/[0.02]")}>
+                          {renderGridCell(day.key, period)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
 
@@ -445,10 +589,11 @@ export default function TimetablePage() {
           setSlotOpen(open);
           if (!open) {
             setSlotForm(emptySlotForm);
+            setFormErrors({});
           }
         }}
       >
-        <DialogContent className="sm:max-w-105 p-0 overflow-hidden">
+        <DialogContent className="w-[calc(100%-2rem)] rounded-2xl p-0 overflow-hidden sm:max-w-105">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -456,7 +601,9 @@ export default function TimetablePage() {
               </div>
               <div>
                 <DialogTitle>{slotForm.mode === "edit" ? "Edit Period" : "Schedule a Period"}</DialogTitle>
-                <DialogDescription>{slotForm.mode === "edit" ? "Update the day, period or subject for this slot." : "Assign a subject allocation to a day and period."}</DialogDescription>
+                <DialogDescription>
+                  {slotForm.mode === "edit" ? "Update the day, period or subject for this slot." : "Assign a subject allocation to a day and period."}
+                </DialogDescription>
               </div>
             </div>
           </div>
@@ -482,7 +629,10 @@ export default function TimetablePage() {
 
                 <Field>
                   <Label>Period</Label>
-                  <Select value={slotForm.periodNo ? String(slotForm.periodNo) : ""} onValueChange={(value) => setSlotForm((p) => ({ ...p, periodNo: Number(value) }))}>
+                  <Select
+                    value={slotForm.periodNo ? String(slotForm.periodNo) : ""}
+                    onValueChange={(value) => setSlotForm((p) => ({ ...p, periodNo: Number(value) }))}
+                  >
                     <SelectTrigger className="mt-2 h-11 w-full">
                       <SelectValue placeholder="Period" />
                     </SelectTrigger>
@@ -503,26 +653,27 @@ export default function TimetablePage() {
                 <Label>Subject</Label>
                 <Select
                   value={slotForm.subjectAllocationId}
-                  onOpenChange={(open) => {
-                    if (open && scopedAllocations.length === 0) {
-                      toast.error("No subjects have been allocated to this class section yet.");
-                    }
-                  }}
                   onValueChange={(value) => {
                     setSlotForm((p) => ({ ...p, subjectAllocationId: value }));
+                    setFormErrors((p) => ({ ...p, subjectAllocationId: "" }));
                   }}
                 >
                   <SelectTrigger className="mt-2 h-11 w-full">
                     <SelectValue placeholder="Select Subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    {scopedAllocations.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.subject.name} — {item.teacher.name}
-                      </SelectItem>
-                    ))}
+                    {scopedAllocations.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">No subjects allocated to this class section yet.</div>
+                    ) : (
+                      scopedAllocations.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.subject.name} — {item.teacher.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {formErrors.subjectAllocationId && <p className="mt-1 text-sm text-red-500">{formErrors.subjectAllocationId}</p>}
               </Field>
             </FieldGroup>
 
@@ -558,14 +709,15 @@ export default function TimetablePage() {
 
       {/* Delete confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="sm:max-w-105">
+        <AlertDialogContent className="w-[calc(100%-2rem)] rounded-2xl sm:max-w-105">
           <AlertDialogHeader>
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
               <Trash2 className="size-6 text-destructive" />
             </div>
             <AlertDialogTitle className="w-full text-center text-xl">Remove this period?</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              This will remove <span className="font-semibold text-foreground">{deletingEntry?.subjectAllocation.subject.name}</span>
+              This will remove{" "}
+              <span className="font-semibold text-foreground">{deletingEntry?.subjectAllocation.subject.name}</span>
               {" from "}
               <span className="font-semibold text-foreground">{deletingEntry ? DAYS.find((d) => d.key === deletingEntry.dayOfWeek)?.label : ""}</span>
               {", Period "}
@@ -573,9 +725,9 @@ export default function TimetablePage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <AlertDialogFooter className="mt-4">
-            <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="h-11 bg-destructive text-white hover:bg-destructive/90">
+          <AlertDialogFooter className="mt-4 flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel className="h-11 w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="h-11 w-full bg-destructive text-white hover:bg-destructive/90 sm:w-auto">
               {deleting ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />

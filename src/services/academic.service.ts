@@ -150,6 +150,35 @@ export interface UpdateTimetablePayload {
   subjectAllocationId: string;
 }
 
+export interface CreateStudentAttendancePayload {
+  enrollmentId: string;
+  attendanceDate: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+}
+
+export interface UpdateStudentAttendancePayload {
+  attendanceDate: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+}
+
+export interface CreateFacultyAttendancePayload {
+  sessionId: string;
+  teacherId: string;
+  attendanceDate: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "HALF_DAY" | "LEAVE" | "HOLIDAY";
+  checkIn?: string;
+  checkOut?: string;
+  remarks?: string;
+}
+
+export interface UpdateFacultyAttendancePayload {
+  attendanceDate: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "HALF_DAY" | "LEAVE" | "HOLIDAY";
+  checkIn?: string;
+  checkOut?: string;
+  remarks?: string;
+}
+
 export const academicService = {
   sessions: {
     getAll: () => apiClient.get("/academic/sessions"),
@@ -268,5 +297,29 @@ export const academicService = {
     update: (id: string, data: UpdateTimetablePayload) => apiClient.patch(`/academic/timetable/${id}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/timetable/${id}`),
+  },
+
+  studentAttendances: {
+    getAll: () => apiClient.get("/academic/student-attendance"),
+
+    getById: (id: string) => apiClient.get(`/academic/student-attendance/${id}`),
+
+    create: (data: CreateStudentAttendancePayload) => apiClient.post("/academic/student-attendance", data),
+
+    update: (id: string, data: UpdateStudentAttendancePayload) => apiClient.patch(`/academic/student-attendance/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/student-attendance/${id}`),
+  },
+
+  facultyAttendances: {
+    getAll: () => apiClient.get("/academic/faculty-attendance"),
+
+    getById: (id: string) => apiClient.get(`/academic/faculty-attendance/${id}`),
+
+    create: (data: CreateFacultyAttendancePayload) => apiClient.post("/academic/faculty-attendance", data),
+
+    update: (id: string, data: UpdateFacultyAttendancePayload) => apiClient.patch(`/academic/faculty-attendance/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/faculty-attendance/${id}`),
   },
 };

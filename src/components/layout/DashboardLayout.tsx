@@ -35,6 +35,8 @@ function getBreadcrumb(pathname: string): { parent: string | null; parentHref: s
   if (pathname === "/academic/subjectAllocation") return { parent: "Academic", parentHref: "/academic", current:"Subject Allocation" };
   if (pathname === "/academic/teacherAssignment") return { parent: "Academic", parentHref: "/academic", current:"Teacher Assignment" };
   if (pathname === "/academic/timetables") return { parent: "Academic", parentHref: "/academic", current:"Timetables" };
+  if (pathname === "/academic/studentAttendance") return { parent: "Academic", parentHref: "/academic", current:"Student Attendance" };
+  if (pathname === "/academic/facultyAttendance") return { parent: "Academic", parentHref: "/academic", current:"Faculty Attendance" };
   if (pathname === "/my-profile") return { parent: "Settings", parentHref: "/settings", current: "My Profile" };
   if (pathname === "/user") return { parent: "Settings", parentHref: "/settings", current: "Users" };
   if (pathname === "/roles") return { parent: "Settings", parentHref: "/settings", current: "Roles & Permissions" };

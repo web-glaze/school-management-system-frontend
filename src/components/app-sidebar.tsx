@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser, BookOpenCheck, UserStar, CalendarDays } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser, BookOpenCheck, UserStar, CalendarDays, ClipboardCheck, CalendarCheck2, Briefcase } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -104,7 +104,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     permissions.includes("teacher.read") && {
       title: "Teachers",
       url: "/academic/teachers",
-      icon: ContactRound,
+      icon: Briefcase,
       isActive: pathname.startsWith("/academic/teachers"),
     },
 
@@ -121,6 +121,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       icon: FileUser,
       isActive: pathname.startsWith("/academic/enrollment"),
     },
+    
+    permissions.includes("student-attendance.read") && {
+      title: "Student Attendance",
+      url: "/academic/studentAttendance",
+      icon: ClipboardCheck,
+      isActive: pathname.startsWith("/academic/studentAttendance"),
+    },
 
     permissions.includes("subject-allocation.read") && {
       title: "Subject Allocation",
@@ -136,14 +143,19 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       isActive: pathname.startsWith("/academic/teacherAssignment"),
     },
 
+    permissions.includes("faculty-attendance.read") && {
+      title: "Faculty Attendance",
+      url: "/academic/facultyAttendance",
+      icon: CalendarCheck2,
+      isActive: pathname.startsWith("/academic/facultyAttendance"),
+    },
+
     permissions.includes("timetable.read") && {
       title: "Timetable",
       url: "/academic/timetables",
       icon: CalendarDays,
       isActive: pathname.startsWith("/academic/timetables"),
     },
-
-
 
   ].filter(Boolean);
 
