@@ -507,6 +507,7 @@ export default function FacultyAttendancePage() {
         .filter(Boolean) as Promise<void>[];
 
       if (ops.length === 0) {
+        toast.info("No changes to save");
         setSaving(false);
         return;
       }
@@ -521,19 +522,19 @@ export default function FacultyAttendancePage() {
     }
   }
 
-  const hasUnsavedChanges = registerStaff.some((teacher) => {
-    const current = markings[teacher.id];
-    const saved = existingForDate[teacher.id];
+  // const hasUnsavedChanges = registerStaff.some((teacher) => {
+  //   const current = markings[teacher.id];
+  //   const saved = existingForDate[teacher.id];
 
-    if (!current) return false;
+  //   if (!current) return false;                                                      if, to disable the save button in future
 
-    return (
-      current.status !== (saved?.status ?? "PRESENT") ||
-      current.checkIn !== toTimeInputValue(saved?.checkIn) ||
-      current.checkOut !== toTimeInputValue(saved?.checkOut) ||
-      (current.remarks ?? "") !== (saved?.remarks ?? "")
-    );
-  });
+  //   return (
+  //     current.status !== (saved?.status ?? "PRESENT") ||
+  //     current.checkIn !== toTimeInputValue(saved?.checkIn) ||
+  //     current.checkOut !== toTimeInputValue(saved?.checkOut) ||
+  //     (current.remarks ?? "") !== (saved?.remarks ?? "")
+  //   );
+  // });
 
   const filteredAttendances = facultyAttendances
     .filter((item) => {
@@ -1156,7 +1157,7 @@ export default function FacultyAttendancePage() {
                     <span className="font-semibold text-foreground">{new Date(regDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
                   </p>
 
-                  <Button onClick={handleSaveRegister} disabled={saving || !hasUnsavedChanges} className="min-w-40 h-10">
+                  <Button onClick={handleSaveRegister} disabled={saving} className="min-w-40 h-10">
                     {saving ? (
                       <>
                         <Loader2 className="size-4 mr-2 animate-spin" />

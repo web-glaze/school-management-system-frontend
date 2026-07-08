@@ -189,12 +189,12 @@ export default function StudentAttendancePage() {
     return stats;
   }, [registerStudents, markings]);
 
-  const hasUnsavedChanges = registerStudents.some((e) => {
-    const current = markings[e.id];
-    const saved = existingForDate[e.id]?.status ?? "PRESENT";
+  // const hasUnsavedChanges = registerStudents.some((e) => {
+  //   const current = markings[e.id]; 
+  //   const saved = existingForDate[e.id]?.status ?? "PRESENT";                   if, to disable the save button for future
 
-    return current !== saved;
-  });
+  //   return current !== saved;
+  // });
 
   function seedMarkings() {
     const seeded: Record<string, AttendanceStatus> = {};
@@ -269,9 +269,10 @@ export default function StudentAttendancePage() {
         .filter(Boolean) as Promise<void>[];
 
       if (ops.length === 0) {
-  setSaving(false);
-  return;
-}
+        toast.info("No changes to save");
+        setSaving(false);
+        return;
+      }
 
       await Promise.all(ops);
 
@@ -850,7 +851,7 @@ export default function StudentAttendancePage() {
                     <span className="font-semibold text-foreground">{new Date(regDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
                   </p>
 
-                  <Button onClick={handleSaveRegister} disabled={saving || !hasUnsavedChanges} className="min-w-40 h-10">
+                  <Button onClick={handleSaveRegister} disabled={saving} className="min-w-40 h-10">
                     {saving ? (
                       <>
                         <Loader2 className="size-4 mr-2 animate-spin" />
