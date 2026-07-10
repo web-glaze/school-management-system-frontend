@@ -155,7 +155,7 @@ export default function DepartmentPage() {
                 <FieldGroup>
                   <Field>
                     <Label htmlFor="department-name">Department Name</Label>
-                    <Input id="department-name" placeholder="Electrical, Plumbing, IT..." value={name} onChange={(e) => setName(e.target.value)} required className="mt-2" />
+                    <Input id="department-name" placeholder="Electrical, Plumbing, IT..." value={name} onChange={(e) => setName(e.target.value)} required />
                   </Field>
                 </FieldGroup>
 
@@ -328,7 +328,7 @@ export default function DepartmentPage() {
               <Field>
                 <Label htmlFor="edit-department-name">Department Name</Label>
 
-                <Input id="edit-department-name" placeholder="Electrical, Plumbing, IT..." value={editName} onChange={(e) => setEditName(e.target.value)} required className="mt-2" />
+                <Input id="edit-department-name" placeholder="Electrical, Plumbing, IT..." value={editName} onChange={(e) => setEditName(e.target.value)} required />
               </Field>
             </FieldGroup>
 

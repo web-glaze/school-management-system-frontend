@@ -242,7 +242,7 @@ export default function AcademicSessionPage() {
                         }
                       }}
                       placeholder="2025-26"
-                      className="mt-2"
+                      className=""
                     />
                     {formErrors.name && <p className="text-sm text-red-500 mt-1">{formErrors.name}</p>}
                   </Field>
@@ -252,7 +252,7 @@ export default function AcademicSessionPage() {
 
                     <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !startDate && "text-muted-foreground", formErrors.startDate && "border-red-500")}>
+                        <Button type="button" variant="outline" className={cn(" h-10 w-full justify-start text-left font-normal", !startDate && "text-muted-foreground", formErrors.startDate && "border-red-500")}>
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {startDate ? format(new Date(startDate), "dd MMM yyyy") : "Pick a date"}
                         </Button>
@@ -286,7 +286,7 @@ export default function AcademicSessionPage() {
 
                     <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !endDate && "text-muted-foreground", formErrors.endDate && "border-red-500")}>
+                        <Button type="button" variant="outline" className={cn(" h-10 w-full justify-start text-left font-normal", !endDate && "text-muted-foreground", formErrors.endDate && "border-red-500")}>
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {endDate ? format(new Date(endDate), "dd MMM yyyy") : "Pick a date"}
                         </Button>
@@ -353,7 +353,7 @@ export default function AcademicSessionPage() {
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input type="text" placeholder="Search by session name..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+              <Input type="text" placeholder="Search by session name or code" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
           </div>
           {loading && sessions.length === 0 ? (
@@ -413,8 +413,6 @@ export default function AcademicSessionPage() {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
                               })}
                             </span>
                           </div>
@@ -428,8 +426,6 @@ export default function AcademicSessionPage() {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
                               })}
                             </span>
                           </div>
@@ -545,7 +541,7 @@ export default function AcademicSessionPage() {
                       }));
                     }
                   }}
-                  className="mt-2"
+                  className=""
                 />
 
                 {editErrors.name && <p className="text-sm text-red-500 mt-1">{editErrors.name}</p>}
@@ -556,7 +552,7 @@ export default function AcademicSessionPage() {
 
                 <Popover open={editStartDateOpen} onOpenChange={setEditStartDateOpen}>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !editStartDate && "text-muted-foreground", editErrors.startDate && "border-red-500")}>
+                    <Button type="button" variant="outline" className={cn(" h-10 w-full justify-start text-left font-normal", !editStartDate && "text-muted-foreground", editErrors.startDate && "border-red-500")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {editStartDate ? format(new Date(editStartDate), "dd MMM yyyy") : "Pick a date"}
                     </Button>
@@ -591,7 +587,7 @@ export default function AcademicSessionPage() {
 
                 <Popover open={editEndDateOpen} onOpenChange={setEditEndDateOpen}>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !editEndDate && "text-muted-foreground", editErrors.endDate && "border-red-500")}>
+                    <Button type="button" variant="outline" className={cn(" h-10 w-full justify-start text-left font-normal", !editEndDate && "text-muted-foreground", editErrors.endDate && "border-red-500")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {editEndDate ? format(new Date(editEndDate), "dd MMM yyyy") : "Pick a date"}
                     </Button>

@@ -314,10 +314,11 @@ export default function StudentsPage() {
                     </div>
 
                     <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      
                       <Field>
                         <Label>Admission No</Label>
                         <Input
-                          className={`mt-2 h-10 ${formErrors.admissionNo ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                          className={` h-10 ${formErrors.admissionNo ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                           value={admissionNo}
                           onChange={(e) => {
                             setAdmissionNo(e.target.value);
@@ -329,39 +330,11 @@ export default function StudentsPage() {
                       </Field>
 
                       <Field>
-                        <Label>First Name</Label>
-                        <Input
-                          className={`mt-2 h-10 ${formErrors.firstName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
-                          value={firstName}
-                          onChange={(e) => {
-                            setFirstName(e.target.value);
-                            clearFormError("firstName");
-                          }}
-                          placeholder="First name"
-                        />
-                        {formErrors.firstName && <p className="text-xs text-red-500 mt-1.5">{formErrors.firstName}</p>}
-                      </Field>
-
-                      <Field>
-                        <Label>Last Name</Label>
-                        <Input
-                          className={`mt-2 h-10 ${formErrors.lastName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
-                          value={lastName}
-                          onChange={(e) => {
-                            setLastName(e.target.value);
-                            clearFormError("lastName");
-                          }}
-                          placeholder="Last name"
-                        />
-                        {formErrors.lastName && <p className="text-xs text-red-500 mt-1.5">{formErrors.lastName}</p>}
-                      </Field>
-
-                      <Field>
                         <Label>Date of Birth</Label>
 
                         <Popover open={dobOpen} onOpenChange={setDobOpen}>
                           <PopoverTrigger asChild>
-                            <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !dob && "text-muted-foreground", formErrors.dob && "border-red-500")}>
+                            <Button type="button" variant="outline" className={cn(" h-10 w-full justify-start text-left font-normal", !dob && "text-muted-foreground", formErrors.dob && "border-red-500")}>
                               <CalendarIcon className="mr-2 h-4 w-4" />
                               {dob ? format(new Date(dob), "dd MMM yyyy") : "Pick a date"}
                             </Button>
@@ -384,6 +357,34 @@ export default function StudentsPage() {
                         {editErrors.dob && <p className="text-xs text-red-500 mt-1.5">{editErrors.dob}</p>}
                         {formErrors.dob && <p className="text-xs text-red-500 mt-1.5">{formErrors.dob}</p>}
                       </Field>
+
+                      <Field>
+                        <Label>First Name</Label>
+                        <Input
+                          className={` h-10 ${formErrors.firstName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                          value={firstName}
+                          onChange={(e) => {
+                            setFirstName(e.target.value);
+                            clearFormError("firstName");
+                          }}
+                          placeholder="First name"
+                        />
+                        {formErrors.firstName && <p className="text-xs text-red-500 mt-1.5">{formErrors.firstName}</p>}
+                      </Field>
+
+                      <Field>
+                        <Label>Last Name</Label>
+                        <Input
+                          className={` h-10 ${formErrors.lastName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                          value={lastName}
+                          onChange={(e) => {
+                            setLastName(e.target.value);
+                            clearFormError("lastName");
+                          }}
+                          placeholder="Last name"
+                        />
+                        {formErrors.lastName && <p className="text-xs text-red-500 mt-1.5">{formErrors.lastName}</p>}
+                      </Field>
                     </FieldGroup>
                   </div>
 
@@ -399,7 +400,7 @@ export default function StudentsPage() {
                         <Label>Father Name</Label>
 
                         <Input
-                          className={`mt-2 h-10 ${formErrors.fatherName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                          className={` h-10 ${formErrors.fatherName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                           value={fatherName}
                           onChange={(e) => {
                             setFatherName(e.target.value);
@@ -416,7 +417,7 @@ export default function StudentsPage() {
                         <Label>Mother Name</Label>
 
                         <Input
-                          className={`mt-2 h-10 ${formErrors.motherName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                          className={` h-10 ${formErrors.motherName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                           value={motherName}
                           onChange={(e) => {
                             setMotherName(e.target.value);
@@ -433,7 +434,7 @@ export default function StudentsPage() {
                         <Label>Phone</Label>
 
                         <Input
-                          className={`mt-2 h-10 ${formErrors.phone ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                          className={` h-10 ${formErrors.phone ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                           value={phone}
                           inputMode="numeric"
                           maxLength={10}
@@ -452,7 +453,7 @@ export default function StudentsPage() {
                         <Label>Email</Label>
 
                         <Input
-                          className={`mt-2 h-10 ${formErrors.email ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                          className={` h-10 ${formErrors.email ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                           type="email"
                           value={email}
                           onChange={(e) => {
@@ -485,7 +486,7 @@ export default function StudentsPage() {
                             <Button
                               type="button"
                               variant="outline"
-                              className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !admissionDate && "text-muted-foreground", formErrors.admissionDate && "border-red-500")}
+                              className={cn(" h-10 w-full justify-start text-left font-normal", !admissionDate && "text-muted-foreground", formErrors.admissionDate && "border-red-500")}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
                               {admissionDate ? format(new Date(admissionDate), "dd MMM yyyy") : "Pick a date"}
@@ -545,7 +546,7 @@ export default function StudentsPage() {
           <div className="relative w-full lg:w-96 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground" />
 
-            <Input className="pl-11" placeholder="Search students..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input className="pl-11" placeholder="Search by student name or code" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
           {loading && students.length === 0 ? (
@@ -732,7 +733,7 @@ export default function StudentsPage() {
                 <Field>
                   <Label>Admission No</Label>
                   <Input
-                    className={`mt-2 h-10 ${editErrors.admissionNo ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                    className={` h-10 ${editErrors.admissionNo ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                     value={editAdmissionNo}
                     onChange={(e) => {
                       setEditAdmissionNo(e.target.value);
@@ -745,7 +746,7 @@ export default function StudentsPage() {
                 <Field>
                   <Label>First Name</Label>
                   <Input
-                    className={`mt-2 h-10 ${editErrors.firstName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                    className={` h-10 ${editErrors.firstName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                     value={editFirstName}
                     onChange={(e) => {
                       setEditFirstName(e.target.value);
@@ -758,7 +759,7 @@ export default function StudentsPage() {
                 <Field>
                   <Label>Last Name</Label>
                   <Input
-                    className={`mt-2 h-10 ${editErrors.lastName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                    className={` h-10 ${editErrors.lastName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                     value={editLastName}
                     onChange={(e) => {
                       setEditLastName(e.target.value);
@@ -773,7 +774,7 @@ export default function StudentsPage() {
 
                   <Popover open={editDobOpen} onOpenChange={setEditDobOpen}>
                     <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !editDob && "text-muted-foreground", editErrors.dob && "border-red-500")}>
+                      <Button type="button" variant="outline" className={cn(" h-10 w-full justify-start text-left font-normal", !editDob && "text-muted-foreground", editErrors.dob && "border-red-500")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {editDob ? format(new Date(editDob), "dd MMM yyyy") : "Pick a date"}
                       </Button>
@@ -810,7 +811,7 @@ export default function StudentsPage() {
                   <Label>Father Name</Label>
 
                   <Input
-                    className={`mt-2 h-10 ${editErrors.fatherName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                    className={` h-10 ${editErrors.fatherName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                     value={editFatherName}
                     onChange={(e) => {
                       setEditFatherName(e.target.value);
@@ -825,7 +826,7 @@ export default function StudentsPage() {
                   <Label>Mother Name</Label>
 
                   <Input
-                    className={`mt-2 h-10 ${editErrors.motherName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                    className={` h-10 ${editErrors.motherName ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                     value={editMotherName}
                     onChange={(e) => {
                       setEditMotherName(e.target.value);
@@ -840,7 +841,7 @@ export default function StudentsPage() {
                   <Label>Phone</Label>
 
                   <Input
-                    className={`mt-2 h-10 ${editErrors.phone ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                    className={` h-10 ${editErrors.phone ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                     value={editPhone}
                     inputMode="numeric"
                     maxLength={10}
@@ -858,7 +859,7 @@ export default function StudentsPage() {
                   <Label>Email</Label>
 
                   <Input
-                    className={`mt-2 h-10 ${editErrors.email ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                    className={` h-10 ${editErrors.email ? "border-red-500 focus-visible:ring-red-500/30" : ""}`}
                     type="email"
                     value={editEmail}
                     onChange={(e) => {
@@ -886,7 +887,7 @@ export default function StudentsPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !editAdmissionDate && "text-muted-foreground", editErrors.admissionDate && "border-red-500")}
+                        className={cn(" h-10 w-full justify-start text-left font-normal", !editAdmissionDate && "text-muted-foreground", editErrors.admissionDate && "border-red-500")}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {editAdmissionDate ? format(new Date(editAdmissionDate), "dd MMM yyyy") : "Pick a date"}
@@ -922,7 +923,7 @@ export default function StudentsPage() {
                       clearEditError("status");
                     }}
                   >
-                    <SelectTrigger className={cn("mt-2 h-10 w-full", editErrors.status && "border-red-500")}>
+                    <SelectTrigger className={cn(" h-10 w-full", editErrors.status && "border-red-500")}>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
 

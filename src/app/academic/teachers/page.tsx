@@ -274,7 +274,7 @@ export default function TeachersPage() {
                         setName(e.target.value);
                         clearFormError("name");
                       }}
-                      className="mt-2"
+                      className=""
                     />
                     {formErrors.name && <p className="text-sm text-red-500 mt-1">{formErrors.name}</p>}
                   </Field>
@@ -287,7 +287,7 @@ export default function TeachersPage() {
                         setEmail(e.target.value);
                         clearFormError("email");
                       }}
-                      className="mt-2"
+                      className=""
                     />
                     {formErrors.email && <p className="text-sm text-red-500 mt-1">{formErrors.email}</p>}
                   </Field>
@@ -303,7 +303,7 @@ export default function TeachersPage() {
                         setPhone(value);
                         clearFormError("phone");
                       }}
-                      className="mt-2"
+                      className=""
                     />
                     {formErrors.phone && <p className="text-sm text-red-500 mt-1">{formErrors.phone}</p>}
                   </Field>
@@ -316,7 +316,7 @@ export default function TeachersPage() {
                         setDesignation(e.target.value);
                         clearFormError("designation");
                       }}
-                      className="mt-2"
+                      className=""
                     />
                     {formErrors.designation && <p className="text-sm text-red-500 mt-1">{formErrors.designation}</p>}
                   </Field>
@@ -325,7 +325,7 @@ export default function TeachersPage() {
                     <Label>Joining Date</Label>
                     <Popover open={joiningDateOpen} onOpenChange={setJoiningDateOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !joiningDate && "text-muted-foreground", formErrors.joiningDate && "border-red-500")}>
+                        <Button type="button" variant="outline" className={cn(" h-10 w-full justify-start text-left font-normal", !joiningDate && "text-muted-foreground", formErrors.joiningDate && "border-red-500")}>
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {joiningDate ? format(new Date(joiningDate), "dd MMM yyyy") : "Pick a date"}
                         </Button>
@@ -387,7 +387,7 @@ export default function TeachersPage() {
             <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
 
-              <Input type="text" placeholder="Search by teacher name..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+              <Input type="text" placeholder="Search by teacher name or code" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
           </div>
 
@@ -561,7 +561,7 @@ export default function TeachersPage() {
                     setEditName(e.target.value);
                     clearEditError("name");
                   }}
-                  className="mt-2"
+                  className=""
                 />
                 {editErrors.name && <p className="text-sm text-red-500 mt-1">{editErrors.name}</p>}
               </Field>
@@ -574,7 +574,7 @@ export default function TeachersPage() {
                     setEditEmail(e.target.value);
                     clearEditError("email");
                   }}
-                  className="mt-2"
+                  className=""
                 />
                 {editErrors.email && <p className="text-sm text-red-500 mt-1">{editErrors.email}</p>}
               </Field>
@@ -590,7 +590,7 @@ export default function TeachersPage() {
                     setEditPhone(value);
                     clearEditError("phone");
                   }}
-                  className="mt-2"
+                  className=""
                 />
                 {editErrors.phone && <p className="text-sm text-red-500 mt-1">{editErrors.phone}</p>}
               </Field>
@@ -603,7 +603,7 @@ export default function TeachersPage() {
                     setEditDesignation(e.target.value);
                     clearEditError("designation");
                   }}
-                  className="mt-2"
+                  className=""
                 />
                 {editErrors.designation && <p className="text-sm text-red-500 mt-1">{editErrors.designation}</p>}
               </Field>
@@ -612,7 +612,7 @@ export default function TeachersPage() {
                 <Label>Joining Date</Label>
                 <Popover open={editJoiningDateOpen} onOpenChange={setEditJoiningDateOpen}>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className={cn("mt-2 h-10 w-full justify-start text-left font-normal", !editJoiningDate && "text-muted-foreground", editErrors.joiningDate && "border-red-500")}>
+                    <Button type="button" variant="outline" className={cn(" h-10 w-full justify-start text-left font-normal", !editJoiningDate && "text-muted-foreground", editErrors.joiningDate && "border-red-500")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {editJoiningDate ? format(new Date(editJoiningDate), "dd MMM yyyy") : "Pick a date"}
                     </Button>

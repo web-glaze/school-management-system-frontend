@@ -756,7 +756,7 @@ export default function FacultyAttendancePage() {
 
                       <Popover open={teacherOpen} onOpenChange={setTeacherOpen}>
                         <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" role="combobox" aria-expanded={teacherOpen} className="mt-2 h-11 w-full justify-between font-normal">
+                          <Button type="button" variant="outline" role="combobox" aria-expanded={teacherOpen} className=" h-11 w-full justify-between font-normal">
                             {teacherId
                               ? (() => {
                                   const teacher = activeTeachers.find((t) => t.id === teacherId);
@@ -818,7 +818,7 @@ export default function FacultyAttendancePage() {
                       <Label>Academic Session</Label>
 
                       <Select value={addSessionId} onValueChange={setAddSessionId}>
-                        <SelectTrigger className="mt-2 h-11 w-full">
+                        <SelectTrigger className=" h-11 w-full">
                           <SelectValue placeholder="Select Session" />
                         </SelectTrigger>
 
@@ -839,7 +839,7 @@ export default function FacultyAttendancePage() {
 
                       <Popover open={addDateOpen} onOpenChange={setAddDateOpen}>
                         <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" className={cn("mt-2 h-11 w-full justify-start text-left font-normal", !addDate && "text-muted-foreground", formErrors.date && "border-red-500")}>
+                          <Button type="button" variant="outline" className={cn(" h-11 w-full justify-start text-left font-normal", !addDate && "text-muted-foreground", formErrors.date && "border-red-500")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {addDate ? format(new Date(addDate), "dd MMM yyyy") : "Pick a date"}
                           </Button>
@@ -866,7 +866,7 @@ export default function FacultyAttendancePage() {
                       <Label>Status</Label>
 
                       <Select value={addStatus} onValueChange={(value) => setAddStatus(value as AttendanceStatus)}>
-                        <SelectTrigger className="mt-2 h-11 w-full">
+                        <SelectTrigger className=" h-11 w-full">
                           <SelectValue placeholder="Select Status" />
                         </SelectTrigger>
 
@@ -885,18 +885,18 @@ export default function FacultyAttendancePage() {
                     <div className="grid grid-cols-2 gap-4">
                       <Field>
                         <Label>Check In</Label>
-                        <TimePickerPopover value={addCheckIn} onChange={setAddCheckIn} icon={<LogIn className="size-4" />} placeholder="Select time" fullWidth className="mt-2" />
+                        <TimePickerPopover value={addCheckIn} onChange={setAddCheckIn} icon={<LogIn className="size-4" />} placeholder="Select time" fullWidth className="" />
                       </Field>
 
                       <Field>
                         <Label>Check Out</Label>
-                        <TimePickerPopover value={addCheckOut} onChange={setAddCheckOut} icon={<LogOut className="size-4" />} placeholder="Select time" fullWidth className="mt-2" />
+                        <TimePickerPopover value={addCheckOut} onChange={setAddCheckOut} icon={<LogOut className="size-4" />} placeholder="Select time" fullWidth className="" />
                       </Field>
                     </div>
 
                     <Field>
                       <Label>Remarks</Label>
-                      <Input placeholder="Optional remarks" value={addRemarks} onChange={(e) => setAddRemarks(e.target.value)} className="mt-2 h-11" />
+                      <Input placeholder="Optional remarks" value={addRemarks} onChange={(e) => setAddRemarks(e.target.value)} className=" h-11" />
                     </Field>
                   </FieldGroup>
 
@@ -946,7 +946,7 @@ export default function FacultyAttendancePage() {
                       setRegisterLoaded(false);
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Session" />
                     </SelectTrigger>
 
@@ -970,7 +970,7 @@ export default function FacultyAttendancePage() {
                       setRegisterLoaded(false);
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="All Designations" />
                     </SelectTrigger>
 
@@ -990,7 +990,7 @@ export default function FacultyAttendancePage() {
 
                   <Popover open={regDateOpen} onOpenChange={setRegDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" className={cn("mt-2 h-11 w-full justify-start text-left font-normal", !regDate && "text-muted-foreground")}>
+                      <Button type="button" variant="outline" className={cn(" h-11 w-full justify-start text-left font-normal", !regDate && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {regDate ? format(new Date(regDate), "dd MMM yyyy") : "Pick a date"}
                       </Button>
@@ -1024,7 +1024,7 @@ export default function FacultyAttendancePage() {
                 </div>
 
                 <h3 className="text-lg font-semibold">Select a session and designation</h3>
-                <p className="mt-2 text-muted-foreground">Then click &ldquo;Load Staff&rdquo; to start marking attendance.</p>
+                <p className=" text-muted-foreground">Then click &ldquo;Load Staff&rdquo; to start marking attendance.</p>
               </div>
             ) : registerStaff.length === 0 ? (
               <div className="bg-card rounded-md border p-16 flex flex-col items-center justify-center text-center">
@@ -1033,7 +1033,7 @@ export default function FacultyAttendancePage() {
                 </div>
 
                 <h3 className="text-lg font-semibold">No active staff found</h3>
-                <p className="mt-2 text-muted-foreground">There are no active staff members for this designation.</p>
+                <p className=" text-muted-foreground">There are no active staff members for this designation.</p>
               </div>
             ) : (
               <div className="bg-card rounded-md border p-6 space-y-5">
@@ -1444,7 +1444,7 @@ export default function FacultyAttendancePage() {
 
                 <h3 className="text-lg font-semibold">{facultyAttendances.length === 0 ? "No attendance records yet." : "No records found."}</h3>
 
-                <p className="mt-2 text-muted-foreground">{facultyAttendances.length === 0 ? "Mark attendance to see records here." : "Try adjusting your search or filters."}</p>
+                <p className=" text-muted-foreground">{facultyAttendances.length === 0 ? "Mark attendance to see records here." : "Try adjusting your search or filters."}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1587,7 +1587,7 @@ export default function FacultyAttendancePage() {
               <Field>
                 <Label>Staff Member</Label>
 
-                <div className="mt-2 h-11 flex items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
+                <div className=" h-11 flex items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
                   {editingAttendance ? `${editingAttendance.teacher.teacherCode} - ${editingAttendance.teacher.name}` : ""}
                 </div>
               </Field>
@@ -1596,7 +1596,7 @@ export default function FacultyAttendancePage() {
                 <Label>Date</Label>
                 <Popover open={editDateOpen} onOpenChange={setEditDateOpen}>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className={cn("mt-2 h-11 w-full justify-start text-left font-normal", !editDate && "text-muted-foreground")}>
+                    <Button type="button" variant="outline" className={cn(" h-11 w-full justify-start text-left font-normal", !editDate && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {editDate ? format(new Date(editDate), "dd MMM yyyy") : "Pick a date"}
                     </Button>
@@ -1621,7 +1621,7 @@ export default function FacultyAttendancePage() {
                 <Label>Status</Label>
 
                 <Select value={editStatus} onValueChange={(value) => setEditStatus(value as AttendanceStatus)}>
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
 
@@ -1638,18 +1638,18 @@ export default function FacultyAttendancePage() {
               <div className="grid grid-cols-2 gap-4">
                 <Field>
                   <Label>Check In</Label>
-                  <TimePickerPopover value={editCheckIn} onChange={setEditCheckIn} icon={<LogIn className="size-4" />} placeholder="Select time" fullWidth className="mt-2" />
+                  <TimePickerPopover value={editCheckIn} onChange={setEditCheckIn} icon={<LogIn className="size-4" />} placeholder="Select time" fullWidth className="" />
                 </Field>
 
                 <Field>
                   <Label>Check Out</Label>
-                  <TimePickerPopover value={editCheckOut} onChange={setEditCheckOut} icon={<LogOut className="size-4" />} placeholder="Select time" fullWidth className="mt-2" />
+                  <TimePickerPopover value={editCheckOut} onChange={setEditCheckOut} icon={<LogOut className="size-4" />} placeholder="Select time" fullWidth className="" />
                 </Field>
               </div>
 
               <Field>
                 <Label>Remarks</Label>
-                <Input placeholder="Optional remarks" value={editRemarks} onChange={(e) => setEditRemarks(e.target.value)} className="mt-2 h-11" />
+                <Input placeholder="Optional remarks" value={editRemarks} onChange={(e) => setEditRemarks(e.target.value)} className=" h-11" />
               </Field>
             </FieldGroup>
 

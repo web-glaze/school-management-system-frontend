@@ -295,7 +295,7 @@ export default function TeacherAssignmentPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Session" />
                     </SelectTrigger>
 
@@ -325,7 +325,7 @@ export default function TeacherAssignmentPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Class" />
                     </SelectTrigger>
 
@@ -355,7 +355,7 @@ export default function TeacherAssignmentPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Section" />
                     </SelectTrigger>
 
@@ -385,7 +385,7 @@ export default function TeacherAssignmentPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Teacher" />
                     </SelectTrigger>
 
@@ -660,7 +660,7 @@ export default function TeacherAssignmentPage() {
 
             <h3 className="text-lg font-semibold">{teacherAssignments.length === 0 ? "No class teacher assignments created yet." : "No class teacher assignments found."}</h3>
 
-            <p className="mt-2 text-muted-foreground">{teacherAssignments.length === 0 ? "Assign your first class teacher." : "Try adjusting your search or filters."}</p>
+            <p className=" text-muted-foreground">{teacherAssignments.length === 0 ? "Assign your first class teacher." : "Try adjusting your search or filters."}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -788,7 +788,7 @@ export default function TeacherAssignmentPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 
@@ -816,7 +816,7 @@ export default function TeacherAssignmentPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 
@@ -844,7 +844,7 @@ export default function TeacherAssignmentPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 
@@ -872,7 +872,7 @@ export default function TeacherAssignmentPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 

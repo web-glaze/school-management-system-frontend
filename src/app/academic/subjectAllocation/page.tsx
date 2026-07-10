@@ -344,7 +344,7 @@ export default function SubjectAllocationPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Session" />
                     </SelectTrigger>
 
@@ -374,7 +374,7 @@ export default function SubjectAllocationPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Class" />
                     </SelectTrigger>
 
@@ -404,7 +404,7 @@ export default function SubjectAllocationPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Section" />
                     </SelectTrigger>
 
@@ -434,7 +434,7 @@ export default function SubjectAllocationPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Subject" />
                     </SelectTrigger>
 
@@ -464,7 +464,7 @@ export default function SubjectAllocationPage() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Teacher" />
                     </SelectTrigger>
 
@@ -789,7 +789,7 @@ export default function SubjectAllocationPage() {
 
             <h3 className="text-lg font-semibold">{subjectAllocations.length === 0 ? "No subject allocations created yet." : "No subject allocations found."}</h3>
 
-            <p className="mt-2 text-muted-foreground">{subjectAllocations.length === 0 ? "Create your first subject allocation." : "Try adjusting your search or filters."}</p>
+            <p className=" text-muted-foreground">{subjectAllocations.length === 0 ? "Create your first subject allocation." : "Try adjusting your search or filters."}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -922,7 +922,7 @@ export default function SubjectAllocationPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 
@@ -950,7 +950,7 @@ export default function SubjectAllocationPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 
@@ -978,7 +978,7 @@ export default function SubjectAllocationPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 
@@ -1006,7 +1006,7 @@ export default function SubjectAllocationPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 
@@ -1034,7 +1034,7 @@ export default function SubjectAllocationPage() {
                     }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
 

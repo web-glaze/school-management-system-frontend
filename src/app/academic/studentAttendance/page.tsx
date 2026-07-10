@@ -489,7 +489,7 @@ export default function StudentAttendancePage() {
 
                       <Popover open={enrollmentOpen} onOpenChange={setEnrollmentOpen}>
                         <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" role="combobox" aria-expanded={enrollmentOpen} className="mt-2 h-11 w-full justify-between font-normal">
+                          <Button type="button" variant="outline" role="combobox" aria-expanded={enrollmentOpen} className=" h-11 w-full justify-between font-normal">
                             {enrollmentId
                               ? (() => {
                                   const enrollment = activeEnrollments.find((e) => e.id === enrollmentId);
@@ -555,7 +555,7 @@ export default function StudentAttendancePage() {
 
                       <Popover open={addDateOpen} onOpenChange={setAddDateOpen}>
                         <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" className={cn("mt-2 h-11 w-full justify-start text-left font-normal", !addDate && "text-muted-foreground", formErrors.date && "border-red-500")}>
+                          <Button type="button" variant="outline" className={cn(" h-11 w-full justify-start text-left font-normal", !addDate && "text-muted-foreground", formErrors.date && "border-red-500")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {addDate ? format(new Date(addDate), "dd MMM yyyy") : "Pick a date"}
                           </Button>
@@ -582,7 +582,7 @@ export default function StudentAttendancePage() {
                       <Label>Status</Label>
 
                       <Select value={addStatus} onValueChange={(value) => setAddStatus(value as AttendanceStatus)}>
-                        <SelectTrigger className="mt-2 h-11 w-full">
+                        <SelectTrigger className=" h-11 w-full">
                           <SelectValue placeholder="Select Status" />
                         </SelectTrigger>
 
@@ -645,7 +645,7 @@ export default function StudentAttendancePage() {
                       setRegisterLoaded(false);
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Session" />
                     </SelectTrigger>
 
@@ -670,7 +670,7 @@ export default function StudentAttendancePage() {
                       setRegisterLoaded(false);
                     }}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Class" />
                     </SelectTrigger>
 
@@ -695,7 +695,7 @@ export default function StudentAttendancePage() {
                     }}
                     disabled={!regClassId}
                   >
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Select Section" />
                     </SelectTrigger>
 
@@ -714,7 +714,7 @@ export default function StudentAttendancePage() {
 
                   <Popover open={regDateOpen} onOpenChange={setRegDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" className={cn("mt-2 h-11 w-full justify-start text-left font-normal", !regDate && "text-muted-foreground")}>
+                      <Button type="button" variant="outline" className={cn(" h-11 w-full justify-start text-left font-normal", !regDate && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {regDate ? format(new Date(regDate), "dd MMM yyyy") : "Pick a date"}
                       </Button>
@@ -748,7 +748,7 @@ export default function StudentAttendancePage() {
                 </div>
 
                 <h3 className="text-lg font-semibold">Select a session, class and section</h3>
-                <p className="mt-2 text-muted-foreground">Then click &ldquo;Load Students&rdquo; to start marking attendance.</p>
+                <p className=" text-muted-foreground">Then click &ldquo;Load Students&rdquo; to start marking attendance.</p>
               </div>
             ) : registerStudents.length === 0 ? (
               <div className="bg-card rounded-md border p-16 flex flex-col items-center justify-center text-center">
@@ -757,7 +757,7 @@ export default function StudentAttendancePage() {
                 </div>
 
                 <h3 className="text-lg font-semibold">No active students found</h3>
-                <p className="mt-2 text-muted-foreground">There are no active enrollments for this class and section.</p>
+                <p className=" text-muted-foreground">There are no active enrollments for this class and section.</p>
               </div>
             ) : (
               <div className="bg-card rounded-md border p-6 space-y-5">
@@ -1158,7 +1158,7 @@ export default function StudentAttendancePage() {
 
                 <h3 className="text-lg font-semibold">{studentAttendances.length === 0 ? "No attendance records yet." : "No records found."}</h3>
 
-                <p className="mt-2 text-muted-foreground">{studentAttendances.length === 0 ? "Mark attendance to see records here." : "Try adjusting your search or filters."}</p>
+                <p className=" text-muted-foreground">{studentAttendances.length === 0 ? "Mark attendance to see records here." : "Try adjusting your search or filters."}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1292,7 +1292,7 @@ export default function StudentAttendancePage() {
               <Field>
                 <Label>Student</Label>
 
-                <div className="mt-2 h-11 flex items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
+                <div className=" h-11 flex items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
                   {editingAttendance ? `${editingAttendance.enrollment.student.admissionNo} - ${editingAttendance.enrollment.student.firstName} ${editingAttendance.enrollment.student.lastName}` : ""}
                 </div>
               </Field>
@@ -1301,7 +1301,7 @@ export default function StudentAttendancePage() {
                 <Label>Date</Label>
                 <Popover open={editDateOpen} onOpenChange={setEditDateOpen}>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className={cn("mt-2 h-11 w-full justify-start text-left font-normal", !editDate && "text-muted-foreground")}>
+                    <Button type="button" variant="outline" className={cn(" h-11 w-full justify-start text-left font-normal", !editDate && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {editDate ? format(new Date(editDate), "dd MMM yyyy") : "Pick a date"}
                     </Button>
@@ -1326,7 +1326,7 @@ export default function StudentAttendancePage() {
                 <Label>Status</Label>
 
                 <Select value={editStatus} onValueChange={(value) => setEditStatus(value as AttendanceStatus)}>
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
 

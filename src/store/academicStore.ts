@@ -5,6 +5,7 @@ import {
   UpdateAcademicSessionPayload,
   CreateClassPayload,
   UpdateClassPayload,
+  ReorderClassPayload,
   CreateSectionPayload,
   UpdateSectionPayload,
   CreateSubjectPayload,
@@ -212,6 +213,7 @@ interface AcademicStore {
   fetchClasses: () => Promise<void>;
   createClass: (data: CreateClassPayload) => Promise<void>;
   updateClass: (id: string, data: UpdateClassPayload) => Promise<void>;
+  reorderClasses: (data: ReorderClassPayload[]) => Promise<void>;
   deleteClass: (id: string) => Promise<void>;
 
   fetchSections: () => Promise<void>;
@@ -376,6 +378,27 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       await academicService.classes.update(id, data);
       await get().fetchClasses();
     } catch (error) {
+      throw error;
+    }
+  },
+
+  reorderClasses: async (data) => {
+    const previous = get().classes;
+
+    const optimistic = previous.map((c) => {
+      const match = data.find((d) => d.id === c.id);
+      return match ? { ...c, sortOrder: match.sortOrder } : c;
+    });
+
+    optimistic.sort((a, b) => (a.isActive === b.isActive ? a.sortOrder - b.sortOrder : a.isActive ? -1 : 1));
+
+    set({ classes: optimistic });
+
+    try {
+      await academicService.classes.reorder(data);
+      await get().fetchClasses();
+    } catch (error) {
+      set({ classes: previous });
       throw error;
     }
   },

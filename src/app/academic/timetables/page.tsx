@@ -375,7 +375,7 @@ export default function TimetablePage() {
           <Field>
             <Label>Academic Session</Label>
             <Select value={sessionId} onValueChange={setSessionId}>
-              <SelectTrigger className="mt-2 h-11 w-full">
+              <SelectTrigger className=" h-11 w-full">
                 <SelectValue placeholder="Select Session" />
               </SelectTrigger>
               <SelectContent>
@@ -391,7 +391,7 @@ export default function TimetablePage() {
           <Field>
             <Label>Class</Label>
             <Select value={classId} onValueChange={setClassId}>
-              <SelectTrigger className="mt-2 h-11 w-full">
+              <SelectTrigger className=" h-11 w-full">
                 <SelectValue placeholder="Select Class" />
               </SelectTrigger>
               <SelectContent>
@@ -407,7 +407,7 @@ export default function TimetablePage() {
           <Field>
             <Label>Section</Label>
             <Select value={sectionId} onValueChange={setSectionId}>
-              <SelectTrigger className="mt-2 h-11 w-full">
+              <SelectTrigger className=" h-11 w-full">
                 <SelectValue placeholder="Select Section" />
               </SelectTrigger>
               <SelectContent>
@@ -460,7 +460,7 @@ export default function TimetablePage() {
               <CalendarRange className="size-6 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">Select a session, class and section</h3>
-            <p className="mt-2 max-w-sm text-muted-foreground">Choose all three above to view and build that section&apos;s weekly timetable.</p>
+            <p className=" max-w-sm text-muted-foreground">Choose all three above to view and build that section&apos;s weekly timetable.</p>
           </div>
         ) : loading && timetables.length === 0 ? (
           <div className="space-y-3">
@@ -575,7 +575,7 @@ export default function TimetablePage() {
                 <Field>
                   <Label>Day</Label>
                   <Select value={slotForm.day} onValueChange={(value) => setSlotForm((p) => ({ ...p, day: value as DayKey }))}>
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Day" />
                     </SelectTrigger>
                     <SelectContent>
@@ -591,7 +591,7 @@ export default function TimetablePage() {
                 <Field>
                   <Label>Period</Label>
                   <Select value={slotForm.periodNo ? String(slotForm.periodNo) : ""} onValueChange={(value) => setSlotForm((p) => ({ ...p, periodNo: Number(value) }))}>
-                    <SelectTrigger className="mt-2 h-11 w-full">
+                    <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Period" />
                     </SelectTrigger>
                     <SelectContent>
@@ -616,7 +616,7 @@ export default function TimetablePage() {
                     setFormErrors((p) => ({ ...p, subjectAllocationId: "" }));
                   }}
                 >
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue placeholder="Select Subject" />
                   </SelectTrigger>
                   <SelectContent>

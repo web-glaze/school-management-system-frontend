@@ -16,7 +16,6 @@ export interface UpdateAcademicSessionPayload {
 
 export interface CreateClassPayload {
   name: string;
-  sortOrder: number;
   isActive?: boolean;
 }
 
@@ -24,6 +23,11 @@ export interface UpdateClassPayload {
   name?: string;
   sortOrder?: number;
   isActive?: boolean;
+}
+
+export interface ReorderClassPayload {
+  id: string;
+  sortOrder: number;
 }
 
 export interface CreateSectionPayload {
@@ -200,6 +204,8 @@ export const academicService = {
     create: (data: CreateClassPayload) => apiClient.post("/academic/classes", data),
 
     update: (id: string, data: UpdateClassPayload) => apiClient.patch(`/academic/classes/${id}`, data),
+
+    reorder: (data: ReorderClassPayload[]) => apiClient.patch("/academic/classes/reorder", data),
 
     delete: (id: string) => apiClient.delete(`/academic/classes/${id}`),
   },

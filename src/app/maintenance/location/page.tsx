@@ -325,7 +325,7 @@ export default function LocationPage() {
                   <Field>
                     <Label htmlFor="location-name">Location Name</Label>
 
-                    <Input id="location-name" placeholder="Main Building, Block A..." value={rootName} onChange={(e) => setRootName(e.target.value)} className="mt-2" />
+                    <Input id="location-name" placeholder="Main Building, Block A..." value={rootName} onChange={(e) => setRootName(e.target.value)} />
                   </Field>
                 </FieldGroup>
 

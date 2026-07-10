@@ -8,15 +8,18 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CalendarDays, Calendar, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
+import { CalendarDays, Calendar, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical, GripVertical } from "lucide-react";
 import { useAcademicStore } from "@/store/academicStore";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { usePermission } from "@/hooks/usePermission";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
+import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors, DragEndEvent, Modifier } from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type ApiErrorResponse = {
   message?: string;
@@ -33,13 +36,50 @@ interface AcademicClass {
   updatedAt: string;
 }
 
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({
+  ...transform,
+  x: 0,
+});
+
+function SortableRow({
+  classItem,
+  children,
+}: {
+  classItem: AcademicClass;
+  children: (dragHandle: React.ReactNode) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: classItem.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const dragHandle = (
+    <span className="text-muted-foreground/60">
+      <GripVertical className="size-4" />
+    </span>
+  );
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`hover:bg-muted/20 transition-colors ${listeners ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "touch-none" : ""}`}
+    >
+      {children(dragHandle)}
+    </TableRow>
+  );
+}
+
 export default function ClassesPage() {
-  const { classes, loading, fetchClasses, createClass, updateClass, deleteClass } = useAcademicStore();
+  const { classes, loading, fetchClasses, createClass, updateClass, reorderClasses, deleteClass } = useAcademicStore();
   const [editName, setEditName] = useState("");
   const [name, setName] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [sortOrder, setSortOrder] = useState("");
-  const [editSortOrder, setEditSortOrder] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
   const [addClassOpen, setAddClassOpen] = useState(false);
   const [editClassOpen, setEditClassOpen] = useState(false);
@@ -50,10 +90,22 @@ export default function ClassesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  );
+  const [orderedClasses, setOrderedClasses] = useState<AcademicClass[]>([]);
+  const isReorderingRef = useRef(false);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   useEffect(() => {
     fetchClasses();
   }, []);
+
+  useEffect(() => {
+    if (isReorderingRef.current) return;
+    setOrderedClasses(classes);
+  }, [classes]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,12 +113,10 @@ export default function ClassesPage() {
     try {
       await createClass({
         name,
-        sortOrder: Number(sortOrder),
         isActive,
       });
 
       setName("");
-      setSortOrder("");
       setIsActive(true);
 
       setFormErrors({});
@@ -95,7 +145,6 @@ export default function ClassesPage() {
     try {
       await updateClass(editingClass.id, {
         name: editName,
-        sortOrder: Number(editSortOrder),
         isActive: editIsActive,
       });
 
@@ -148,7 +197,6 @@ export default function ClassesPage() {
   const openEditDialog = (classItem: AcademicClass) => {
     setEditingClass(classItem);
     setEditName(classItem.name);
-    setEditSortOrder(String(classItem.sortOrder));
     setEditIsActive(classItem.isActive);
     setEditErrors({});
     setEditClassOpen(true);
@@ -179,9 +227,43 @@ export default function ClassesPage() {
     }));
   };
 
-  const isClassChanged = editingClass && (editName.trim() !== editingClass.name || Number(editSortOrder) !== editingClass.sortOrder || editIsActive !== editingClass.isActive);
+  const isClassChanged = editingClass && (editName.trim() !== editingClass.name || editIsActive !== editingClass.isActive);
 
-  const filteredClasses = classes.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()) || item.classCode.toLowerCase().includes(search.toLowerCase()));
+  const filteredClasses = orderedClasses.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()) || item.classCode.toLowerCase().includes(search.toLowerCase()));
+
+  const dragEnabled = search.trim() === "";
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = filteredClasses.findIndex((c) => c.id === active.id);
+    const newIndex = filteredClasses.findIndex((c) => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const previousOrder = orderedClasses;
+    const reordered = arrayMove(filteredClasses, oldIndex, newIndex);
+
+    const payload = reordered.map((item, index) => ({ id: item.id, sortOrder: index + 1 }));
+
+    isReorderingRef.current = true;
+    setOrderedClasses(reordered);
+
+    try {
+      await reorderClasses(payload);
+      await fetchClasses();
+    } catch (error) {
+      setOrderedClasses(previousOrder);
+      const apiError = error as AxiosError<ApiErrorResponse>;
+      toast.error(apiError.response?.data?.message ?? "Failed to reorder classes");
+    } finally {
+      isReorderingRef.current = false;
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDragStart = () => setIsDragActive(true);
+  const handleDragCancel = () => setIsDragActive(false);
 
   return (
     <DashboardLayout>
@@ -223,25 +305,9 @@ export default function ClassesPage() {
                         setName(e.target.value);
                         clearFormError("name");
                       }}
-                      className="mt-2"
+                      className=""
                     />
                     {formErrors.name && <p className="text-sm text-red-500 mt-1">{formErrors.name}</p>}
-                  </Field>
-
-                  <Field>
-                    <Label>Sort Order</Label>
-
-                    <Input
-                      type="number"
-                      min={1}
-                      value={sortOrder}
-                      onChange={(e) => {
-                        setSortOrder(e.target.value);
-                        clearFormError("sortOrder");
-                      }}
-                      className="mt-2"
-                    />
-                    {formErrors.sortOrder && <p className="text-sm text-red-500 mt-1">{formErrors.sortOrder}</p>}
                   </Field>
 
                   <Field>
@@ -311,109 +377,132 @@ export default function ClassesPage() {
               <p className="text-muted-foreground mt-1.5 max-w-sm">{classes.length === 0 ? "Add your first class to get started." : `Try adjusting your search or filters.`}</p>
             </div>
           ) : (
-            <div className="relative w-full overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45 ">Class</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Code</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Sort order</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Status</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell ">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none">
-                      <span className=" md:block">Actions</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="divide-y divide-border/30">
-                  {filteredClasses.map((classItem) => {
-                    return (
-                      <TableRow key={classItem.id} className="hover:bg-muted/20 transition-colors">
-                        <TableCell className="py-4 pl-6 align-top">
-                          <div className="space-y-1 max-w-45">
-                            <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={classItem.name}>
-                              {classItem.name.length > 15 ? `${classItem.name.slice(0, 15)}...` : classItem.name}
-                            </p>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+              modifiers={[restrictToVerticalAxis]}
+              autoScroll={false}
+            >
+              <div className="relative w-full overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-10 py-4 pl-6"></TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Class</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Code</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
+                      <TableHead
+                        className={`font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5 bg-gray-50 dark:bg-muted/15 ${
+                          isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none"
+                        }`}
+                      >
+                        <span className="md:block">Actions</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-border/30">
+                    <SortableContext items={filteredClasses.map((c) => c.id)} strategy={verticalListSortingStrategy} disabled={!dragEnabled}>
+                      {filteredClasses.map((classItem) => (
+                        <SortableRow key={classItem.id} classItem={classItem}>
+                          {(dragHandle) => (
+                            <>
+                              <TableCell className="py-4 pl-6 align-middle">{dragEnabled ? dragHandle : null}</TableCell>
 
-                            <p className="text-sm text-foreground/50 md:hidden">{classItem.classCode}</p>
-                          </div>
-                        </TableCell>
+                              <TableCell className="py-4 align-middle">
+                                <div className="space-y-1 max-w-45">
+                                  <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={classItem.name}>
+                                    {classItem.name.length > 15 ? `${classItem.name.slice(0, 15)}...` : classItem.name}
+                                  </p>
 
-                        <TableCell className="hidden md:table-cell py-4">{classItem.classCode}</TableCell>
+                                  <p className="text-sm text-foreground/50 md:hidden">{classItem.classCode}</p>
+                                </div>
+                              </TableCell>
 
-                        <TableCell className="hidden md:table-cell py-4">{classItem.sortOrder}</TableCell>
+                              <TableCell className="hidden md:table-cell py-4 align-middle">{classItem.classCode}</TableCell>
 
-                        <TableCell className="hidden md:table-cell py-4">
-                          <Badge className={classItem.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{classItem.isActive ? "Active" : "Inactive"}</Badge>
-                        </TableCell>
+                              <TableCell className="hidden md:table-cell py-4 align-middle">
+                                <Badge className={classItem.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{classItem.isActive ? "Active" : "Inactive"}</Badge>
+                              </TableCell>
 
-                        {/* Created At */}
-                        <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="size-5 text-muted-foreground/80" />
-                            <span className="text-sm">
-                              {new Date(classItem.createdAt).toLocaleString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-                        </TableCell>
+                              <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell align-middle">
+                                <div className="flex items-center gap-1.5">
+                                  <Calendar className="size-5 text-muted-foreground/80" />
+                                  <span className="text-sm">
+                                    {new Date(classItem.createdAt).toLocaleString("en-IN", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+                              </TableCell>
 
-                        {/* Actions */}
-                        <TableCell className="py-4 pr-6 text-right align-top max-w-12.5 sticky right-0 bg-card shadow-lg md:shadow-none">
-                          <div className="hidden md:flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                              title="Edit class"
-                              onClick={() => openEditDialog(classItem)}
-                            >
-                              <Pencil className="size-5" />
-                            </Button>
+                              <TableCell
+                                className={`py-4 pr-6 text-right align-middle max-w-12.5 bg-card ${
+                                  isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none"
+                                }`}
+                              >
+                                <div className="hidden md:flex justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                                    title="Edit class"
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={() => openEditDialog(classItem)}
+                                  >
+                                    <Pencil className="size-5" />
+                                  </Button>
 
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                              title="Delete class"
-                              onClick={() => openDeleteDialog(classItem)}
-                            >
-                              <Trash2 className="size-5" />
-                            </Button>
-                          </div>
-                          <div className="md:hidden flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-9">
-                                  <MoreVertical className="size-5" />
-                                </Button>
-                              </DropdownMenuTrigger>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                    title="Delete class"
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={() => openDeleteDialog(classItem)}
+                                  >
+                                    <Trash2 className="size-5" />
+                                  </Button>
+                                </div>
 
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditDialog(classItem)}>
-                                  <Pencil className="mr-2 size-4" />
-                                  Edit
-                                </DropdownMenuItem>
+                                <div className="md:hidden flex justify-end">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
+                                        <MoreVertical className="size-5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
 
-                                <DropdownMenuItem onClick={() => openDeleteDialog(classItem)} className="text-destructive">
-                                  <Trash2 className="mr-2 size-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => openEditDialog(classItem)}>
+                                        <Pencil className="mr-2 size-4" />
+                                        Edit
+                                      </DropdownMenuItem>
+
+                                      <DropdownMenuItem onClick={() => openDeleteDialog(classItem)} className="text-destructive">
+                                        <Trash2 className="mr-2 size-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableCell>
+                            </>
+                          )}
+                        </SortableRow>
+                      ))}
+                    </SortableContext>
+                  </TableBody>
+                </Table>
+              </div>
+            </DndContext>
           )}
         </div>
       </div>
@@ -445,30 +534,13 @@ export default function ClassesPage() {
                     setEditName(e.target.value);
                     clearEditError("name");
                   }}
-                  className="mt-2"
+                  className=""
                 />
                 {editErrors.name && <p className="text-sm text-red-500 mt-1">{editErrors.name}</p>}
               </Field>
 
               <Field>
-                <Label>Sort Order</Label>
-
-                <Input
-                  type="number"
-                  min={1}
-                  value={editSortOrder}
-                  onChange={(e) => {
-                    setEditSortOrder(e.target.value);
-                    clearEditError("sortOrder");
-                  }}
-                  className="mt-2"
-                />
-                {editErrors.sortOrder && <p className="text-sm text-red-500 mt-1">{editErrors.sortOrder}</p>}
-              </Field>
-
-              <Field>
                 <Label>Active Class</Label>
-
                 <div className="mt-3">
                   <Switch checked={editIsActive} onCheckedChange={setEditIsActive} />
                 </div>

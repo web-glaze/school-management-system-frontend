@@ -304,7 +304,7 @@ export default function StudentEnrollmentsPage() {
 
                     <Popover open={studentOpen} onOpenChange={setStudentOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" role="combobox" aria-expanded={studentOpen} className="mt-2 h-11 w-full justify-between font-normal">
+                        <Button type="button" variant="outline" role="combobox" aria-expanded={studentOpen} className=" h-11 w-full justify-between font-normal">
                           {studentId
                             ? (() => {
                                 const student = students.find((s) => s.id === studentId);
@@ -383,7 +383,7 @@ export default function StudentEnrollmentsPage() {
                         }));
                       }}
                     >
-                      <SelectTrigger className="mt-2 h-11 w-full">
+                      <SelectTrigger className=" h-11 w-full">
                         <SelectValue placeholder="Select Session" />
                       </SelectTrigger>
 
@@ -412,7 +412,7 @@ export default function StudentEnrollmentsPage() {
                         }));
                       }}
                     >
-                      <SelectTrigger className="mt-2 h-11 w-full">
+                      <SelectTrigger className=" h-11 w-full">
                         <SelectValue placeholder="Select Class" />
                       </SelectTrigger>
 
@@ -441,7 +441,7 @@ export default function StudentEnrollmentsPage() {
                         }));
                       }}
                     >
-                      <SelectTrigger className="mt-2 h-11 w-full">
+                      <SelectTrigger className=" h-11 w-full">
                         <SelectValue placeholder="Select Section" />
                       </SelectTrigger>
 
@@ -781,7 +781,7 @@ export default function StudentEnrollmentsPage() {
 
               <h3 className="text-lg font-semibold">{studentEnrollments.length === 0 ? "No enrollments created yet." : "No enrollments found."}</h3>
 
-              <p className="mt-2 text-muted-foreground">{studentEnrollments.length === 0 ? "Create your first student enrollment." : "Try adjusting your search or filters."}</p>
+              <p className=" text-muted-foreground">{studentEnrollments.length === 0 ? "Create your first student enrollment." : "Try adjusting your search or filters."}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -931,7 +931,7 @@ export default function StudentEnrollmentsPage() {
               <Field>
                 <Label>Student</Label>
 
-                <div className="mt-2 h-11 flex items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
+                <div className=" h-11 flex items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
                   {editingEnrollment ? `${editingEnrollment.student.admissionNo} - ${editingEnrollment.student.firstName} ${editingEnrollment.student.lastName}` : ""}
                 </div>
               </Field>
@@ -940,7 +940,7 @@ export default function StudentEnrollmentsPage() {
                 <Label>Academic Session</Label>
 
                 <Select value={editSessionId} onValueChange={(value) => setEditSessionId(value)}>
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue placeholder="Select Session" />
                   </SelectTrigger>
 
@@ -958,7 +958,7 @@ export default function StudentEnrollmentsPage() {
                 <Label>Class</Label>
 
                 <Select value={editClassId} onValueChange={(value) => setEditClassId(value)}>
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue placeholder="Select Class" />
                   </SelectTrigger>
 
@@ -976,7 +976,7 @@ export default function StudentEnrollmentsPage() {
                 <Label>Section</Label>
 
                 <Select value={editSectionId} onValueChange={(value) => setEditSectionId(value)}>
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue placeholder="Select Section" />
                   </SelectTrigger>
 
@@ -994,7 +994,7 @@ export default function StudentEnrollmentsPage() {
                 <Label>Enrollment Status</Label>
 
                 <Select value={status} onValueChange={(value) => setStatus(value as "ACTIVE" | "PROMOTED" | "TRANSFERRED" | "GRADUATED" | "DROPPED")}>
-                  <SelectTrigger className="mt-2 h-11 w-full">
+                  <SelectTrigger className=" h-11 w-full">
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
 

@@ -226,7 +226,7 @@ export default function SubjectsPage() {
                         setName(e.target.value);
                         clearFormError("name");
                       }}
-                      className="mt-2"
+                      className=""
                     />
                     {formErrors.name && <p className="text-sm text-red-500 mt-1">{formErrors.name}</p>}
                   </Field>
@@ -271,7 +271,7 @@ export default function SubjectsPage() {
             <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
 
-              <Input type="text" placeholder="Search by subject name..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+              <Input type="text" placeholder="Search by subject name or code" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
           </div>
 
@@ -418,7 +418,7 @@ export default function SubjectsPage() {
                     setEditName(e.target.value);
                     clearEditError("name");
                   }}
-                  className="mt-2"
+                  className=""
                 />
                 {editErrors.name && <p className="text-sm text-red-500 mt-1">{editErrors.name}</p>}
               </Field>
