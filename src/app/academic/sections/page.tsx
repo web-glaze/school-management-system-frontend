@@ -273,7 +273,7 @@ export default function SectionsPage() {
             <div className="relative w-full lg:w-87.5 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
 
-              <Input type="text" placeholder="Search by section name or code" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+              <Input type="text" placeholder="Search by section name or code..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
             </div>
           </div>
 
@@ -306,39 +306,39 @@ export default function SectionsPage() {
             </div>
           ) : (
             <div className="relative w-full overflow-x-auto">
-              <Table>
+              <Table className="table-auto">
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Section</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
-                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-24">Status</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                      <span className="md:block">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody className="divide-y divide-border/30">
                   {filteredSections.map((section) => (
                     <TableRow key={section.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="py-4 pl-6 align-top">
-                        <div className="space-y-1 max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={section.name}>
-                            {section.name.length > 15 ? `${section.name.slice(0, 15)}...` : section.name}
+                      <TableCell className="py-4 align-middle">
+                        <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
+                          <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={section.name}>
+                            {section.name}
                           </p>
 
-                          <p className="text-sm text-foreground/50 md:hidden">{section.sectionCode}</p>
+                          <p className="text-sm text-foreground/50 truncate md:hidden">{section.sectionCode}</p>
                         </div>
                       </TableCell>
 
-                      <TableCell className="hidden md:table-cell py-4">{section.sectionCode}</TableCell>
+                      <TableCell className="hidden md:table-cell py-4 align-middle">{section.sectionCode}</TableCell>
 
-                      <TableCell className="hidden md:table-cell py-4">
-                        <Badge className={`text-xs px-2 py-0.5 whitespace-nowrap ${section.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}`}>
-                          {section.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                      <TableCell className="py-4 align-middle">
+                        <Badge className={section.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{section.isActive ? "Active" : "Inactive"}</Badge>
                       </TableCell>
 
-                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
+                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell align-middle">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="size-5 text-muted-foreground/80" />
 
@@ -354,13 +354,27 @@ export default function SectionsPage() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
+                      <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <div className="hidden md:flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(section)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                            title="Edit section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openEditDialog(section)}
+                          >
                             <Pencil className="size-5" />
                           </Button>
 
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => openDeleteDialog(section)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                            title="Delete section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openDeleteDialog(section)}
+                          >
                             <Trash2 className="size-5" />
                           </Button>
                         </div>
@@ -368,7 +382,7 @@ export default function SectionsPage() {
                         <div className="md:hidden flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-9">
+                              <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
                                 <MoreVertical className="size-5" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -472,8 +486,7 @@ export default function SectionsPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete section?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingSection?.name && (deletingSection.name.length > 10 ? `${deletingSection.name.slice(0, 10)}...` : deletingSection.name)}</span>
+              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingSection?.name}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 

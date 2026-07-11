@@ -387,17 +387,17 @@ export default function ClassesPage() {
               autoScroll={false}
             >
               <div className="relative w-full overflow-x-auto">
-                <Table>
+                <Table className="table-auto">
                   <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-10 py-4 pl-6"></TableHead>
-                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Class</TableHead>
+                      <TableHead className="w-8 py-4 pl-4 sm:pl-6"></TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 md:min-w-45">Class</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Code</TableHead>
-                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-24">Status</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
                       <TableHead
-                        className={`font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5 bg-gray-50 dark:bg-muted/15 ${
-                          isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none"
+                        className={`font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 bg-gray-50 dark:bg-muted/15 ${
+                          isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0"
                         }`}
                       >
                         <span className="md:block">Actions</span>
@@ -410,21 +410,24 @@ export default function ClassesPage() {
                         <SortableRow key={classItem.id} classItem={classItem}>
                           {(dragHandle) => (
                             <>
-                              <TableCell className="py-4 pl-6 align-middle">{dragEnabled ? dragHandle : null}</TableCell>
+                              <TableCell className="py-4 pl-4 sm:pl-6 align-middle">{dragEnabled ? dragHandle : null}</TableCell>
 
                               <TableCell className="py-4 align-middle">
-                                <div className="space-y-1 max-w-45">
-                                  <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={classItem.name}>
-                                    {classItem.name.length > 15 ? `${classItem.name.slice(0, 15)}...` : classItem.name}
+                                <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
+                                  <p
+                                    className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors"
+                                    title={classItem.name}
+                                  >
+                                    {classItem.name}
                                   </p>
 
-                                  <p className="text-sm text-foreground/50 md:hidden">{classItem.classCode}</p>
+                                  <p className="text-sm text-foreground/50 truncate md:hidden">{classItem.classCode}</p>
                                 </div>
                               </TableCell>
 
                               <TableCell className="hidden md:table-cell py-4 align-middle">{classItem.classCode}</TableCell>
 
-                              <TableCell className="hidden md:table-cell py-4 align-middle">
+                              <TableCell className="py-4 align-middle">
                                 <Badge className={classItem.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{classItem.isActive ? "Active" : "Inactive"}</Badge>
                               </TableCell>
 
@@ -444,8 +447,8 @@ export default function ClassesPage() {
                               </TableCell>
 
                               <TableCell
-                                className={`py-4 pr-6 text-right align-middle max-w-12.5 bg-card ${
-                                  isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none"
+                                className={`py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card ${
+                                  isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0"
                                 }`}
                               >
                                 <div className="hidden md:flex justify-end gap-1">
@@ -581,9 +584,9 @@ export default function ClassesPage() {
 
             <AlertDialogTitle className="w-full text-center text-xl">Delete class?</AlertDialogTitle>
 
-            <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingClass?.name && (deletingClass.name.length > 20 ? `${deletingClass.name.slice(0, 20)}...` : deletingClass.name)}</span>.
+            <AlertDialogDescription className="text-center wrap-break-word">
+              This action cannot be undone. This will permanently remove{" "}
+              <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingClass?.name}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
