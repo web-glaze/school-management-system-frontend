@@ -158,11 +158,13 @@ export interface CreateStudentAttendancePayload {
   enrollmentId: string;
   attendanceDate: string;
   status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+  remarks?: string;
 }
 
 export interface UpdateStudentAttendancePayload {
   attendanceDate: string;
   status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+  remarks?: string;
 }
 
 export interface CreateFacultyAttendancePayload {

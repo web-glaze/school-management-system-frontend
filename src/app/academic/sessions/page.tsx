@@ -386,8 +386,8 @@ export default function AcademicSessionPage() {
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Session</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Start Date</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">End Date</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden lg:table-cell">Start Date</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden lg:table-cell">End Date</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>

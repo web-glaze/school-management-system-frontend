@@ -10,7 +10,26 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { Calendar as CalendarIcon, CalendarCheck, Check, ChevronDown, CircleCheck, ClipboardList, Inbox, Loader2, MoreVertical, Pencil, Plus, RotateCcw, Search, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  CalendarCheck,
+  Check,
+  ChevronDown,
+  CircleCheck,
+  ClipboardList,
+  Inbox,
+  Loader2,
+  MoreVertical,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  Users,
+  MessageSquare,
+  X,
+} from "lucide-react";
 import { useAcademicStore, StudentAttendance } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useMemo, useState } from "react";
@@ -102,7 +121,15 @@ export default function StudentAttendancePage() {
   const [regDate, setRegDate] = useState(todayStr());
   const [registerLoaded, setRegisterLoaded] = useState(false);
   const [registerSearch, setRegisterSearch] = useState("");
-  const [markings, setMarkings] = useState<Record<string, AttendanceStatus>>({});
+  const [markings, setMarkings] = useState<
+    Record<
+      string,
+      {
+        status: AttendanceStatus;
+        remarks: string;
+      }
+    >
+  >({});
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("all");
@@ -121,17 +148,21 @@ export default function StudentAttendancePage() {
   const [enrollmentId, setEnrollmentId] = useState("");
   const [addDate, setAddDate] = useState(todayStr());
   const [addStatus, setAddStatus] = useState<AttendanceStatus>("PRESENT");
+  const [addRemarks, setAddRemarks] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [enrollmentOpen, setEnrollmentOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<StudentAttendance | null>(null);
   const [editDate, setEditDate] = useState("");
   const [editStatus, setEditStatus] = useState<AttendanceStatus>("PRESENT");
+  const [editRemarks, setEditRemarks] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingAttendance, setDeletingAttendance] = useState<StudentAttendance | null>(null);
   const [regDateOpen, setRegDateOpen] = useState(false);
   const [addDateOpen, setAddDateOpen] = useState(false);
   const [editDateOpen, setEditDateOpen] = useState(false);
+  const [desktopFilterDateOpen, setDesktopFilterDateOpen] = useState(false);
+  const [mobileFilterDateOpen, setMobileFilterDateOpen] = useState(false);
 
   useEffect(() => {
     fetchSessions();
@@ -162,11 +193,22 @@ export default function StudentAttendancePage() {
   }, [activeEnrollments, regSessionId, regClassId, regSectionId]);
 
   const existingForDate = useMemo(() => {
-    const map: Record<string, { id: string; status: AttendanceStatus }> = {};
+    const map: Record<
+      string,
+      {
+        id: string;
+        status: AttendanceStatus;
+        remarks: string;
+      }
+    > = {};
 
     studentAttendances.forEach((a) => {
       if (toDateInputValue(a.date) === regDate) {
-        map[a.enrollmentId] = { id: a.id, status: a.status };
+        map[a.enrollmentId] = {
+          id: a.id,
+          status: a.status,
+          remarks: a.remarks ?? "",
+        };
       }
     });
 
@@ -182,7 +224,7 @@ export default function StudentAttendancePage() {
     const stats = { total: registerStudents.length, PRESENT: 0, ABSENT: 0, LATE: 0, LEAVE: 0 };
 
     registerStudents.forEach((e) => {
-      const status = markings[e.id];
+      const status = markings[e.id]?.status;
       if (status) stats[status] += 1;
     });
 
@@ -190,17 +232,26 @@ export default function StudentAttendancePage() {
   }, [registerStudents, markings]);
 
   // const hasUnsavedChanges = registerStudents.some((e) => {
-  //   const current = markings[e.id]; 
+  //   const current = markings[e.id];
   //   const saved = existingForDate[e.id]?.status ?? "PRESENT";                   if, to disable the save button for future
 
   //   return current !== saved;
   // });
 
   function seedMarkings() {
-    const seeded: Record<string, AttendanceStatus> = {};
+    const seeded: Record<
+      string,
+      {
+        status: AttendanceStatus;
+        remarks: string;
+      }
+    > = {};
 
     registerStudents.forEach((e) => {
-      seeded[e.id] = existingForDate[e.id]?.status ?? "PRESENT";
+      seeded[e.id] = {
+        status: existingForDate[e.id]?.status ?? "PRESENT",
+        remarks: existingForDate[e.id]?.remarks ?? "",
+      };
     });
 
     setMarkings(seeded);
@@ -220,11 +271,20 @@ export default function StudentAttendancePage() {
     setRegDate(value);
 
     if (registerLoaded) {
-      const seeded: Record<string, AttendanceStatus> = {};
+      const seeded: Record<
+        string,
+        {
+          status: AttendanceStatus;
+          remarks: string;
+        }
+      > = {};
 
       registerStudents.forEach((e) => {
         const existing = studentAttendances.find((a) => a.enrollmentId === e.id && toDateInputValue(a.date) === value);
-        seeded[e.id] = existing?.status ?? "PRESENT";
+        seeded[e.id] = {
+          status: existing?.status ?? "PRESENT",
+          remarks: existing?.remarks ?? "",
+        };
       });
 
       setMarkings(seeded);
@@ -232,13 +292,28 @@ export default function StudentAttendancePage() {
   }
 
   function setStudentStatus(id: string, status: AttendanceStatus) {
-    setMarkings((prev) => ({ ...prev, [id]: status }));
+    setMarkings((prev) => ({
+      ...prev,
+      [id]: {
+        ...(prev[id] ?? { remarks: "" }),
+        status,
+      },
+    }));
   }
 
   function markAllAs(status: AttendanceStatus) {
-    const updated: Record<string, AttendanceStatus> = { ...markings };
+    const updated: Record<
+      string,
+      {
+        status: AttendanceStatus;
+        remarks: string;
+      }
+    > = { ...markings };
     registerStudents.forEach((e) => {
-      updated[e.id] = status;
+      updated[e.id] = {
+        ...(updated[e.id] ?? { remarks: "" }),
+        status,
+      };
     });
     setMarkings(updated);
   }
@@ -254,17 +329,27 @@ export default function StudentAttendancePage() {
     try {
       const ops = registerStudents
         .map((e) => {
-          const status = markings[e.id];
+          const status = markings[e.id]?.status;
+          const remarks = markings[e.id]?.remarks ?? "";
           if (!status) return null;
 
           const existing = existingForDate[e.id];
 
           if (existing) {
             if (existing.status === status) return null;
-            return updateStudentAttendance(existing.id, { attendanceDate: regDate, status });
+            return updateStudentAttendance(existing.id, {
+              attendanceDate: regDate,
+              status,
+              remarks,
+            });
           }
 
-          return createStudentAttendance({ enrollmentId: e.id, attendanceDate: regDate, status });
+          return createStudentAttendance({
+            enrollmentId: e.id,
+            attendanceDate: regDate,
+            status,
+            remarks,
+          });
         })
         .filter(Boolean) as Promise<void>[];
 
@@ -341,6 +426,7 @@ export default function StudentAttendancePage() {
     setEnrollmentId("");
     setAddDate(todayStr());
     setAddStatus("PRESENT");
+    setAddRemarks("");
     setFormErrors({});
   };
 
@@ -352,6 +438,7 @@ export default function StudentAttendancePage() {
         enrollmentId,
         attendanceDate: addDate,
         status: addStatus,
+        remarks: addRemarks,
       });
 
       toast.success("Attendance marked successfully");
@@ -374,6 +461,7 @@ export default function StudentAttendancePage() {
   const openEditDialog = (attendance: StudentAttendance) => {
     setEditDate(toDateInputValue(attendance.date));
     setEditStatus(attendance.status);
+    setEditRemarks(attendance.remarks ?? "");
     setEditingAttendance(attendance);
     setEditOpen(true);
   };
@@ -387,6 +475,7 @@ export default function StudentAttendancePage() {
       await updateStudentAttendance(editingAttendance.id, {
         attendanceDate: editDate,
         status: editStatus,
+        remarks: editRemarks,
       });
 
       toast.success("Attendance updated successfully");
@@ -418,7 +507,7 @@ export default function StudentAttendancePage() {
     }
   };
 
-  const hasEditChanges = editingAttendance && (editDate !== toDateInputValue(editingAttendance.date) || editStatus !== editingAttendance.status);
+  const hasEditChanges = editingAttendance && (editDate !== toDateInputValue(editingAttendance.date) || editStatus !== editingAttendance.status || editRemarks !== (editingAttendance.remarks ?? ""));
 
   return (
     <DashboardLayout>
@@ -582,7 +671,7 @@ export default function StudentAttendancePage() {
                       <Label>Status</Label>
 
                       <Select value={addStatus} onValueChange={(value) => setAddStatus(value as AttendanceStatus)}>
-                        <SelectTrigger className=" h-11 w-full">
+                        <SelectTrigger className="h-11 w-full">
                           <SelectValue placeholder="Select Status" />
                         </SelectTrigger>
 
@@ -596,6 +685,12 @@ export default function StudentAttendancePage() {
                       </Select>
 
                       {formErrors.status && <p className="text-sm text-red-500 mt-1">{formErrors.status}</p>}
+                    </Field>
+
+                    <Field className="md:col-span-3">
+                      <Label>Remarks</Label>
+
+                      <Input value={addRemarks} onChange={(e) => setAddRemarks(e.target.value)} placeholder="Optional remarks" className="h-11" />
                     </Field>
                   </FieldGroup>
 
@@ -810,34 +905,61 @@ export default function StudentAttendancePage() {
                 <div className="divide-y divide-border/40 rounded-md border">
                   {registerSearchedStudents.map((enrollment) => (
                     <div key={enrollment.id} className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 p-4">
-                      <div className="flex items-center gap-3 md:w-64 shrink-0">
-                        <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
-                          {enrollment.student.firstName.charAt(0)}
-                          {enrollment.student.lastName.charAt(0)}
+                      <div className="flex flex-col gap-3 md:w-64 shrink-0">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
+                            {enrollment.student.firstName.charAt(0)}
+                            {enrollment.student.lastName.charAt(0)}
+                          </div>
+
+                          <div>
+                            <p className="font-medium leading-tight">
+                              {enrollment.student.firstName} {enrollment.student.lastName}
+                            </p>
+
+                            <p className="text-xs text-muted-foreground">{enrollment.student.admissionNo}</p>
+                          </div>
                         </div>
 
-                        <div>
-                          <p className="font-medium leading-tight">
-                            {enrollment.student.firstName} {enrollment.student.lastName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{enrollment.student.admissionNo}</p>
+                        <div className="relative w-56">
+                          <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+
+                          <Input
+                            placeholder="Remarks (optional)"
+                            value={markings[enrollment.id]?.remarks ?? ""}
+                            onChange={(e) =>
+                              setMarkings((prev) => ({
+                                ...prev,
+                                [enrollment.id]: {
+                                  ...(prev[enrollment.id] ?? {
+                                    status: "PRESENT",
+                                    remarks: "",
+                                  }),
+                                  remarks: e.target.value,
+                                },
+                              }))
+                            }
+                            className="h-9 pl-8 text-xs"
+                          />
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 md:ml-auto">
-                        {STATUS_OPTIONS.map((opt) => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setStudentStatus(enrollment.id, opt.value)}
-                            className={cn(
-                              "px-3.5 py-1.5 rounded-md text-xs font-semibold border transition-colors",
-                              markings[enrollment.id] === opt.value ? statusToggleClass(opt.value) : "border-input text-muted-foreground hover:bg-muted"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
+                      <div className="flex flex-col md:ml-auto">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {STATUS_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setStudentStatus(enrollment.id, opt.value)}
+                              className={cn(
+                                "px-3.5 py-1.5 rounded-md text-xs font-semibold border transition-colors",
+                                markings[enrollment.id]?.status === opt.value ? statusToggleClass(opt.value) : "border-input text-muted-foreground hover:bg-muted"
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -950,7 +1072,27 @@ export default function StudentAttendancePage() {
                   </SelectContent>
                 </Select>
 
-                <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="h-10 w-40" />
+                <Popover open={desktopFilterDateOpen} onOpenChange={setDesktopFilterDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className={cn("h-10 w-40 justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFilter ? format(new Date(dateFilter), "dd MMM yyyy") : "Pick a Date"}
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <Calendar
+                      mode="single"
+                      selected={dateFilter ? new Date(dateFilter) : undefined}
+                      onSelect={(date) => {
+                        if (!date) return;
+
+                        setDateFilter(format(date, "yyyy-MM-dd"));
+                        setDesktopFilterDateOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
 
                 <Button onClick={applyFilters} disabled={!filtersChanged} className="ml-auto h-10 min-w-28 px-6 font-medium shadow-sm">
                   Apply Filters
@@ -1039,7 +1181,27 @@ export default function StudentAttendancePage() {
                     </SelectContent>
                   </Select>
 
-                  <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="h-10 col-span-2" />
+                  <Popover open={mobileFilterDateOpen} onOpenChange={setMobileFilterDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" className={cn("h-10 col-span-2 justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFilter ? format(new Date(dateFilter), "dd MMM yyyy") : "Pick a Date"}
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                      <Calendar
+                        mode="single"
+                        selected={dateFilter ? new Date(dateFilter) : undefined}
+                        onSelect={(date) => {
+                          if (!date) return;
+
+                          setDateFilter(format(date, "yyyy-MM-dd"));
+                          setDesktopFilterDateOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <Button onClick={applyFilters} disabled={!filtersChanged} className="h-10 w-full">
@@ -1165,7 +1327,7 @@ export default function StudentAttendancePage() {
                 <Table>
                   <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-40">Admission No.</TableHead>
+                      <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-25">Admission No.</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-45">Student</TableHead>
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Class</TableHead>
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Section</TableHead>
@@ -1207,8 +1369,6 @@ export default function StudentAttendancePage() {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
                               })}
                             </span>
                           </div>
@@ -1326,7 +1486,7 @@ export default function StudentAttendancePage() {
                 <Label>Status</Label>
 
                 <Select value={editStatus} onValueChange={(value) => setEditStatus(value as AttendanceStatus)}>
-                  <SelectTrigger className=" h-11 w-full">
+                  <SelectTrigger className="h-11 w-full">
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
 
@@ -1338,6 +1498,12 @@ export default function StudentAttendancePage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </Field>
+
+              <Field className="md:col-span-3">
+                <Label>Remarks</Label>
+
+                <Input value={editRemarks} onChange={(e) => setEditRemarks(e.target.value)} placeholder="Optional remarks" className="h-11" />
               </Field>
             </FieldGroup>
 

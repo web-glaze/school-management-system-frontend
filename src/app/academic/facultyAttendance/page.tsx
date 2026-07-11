@@ -362,7 +362,8 @@ export default function FacultyAttendancePage() {
   const [regDateOpen, setRegDateOpen] = useState(false);
   const [addDateOpen, setAddDateOpen] = useState(false);
   const [editDateOpen, setEditDateOpen] = useState(false);
-  const [filterDateOpen, setFilterDateOpen] = useState(false);
+  const [desktopFilterDateOpen, setDesktopFilterDateOpen] = useState(false);
+  const [mobileFilterDateOpen, setMobileFilterDateOpen] = useState(false);
 
   useEffect(() => {
     fetchSessions();
@@ -1235,9 +1236,9 @@ export default function FacultyAttendancePage() {
                   </SelectContent>
                 </Select>
 
-                <Popover open={filterDateOpen} onOpenChange={setFilterDateOpen}>
+                <Popover open={desktopFilterDateOpen} onOpenChange={setDesktopFilterDateOpen}>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className="h-10 w-full justify-start text-left font-normal">
+                    <Button type="button" variant="outline" className={cn("h-10 w-40 justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {dateFilter ? format(new Date(dateFilter), "dd MMM yyyy") : "Pick a date"}
                     </Button>
@@ -1250,7 +1251,7 @@ export default function FacultyAttendancePage() {
                       onSelect={(date) => {
                         if (!date) return;
                         setDateFilter(format(date, "yyyy-MM-dd"));
-                        setFilterDateOpen(false);
+                        setDesktopFilterDateOpen(false);
                       }}
                     />
                   </PopoverContent>
@@ -1322,9 +1323,9 @@ export default function FacultyAttendancePage() {
                     </SelectContent>
                   </Select>
 
-                  <Popover open={filterDateOpen} onOpenChange={setFilterDateOpen}>
+                  <Popover open={mobileFilterDateOpen} onOpenChange={setMobileFilterDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" className="h-10 w-full justify-start text-left font-normal">
+                      <Button type="button" variant="outline" className={cn("h-10 w-full justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {dateFilter ? format(new Date(dateFilter), "dd MMM yyyy") : "Pick a date"}
                       </Button>
@@ -1337,7 +1338,7 @@ export default function FacultyAttendancePage() {
                         onSelect={(date) => {
                           if (!date) return;
                           setDateFilter(format(date, "yyyy-MM-dd"));
-                          setFilterDateOpen(false);
+                          setMobileFilterDateOpen(false);
                         }}
                       />
                     </PopoverContent>

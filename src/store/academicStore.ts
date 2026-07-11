@@ -118,6 +118,7 @@ export interface StudentAttendance {
   enrollmentId: string;
   date: string;
   status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+  remarks?: string;
   createdAt: string;
   updatedAt: string;
 
