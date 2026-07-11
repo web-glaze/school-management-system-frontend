@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
@@ -512,51 +512,84 @@ export default function StudentAttendancePage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Student Attendance</h1>
-            <p className="text-muted-foreground">Mark and manage daily student attendance</p>
+        <div className="flex flex-col gap-4 mb-6 sm:mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Student Attendance</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">Mark and manage daily student attendance</p>
+            </div>
+
+            {/* Desktop controls */}
+            <div className="hidden sm:flex items-center gap-3">
+              <div className="inline-flex rounded-lg border p-1 bg-muted/40">
+                <button
+                  onClick={() => setViewMode("mark")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors",
+                    viewMode === "mark" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <ClipboardList className="size-4" />
+                  Mark Attendance
+                </button>
+
+                <button
+                  onClick={() => setViewMode("records")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors",
+                    viewMode === "records" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <CalendarCheck className="size-4" />
+                  Records
+                </button>
+              </div>
+
+              <Button className="gap-2 px-5" onClick={() => setAddOpen(true)}>
+                <Plus className="size-4" />
+                Add Entry
+              </Button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="inline-flex rounded-lg border p-1 bg-muted/40">
+          {/* Mobile controls */}
+          <div className="flex sm:hidden items-center gap-2">
+            <div className="flex flex-1 rounded-lg border p-1 bg-muted/40">
               <button
                 onClick={() => setViewMode("mark")}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                  viewMode === "mark" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                  "flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 rounded-md text-xs font-medium transition-colors truncate",
+                  viewMode === "mark" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
                 )}
               >
-                <ClipboardList className="size-4" />
-                Mark Attendance
+                <ClipboardList className="size-4 shrink-0" />
+                Mark
               </button>
 
               <button
                 onClick={() => setViewMode("records")}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                  viewMode === "records" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                  "flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 rounded-md text-xs font-medium transition-colors truncate",
+                  viewMode === "records" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
                 )}
               >
-                <CalendarCheck className="size-4" />
+                <CalendarCheck className="size-4 shrink-0" />
                 Records
               </button>
             </div>
 
-            <Dialog
-              open={addOpen}
-              onOpenChange={(open) => {
-                setAddOpen(open);
-                if (!open) resetAddForm();
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button className="gap-2 px-5">
-                  <Plus className="size-4" />
-                  Add Entry
-                </Button>
-              </DialogTrigger>
+            <Button size="icon" className="size-10 shrink-0" onClick={() => setAddOpen(true)} aria-label="Add Entry">
+              <Plus className="size-5" />
+            </Button>
+          </div>
 
+          <Dialog
+            open={addOpen}
+            onOpenChange={(open) => {
+              setAddOpen(open);
+              if (!open) resetAddForm();
+            }}
+          >
               <DialogContent className="sm:max-w-125 p-0 overflow-hidden">
                 <div className="border-b px-6 py-5">
                   <div className="flex items-center gap-3">
@@ -717,13 +750,12 @@ export default function StudentAttendancePage() {
                   </DialogFooter>
                 </form>
               </DialogContent>
-            </Dialog>
-          </div>
+          </Dialog>
         </div>
 
         {viewMode === "mark" ? (
           <div className="space-y-6">
-            <div className="bg-card rounded-md border p-6 space-y-4">
+            <div className="bg-card rounded-md border p-4 sm:p-6 space-y-4">
               <div className="flex items-center gap-1.5">
                 <SlidersHorizontal className="size-3.5 text-muted-foreground" />
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Select Register</span>
@@ -837,7 +869,7 @@ export default function StudentAttendancePage() {
             </div>
 
             {!registerLoaded ? (
-              <div className="bg-card rounded-md border p-16 flex flex-col items-center justify-center text-center">
+              <div className="bg-card rounded-md border p-8 sm:p-16 flex flex-col items-center justify-center text-center">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
                   <ClipboardList className="size-6 text-muted-foreground" />
                 </div>
@@ -846,7 +878,7 @@ export default function StudentAttendancePage() {
                 <p className=" text-muted-foreground">Then click &ldquo;Load Students&rdquo; to start marking attendance.</p>
               </div>
             ) : registerStudents.length === 0 ? (
-              <div className="bg-card rounded-md border p-16 flex flex-col items-center justify-center text-center">
+              <div className="bg-card rounded-md border p-8 sm:p-16 flex flex-col items-center justify-center text-center">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
                   <Inbox className="size-6" />
                 </div>
@@ -855,7 +887,7 @@ export default function StudentAttendancePage() {
                 <p className=" text-muted-foreground">There are no active enrollments for this class and section.</p>
               </div>
             ) : (
-              <div className="bg-card rounded-md border p-6 space-y-5">
+              <div className="bg-card rounded-md border p-4 sm:p-6 space-y-5">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                   <div className="rounded-lg border p-4">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
@@ -889,13 +921,13 @@ export default function StudentAttendancePage() {
                     <Input placeholder="Search student..." value={registerSearch} onChange={(e) => setRegisterSearch(e.target.value)} className="h-10 pl-10" />
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => markAllAs("PRESENT")} className="gap-1.5">
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => markAllAs("PRESENT")} className="gap-1.5 flex-1 sm:flex-none">
                       <CircleCheck className="size-4" />
-                      Mark all Present
+                      <span className="whitespace-nowrap">Mark all Present</span>
                     </Button>
 
-                    <Button variant="outline" size="sm" onClick={resetToSaved} className="gap-1.5">
+                    <Button variant="outline" size="sm" onClick={resetToSaved} className="gap-1.5 flex-1 sm:flex-none">
                       <RotateCcw className="size-4" />
                       Reset
                     </Button>
@@ -921,7 +953,7 @@ export default function StudentAttendancePage() {
                           </div>
                         </div>
 
-                        <div className="relative w-56">
+                        <div className="relative w-full md:w-56">
                           <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
 
                           <Input
@@ -945,14 +977,14 @@ export default function StudentAttendancePage() {
                       </div>
 
                       <div className="flex flex-col md:ml-auto">
-                        <div className="flex flex-wrap justify-end gap-2">
+                        <div className="grid grid-cols-4 gap-1.5 md:flex md:flex-wrap md:justify-end md:gap-2">
                           {STATUS_OPTIONS.map((opt) => (
                             <button
                               key={opt.value}
                               type="button"
                               onClick={() => setStudentStatus(enrollment.id, opt.value)}
                               className={cn(
-                                "px-3.5 py-1.5 rounded-md text-xs font-semibold border transition-colors",
+                                "px-2 py-1.5 md:px-3.5 rounded-md text-[11px] md:text-xs font-semibold border transition-colors text-center",
                                 markings[enrollment.id]?.status === opt.value ? statusToggleClass(opt.value) : "border-input text-muted-foreground hover:bg-muted"
                               )}
                             >
@@ -967,13 +999,13 @@ export default function StudentAttendancePage() {
                   {registerSearchedStudents.length === 0 && <div className="p-8 text-center text-muted-foreground text-sm">No students match your search.</div>}
                 </div>
 
-                <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border bg-muted/30 px-4 py-3">
                   <p className="text-sm text-muted-foreground">
                     Marking attendance for <span className="font-semibold text-foreground">{registerStats.total}</span> student{registerStats.total !== 1 ? "s" : ""} on{" "}
                     <span className="font-semibold text-foreground">{new Date(regDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
                   </p>
 
-                  <Button onClick={handleSaveRegister} disabled={saving} className="min-w-40 h-10">
+                  <Button onClick={handleSaveRegister} disabled={saving} className="w-full sm:w-auto sm:min-w-40 h-10">
                     {saving ? (
                       <>
                         <Loader2 className="size-4 mr-2 animate-spin" />
@@ -991,7 +1023,7 @@ export default function StudentAttendancePage() {
             )}
           </div>
         ) : (
-          <div className="bg-card rounded-md border p-6 space-y-4">
+          <div className="bg-card rounded-md border p-4 sm:p-6 space-y-4">
             <div className="space-y-3">
               <div className="hidden md:flex md:flex-wrap md:items-center md:gap-2">
                 <div className="flex shrink-0 items-center gap-1.5 mr-1">
@@ -1001,7 +1033,7 @@ export default function StudentAttendancePage() {
                   {pendingFilterCount > 0 && <span className="flex size-4 items-center justify-center rounded-full bg-sky-600 text-[10px] font-bold leading-none text-white">{pendingFilterCount}</span>}
                 </div>
 
-                <div className="relative w-56">
+                <div className="relative w-full md:w-56">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input placeholder="Search student..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
                 </div>
