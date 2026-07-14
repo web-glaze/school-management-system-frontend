@@ -449,16 +449,18 @@ export default function TimetablePage() {
           <p className="text-sm text-muted-foreground sm:text-base">Build and manage the weekly period schedule for a class section</p>
         </div>
 
-        <div className="flex w-full gap-2 sm:w-auto">
-          <Button variant="outline" className="gap-2" onClick={openSettingsDialog}>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Button variant="outline" className="h-11 shrink-0 px-3 sm:px-4 gap-2" onClick={openSettingsDialog}>
             <Settings2 className="size-4" />
             <span className="hidden sm:inline">Days &amp; Periods</span>
           </Button>
 
-          <Button className="w-full gap-2 px-5 sm:w-auto" disabled={!viewSelected} onClick={() => openCreateDialog()}>
-            <Plus className="size-4" />
-            Add Period
-          </Button>
+          <div className="flex-1 sm:flex-none">
+            <Button className="w-full gap-2 px-3 sm:w-auto sm:px-5" disabled={!viewSelected} onClick={() => openCreateDialog()}>
+              <Plus className="size-4" />
+              Add Period
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -667,11 +669,11 @@ export default function TimetablePage() {
             </div>
           </div>
 
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto p-6">
+          <div className="max-h-[55vh] space-y-2 overflow-y-auto p-5">
             {ALL_DAYS.map((day) => {
               const config = draftDayConfig[day.key];
               return (
-                <div key={day.key} className={cn("flex items-center gap-3 rounded-xl border p-3 transition-colors", config.enabled ? "border-border" : "border-border/50 bg-muted/30")}>
+                <div key={day.key} className={cn("flex items-center gap-2 rounded-xl border p-3 transition-colors", config.enabled ? "border-border" : "border-border/50 bg-muted/30")}>
                   <Switch
                     checked={config.enabled}
                     onCheckedChange={(checked) =>
@@ -699,7 +701,7 @@ export default function TimetablePage() {
                           [day.key]: { ...p[day.key], periods: clamped },
                         }));
                       }}
-                      className="h-9 w-16 text-center"
+                      className="h-9 w-14 text-center"
                     />
                     <span className="text-xs text-muted-foreground">periods</span>
                   </div>
@@ -733,7 +735,7 @@ export default function TimetablePage() {
           }
         }}
       >
-        <DialogContent className="w-[calc(100%-2rem)] rounded-2xl p-0 overflow-hidden sm:max-w-105">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[22rem] rounded-2xl overflow-hidden p-0 sm:max-w-105">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">

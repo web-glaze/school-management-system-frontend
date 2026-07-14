@@ -488,7 +488,7 @@ export default function StudentSubjectAllocationPage() {
             </Select>
           </div>
 
-          <Button onClick={applyFilters} disabled={!filtersChanged} className="ml-auto h-10 min-w-28 px-6 font-medium shadow-sm">
+          <Button onClick={applyFilters} disabled={!filtersChanged} className="ml-auto h-10 min-w-28 px-6 font-medium ">
             Apply Filters
           </Button>
         </div>
@@ -683,10 +683,10 @@ export default function StudentSubjectAllocationPage() {
 
             <h3 className="text-lg font-semibold">{studentSubjectAllocations.length === 0 ? "No student subject allocations created yet." : "No student subject allocations found."}</h3>
 
-            <p className=" text-muted-foreground">{studentSubjectAllocations.length === 0 ? "Create your first student subject allocation." : "Try adjusting your search or filters."}</p>
+            <p className="mt-1.5 text-muted-foreground max-w-sm">{studentSubjectAllocations.length === 0 ? "Create your first student subject allocation." : "Try adjusting your search or filters."}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative w-full overflow-x-auto">
             <Table>
               <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                 <TableRow className="hover:bg-transparent">
@@ -714,8 +714,9 @@ export default function StudentSubjectAllocationPage() {
 
                           <p className="text-sm text-foreground/50 truncate">{allocation.student.admissionNo}</p>
                         </div>
+                      
                       </TableCell>
-                    <TableCell className=" md:table-cell">{allocation.subjectAllocation.subject.name}</TableCell>
+                    <TableCell className="md:table-cell text-sm">{allocation.subjectAllocation.subject.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{allocation.subjectAllocation.teacher.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{allocation.subjectAllocation.session.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{allocation.subjectAllocation.class.name}</TableCell>
