@@ -314,7 +314,6 @@ export default function StudentsPage() {
                     </div>
 
                     <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      
                       <Field>
                         <Label>Admission No</Label>
                         <Input
@@ -584,24 +583,24 @@ export default function StudentsPage() {
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Student Code</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Admission No</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Date Of Birth</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Status</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                      <span className="md:block">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody className="divide-y divide-border/30">
                   {filteredStudents.map((student) => (
                     <TableRow key={student.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="py-4 pl-6 align-top">
-                        <div className="space-y-1 max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={`${student.firstName} ${student.lastName}`}>
-                            {`${student.firstName} ${student.lastName}`.length > 15 ? `${`${student.firstName} ${student.lastName}`.slice(0, 15)}...` : `${student.firstName} ${student.lastName}`}
+                      <TableCell className="py-4 align-middle">
+                        <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
+                          <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={`${student.firstName} ${student.lastName}`}>
+                            {`${student.firstName} ${student.lastName}`}
                           </p>
 
-                          <p className="text-xs text-muted-foreground">{student.email ? (student.email.length > 25 ? `${student.email.slice(0, 25)}...` : student.email) : "--"}</p>
-
-                          <p className="text-sm text-foreground/50 md:hidden">{student.admissionNo}</p>
+                          <p className="text-sm text-foreground/50 truncate md:hidden">{student.studentCode}</p>
                         </div>
                       </TableCell>
 
@@ -612,19 +611,19 @@ export default function StudentsPage() {
                       <TableCell className="hidden md:table-cell">{student.admissionNo}</TableCell>
 
                       <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
-                          <div className="flex items-center gap-1.5">
-                            <CalendarIcon className="size-5 text-muted-foreground/80" />
-                            <span className="text-sm">
-                              {new Date(student.dob).toLocaleString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </span>
-                          </div>
-                        </TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <CalendarIcon className="size-5 text-muted-foreground/80" />
+                          <span className="text-sm">
+                            {new Date(student.dob).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      </TableCell>
 
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell className="py-4 align-middle">
                         <Badge
                           className={
                             student.status === "ACTIVE"
@@ -656,13 +655,27 @@ export default function StudentsPage() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="pr-6 text-right">
+                      <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <div className="hidden md:flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(student)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                            title="Edit section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openEditDialog(student)}
+                          >
                             <Pencil className="size-5" />
                           </Button>
 
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => openDeleteDialog(student)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                            title="Delete section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openDeleteDialog(student)}
+                          >
                             <Trash2 className="size-5" />
                           </Button>
                         </div>
@@ -670,7 +683,7 @@ export default function StudentsPage() {
                         <div className="md:hidden flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
                                 <MoreVertical className="size-5" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -681,7 +694,7 @@ export default function StudentsPage() {
                                 Edit
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem className="text-destructive" onClick={() => openDeleteDialog(student)}>
+                              <DropdownMenuItem onClick={() => openDeleteDialog(student)} className="text-destructive">
                                 <Trash2 className="mr-2 size-4" />
                                 Delete
                               </DropdownMenuItem>
@@ -975,13 +988,7 @@ export default function StudentsPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete student?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingStudent &&
-                  (`${deletingStudent.firstName} ${deletingStudent.lastName}`.length > 10
-                    ? `${`${deletingStudent.firstName} ${deletingStudent.lastName}`.slice(0, 10)}...`
-                    : `${deletingStudent.firstName} ${deletingStudent.lastName}`)}
-              </span>
-              .
+              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingStudent && `${deletingStudent.firstName} ${deletingStudent.lastName}`}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 

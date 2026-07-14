@@ -8,8 +8,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { BookOpen, CalendarClock, CalendarRange, Loader2, Pencil, Plus, Sparkles, Trash2, User } from "lucide-react";
+import { BookOpen, CalendarClock, CalendarRange, Loader2, Pencil, Plus, Settings2, Sparkles, Trash2, User } from "lucide-react";
 import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -23,7 +25,10 @@ type ApiErrorResponse = {
 
 type DayKey = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
 
-const DAYS: { key: DayKey; label: string; short: string }[] = [
+// Full universe of weekdays the school could ever use. Which ones are
+// actually active (and how many periods each has) is now user-configurable
+// via `dayConfig` below, rather than a fixed constant.
+const ALL_DAYS: { key: DayKey; label: string; short: string }[] = [
   { key: "MONDAY", label: "Monday", short: "Mon" },
   { key: "TUESDAY", label: "Tuesday", short: "Tue" },
   { key: "WEDNESDAY", label: "Wednesday", short: "Wed" },
@@ -31,8 +36,32 @@ const DAYS: { key: DayKey; label: string; short: string }[] = [
   { key: "FRIDAY", label: "Friday", short: "Fri" },
   { key: "SATURDAY", label: "Saturday", short: "Sat" },
 ];
-const PERIOD_COUNT = 8;
-const PERIODS = Array.from({ length: PERIOD_COUNT }, (_, i) => i + 1);
+
+const DEFAULT_PERIOD_COUNT = 8;
+const MIN_PERIODS = 1;
+const MAX_PERIODS = 12;
+
+type DayConfig = Record<DayKey, { enabled: boolean; periods: number }>;
+
+const DEFAULT_DAY_CONFIG: DayConfig = ALL_DAYS.reduce((acc, d) => {
+  acc[d.key] = { enabled: true, periods: DEFAULT_PERIOD_COUNT };
+  return acc;
+}, {} as DayConfig);
+
+const DAY_CONFIG_STORAGE_KEY = "timetable:day-config:v1";
+
+function loadDayConfig(): DayConfig {
+  if (typeof window === "undefined") return DEFAULT_DAY_CONFIG;
+  try {
+    const raw = window.localStorage.getItem(DAY_CONFIG_STORAGE_KEY);
+    if (!raw) return DEFAULT_DAY_CONFIG;
+    const parsed = JSON.parse(raw);
+    // Merge with defaults so newly-added day keys don't break old saves
+    return { ...DEFAULT_DAY_CONFIG, ...parsed };
+  } catch {
+    return DEFAULT_DAY_CONFIG;
+  }
+}
 
 const JS_DAY_TO_KEY: Record<number, DayKey | null> = {
   0: null,
@@ -88,8 +117,30 @@ export default function TimetablePage() {
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
 
+  // ---- Editable days & periods config ----
+  const [dayConfig, setDayConfig] = useState<DayConfig>(DEFAULT_DAY_CONFIG);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [draftDayConfig, setDraftDayConfig] = useState<DayConfig>(DEFAULT_DAY_CONFIG);
+
+  useEffect(() => {
+    setDayConfig(loadDayConfig());
+  }, []);
+
+  const DAYS = useMemo(() => ALL_DAYS.filter((d) => dayConfig[d.key]?.enabled), [dayConfig]);
+  const maxPeriods = useMemo(() => (DAYS.length === 0 ? 0 : Math.max(...DAYS.map((d) => dayConfig[d.key].periods))), [DAYS, dayConfig]);
+  const PERIODS = useMemo(() => Array.from({ length: maxPeriods }, (_, i) => i + 1), [maxPeriods]);
+
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
-  const [mobileDay, setMobileDay] = useState<DayKey>(todayKey ?? "MONDAY");
+  const firstActiveDay = DAYS[0]?.key ?? "MONDAY";
+  const [mobileDay, setMobileDay] = useState<DayKey>(todayKey && dayConfig[todayKey]?.enabled ? todayKey : firstActiveDay);
+
+  // Keep mobileDay valid if the active day set changes (e.g. current day gets disabled)
+  useEffect(() => {
+    if (DAYS.length > 0 && !DAYS.some((d) => d.key === mobileDay)) {
+      setMobileDay(DAYS[0].key);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [DAYS]);
 
   const [slotOpen, setSlotOpen] = useState(false);
   const [slotForm, setSlotForm] = useState<SlotFormState>(emptySlotForm);
@@ -136,7 +187,7 @@ export default function TimetablePage() {
     return Array.from(map.entries());
   }, [viewTimetables]);
 
-  const totalSlots = DAYS.length * PERIOD_COUNT;
+  const totalSlots = useMemo(() => DAYS.reduce((sum, d) => sum + dayConfig[d.key].periods, 0), [DAYS, dayConfig]);
   const filledSlots = viewTimetables.length;
   const completionPct = totalSlots === 0 ? 0 : Math.round((filledSlots / totalSlots) * 100);
 
@@ -156,6 +207,12 @@ export default function TimetablePage() {
     if (!day || !period) return false;
     const existing = cellMap[`${day}-${period}`];
     return Boolean(existing && existing.id !== excludeId);
+  }
+
+  function periodsForDay(day: DayKey | "") {
+    if (!day) return PERIODS;
+    const count = dayConfig[day]?.periods ?? DEFAULT_PERIOD_COUNT;
+    return Array.from({ length: count }, (_, i) => i + 1);
   }
 
   function openCreateDialog(day?: DayKey, period?: number) {
@@ -189,6 +246,26 @@ export default function TimetablePage() {
   function openDeleteDialog(entry: Timetable) {
     setDeletingEntry(entry);
     setDeleteOpen(true);
+  }
+
+  function openSettingsDialog() {
+    setDraftDayConfig(dayConfig);
+    setSettingsOpen(true);
+  }
+
+  function saveSettings() {
+    const anyEnabled = ALL_DAYS.some((d) => draftDayConfig[d.key]?.enabled);
+    if (!anyEnabled) {
+      toast.error("At least one day must stay enabled.");
+      return;
+    }
+
+    setDayConfig(draftDayConfig);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(DAY_CONFIG_STORAGE_KEY, JSON.stringify(draftDayConfig));
+    }
+    setSettingsOpen(false);
+    toast.success("Timetable structure updated");
   }
 
   const slotConflict = !submitting && isSlotTaken(slotForm.day, slotForm.periodNo, slotForm.entryId);
@@ -252,6 +329,14 @@ export default function TimetablePage() {
   }
 
   function renderGridCell(day: DayKey, period: number) {
+    const dayPeriodCount = dayConfig[day]?.periods ?? DEFAULT_PERIOD_COUNT;
+
+    // This day doesn't have this many periods (e.g. Monday has 9, Friday has 6) —
+    // render an inert placeholder instead of an "Add" affordance.
+    if (period > dayPeriodCount) {
+      return <div className="flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-border/40 text-xs text-muted-foreground/30">—</div>;
+    }
+
     const entry = cellMap[`${day}-${period}`];
 
     if (!entry) {
@@ -306,6 +391,12 @@ export default function TimetablePage() {
   }
 
   function renderMobileRow(period: number) {
+    const dayPeriodCount = dayConfig[mobileDay]?.periods ?? DEFAULT_PERIOD_COUNT;
+
+    if (period > dayPeriodCount) {
+      return null;
+    }
+
     const entry = cellMap[`${mobileDay}-${period}`];
 
     if (!entry) {
@@ -358,10 +449,17 @@ export default function TimetablePage() {
           <p className="text-sm text-muted-foreground sm:text-base">Build and manage the weekly period schedule for a class section</p>
         </div>
 
-        <Button className="w-full gap-2 px-5 sm:w-auto" disabled={!viewSelected} onClick={() => openCreateDialog()}>
-          <Plus className="size-4" />
-          Add Period
-        </Button>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Button variant="outline" className="gap-2" onClick={openSettingsDialog}>
+            <Settings2 className="size-4" />
+            <span className="hidden sm:inline">Days &amp; Periods</span>
+          </Button>
+
+          <Button className="w-full gap-2 px-5 sm:w-auto" disabled={!viewSelected} onClick={() => openCreateDialog()}>
+            <Plus className="size-4" />
+            Add Period
+          </Button>
+        </div>
       </div>
 
       {/* Scope selector */}
@@ -454,7 +552,15 @@ export default function TimetablePage() {
 
       {/* Grid */}
       <div className="rounded-md border bg-card p-4 sm:p-5">
-        {!viewSelected ? (
+        {DAYS.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center sm:py-20">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-muted">
+              <Settings2 className="size-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">No school days enabled</h3>
+            <p className="max-w-sm text-muted-foreground">Use &quot;Days &amp; Periods&quot; above to enable at least one day.</p>
+          </div>
+        ) : !viewSelected ? (
           <div className="flex flex-col items-center justify-center py-16 text-center sm:py-20">
             <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-muted">
               <CalendarRange className="size-6 text-muted-foreground" />
@@ -476,6 +582,7 @@ export default function TimetablePage() {
                 {DAYS.map((day) => {
                   const isActive = mobileDay === day.key;
                   const filled = mobileDayFilled[day.key] ?? 0;
+                  const dayPeriodCount = dayConfig[day.key]?.periods ?? DEFAULT_PERIOD_COUNT;
                   return (
                     <button
                       key={day.key}
@@ -489,7 +596,7 @@ export default function TimetablePage() {
                     >
                       <span className="text-xs font-semibold">{day.short}</span>
                       <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                        {filled}/{PERIOD_COUNT}
+                        {filled}/{dayPeriodCount}
                       </span>
                     </button>
                   );
@@ -545,6 +652,76 @@ export default function TimetablePage() {
         )}
       </div>
 
+      {/* Days & Periods settings dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="w-[calc(100%-2rem)] rounded-2xl p-0 overflow-hidden sm:max-w-105">
+          <div className="border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Settings2 className="size-5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle>Days &amp; Periods</DialogTitle>
+                <DialogDescription>Update days and number of periods.</DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto p-6">
+            {ALL_DAYS.map((day) => {
+              const config = draftDayConfig[day.key];
+              return (
+                <div key={day.key} className={cn("flex items-center gap-3 rounded-xl border p-3 transition-colors", config.enabled ? "border-border" : "border-border/50 bg-muted/30")}>
+                  <Switch
+                    checked={config.enabled}
+                    onCheckedChange={(checked) =>
+                      setDraftDayConfig((p) => ({
+                        ...p,
+                        [day.key]: { ...p[day.key], enabled: checked },
+                      }))
+                    }
+                  />
+
+                  <span className={cn("flex-1 text-sm font-medium", !config.enabled && "text-muted-foreground")}>{day.label}</span>
+
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={MIN_PERIODS}
+                      max={MAX_PERIODS}
+                      value={config.periods}
+                      disabled={!config.enabled}
+                      onChange={(e) => {
+                        const raw = Number(e.target.value);
+                        const clamped = Number.isFinite(raw) ? Math.min(MAX_PERIODS, Math.max(MIN_PERIODS, raw)) : MIN_PERIODS;
+                        setDraftDayConfig((p) => ({
+                          ...p,
+                          [day.key]: { ...p[day.key], periods: clamped },
+                        }));
+                      }}
+                      className="h-9 w-16 text-center"
+                    />
+                    <span className="text-xs text-muted-foreground">periods</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="gap-2 px-7 pb-7">
+            <DialogClose asChild>
+              <Button variant="outline" type="button">
+                Cancel
+              </Button>
+            </DialogClose>
+
+            <Button type="button" onClick={saveSettings} className="min-w-32">
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create / Edit slot dialog */}
       <Dialog
         open={slotOpen}
@@ -574,7 +751,18 @@ export default function TimetablePage() {
               <div className="grid grid-cols-2 gap-3">
                 <Field>
                   <Label>Day</Label>
-                  <Select value={slotForm.day} onValueChange={(value) => setSlotForm((p) => ({ ...p, day: value as DayKey }))}>
+                  <Select
+                    value={slotForm.day}
+                    onValueChange={(value) =>
+                      setSlotForm((p) => {
+                        const day = value as DayKey;
+                        const maxForDay = dayConfig[day]?.periods ?? DEFAULT_PERIOD_COUNT;
+                        // Reset period if it no longer fits the newly-chosen day
+                        const periodNo = typeof p.periodNo === "number" && p.periodNo <= maxForDay ? p.periodNo : "";
+                        return { ...p, day, periodNo };
+                      })
+                    }
+                  >
                     <SelectTrigger className=" h-11 w-full">
                       <SelectValue placeholder="Day" />
                     </SelectTrigger>
@@ -595,7 +783,7 @@ export default function TimetablePage() {
                       <SelectValue placeholder="Period" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PERIODS.map((p) => (
+                      {periodsForDay(slotForm.day).map((p) => (
                         <SelectItem key={p} value={String(p)}>
                           Period {p}
                         </SelectItem>
@@ -672,7 +860,7 @@ export default function TimetablePage() {
             <AlertDialogDescription className="text-center">
               This will remove <span className="font-semibold text-foreground">{deletingEntry?.subjectAllocation.subject.name}</span>
               {" from "}
-              <span className="font-semibold text-foreground">{deletingEntry ? DAYS.find((d) => d.key === deletingEntry.dayOfWeek)?.label : ""}</span>
+              <span className="font-semibold text-foreground">{deletingEntry ? ALL_DAYS.find((d) => d.key === deletingEntry.dayOfWeek)?.label : ""}</span>
               {", Period "}
               <span className="font-semibold text-foreground">{deletingEntry?.periodNo}</span>. This action cannot be undone.
             </AlertDialogDescription>

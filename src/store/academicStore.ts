@@ -26,6 +26,8 @@ import {
   UpdateStudentAttendancePayload,
   CreateFacultyAttendancePayload,
   UpdateFacultyAttendancePayload,
+  CreateStudentSubjectAllocationPayload,
+  UpdateStudentSubjectAllocationPayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -174,6 +176,20 @@ export interface Timetable {
   subjectAllocation: SubjectAllocation;
 }
 
+export interface StudentSubjectAllocation {
+  id: string;
+  studentId: string;
+  subjectAllocationId: string;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+
+  student: Student;
+  subjectAllocation: SubjectAllocation;
+}
+
 export interface FacultyAttendance {
   id: string;
   sessionId: string;
@@ -203,6 +219,7 @@ interface AcademicStore {
   teacherAssignments: TeacherAssignment[];
   facultyAttendances: FacultyAttendance[];
   timetables: Timetable[];
+  studentSubjectAllocations: StudentSubjectAllocation[];
 
   loading: boolean;
 
@@ -252,6 +269,11 @@ interface AcademicStore {
   updateSubjectAllocation: (id: string, data: UpdateSubjectAllocationPayload) => Promise<void>;
   deleteSubjectAllocation: (id: string) => Promise<void>;
 
+  fetchStudentSubjectAllocations: () => Promise<void>;
+  createStudentSubjectAllocation: (data: CreateStudentSubjectAllocationPayload) => Promise<void>;
+  updateStudentSubjectAllocation: (id: string, data: UpdateStudentSubjectAllocationPayload) => Promise<void>;
+  deleteStudentSubjectAllocation: (id: string) => Promise<void>;
+
   fetchTeacherAssignments: () => Promise<void>;
   createTeacherAssignment: (data: CreateTeacherAssignmentPayload) => Promise<void>;
   updateTeacherAssignment: (id: string, data: UpdateTeacherAssignmentPayload) => Promise<void>;
@@ -276,6 +298,7 @@ interface AcademicStore {
   clearStudentEnrollments: () => void;
   clearStudentAttendances: () => void;
   clearSubjectAllocations: () => void;
+  clearStudentSubjectAllocations: () => void;
   clearTeacherAssignments: () => void;
   clearFacultyAttendances: () => void;
   clearTimetables: () => void;
@@ -291,6 +314,7 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   studentEnrollments: [],
   studentAttendances: [],
   subjectAllocations: [],
+  studentSubjectAllocations: [],
   teacherAssignments: [],
   facultyAttendances: [],
   timetables: [],
@@ -504,6 +528,11 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   clearSubjectAllocations: () =>
     set({
       subjectAllocations: [],
+    }),
+
+  clearStudentSubjectAllocations: () =>
+    set({
+      studentSubjectAllocations: [],
     }),
 
   clearTeacherAssignments: () =>
@@ -803,6 +832,54 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.subjectAllocations.delete(id);
       await get().fetchSubjectAllocations();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Student Subject Allocations
+  // ======================
+
+  fetchStudentSubjectAllocations: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.studentSubjectAllocations.getAll();
+
+      set({
+        studentSubjectAllocations: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch student subject allocations", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createStudentSubjectAllocation: async (data) => {
+    try {
+      await academicService.studentSubjectAllocations.create(data);
+      await get().fetchStudentSubjectAllocations();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateStudentSubjectAllocation: async (id, data) => {
+    try {
+      await academicService.studentSubjectAllocations.update(id, data);
+      await get().fetchStudentSubjectAllocations();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteStudentSubjectAllocation: async (id) => {
+    try {
+      await academicService.studentSubjectAllocations.delete(id);
+      await get().fetchStudentSubjectAllocations();
     } catch (error) {
       throw error;
     }

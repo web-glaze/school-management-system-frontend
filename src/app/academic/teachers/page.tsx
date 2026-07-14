@@ -427,24 +427,24 @@ export default function TeachersPage() {
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Phone</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Designation</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Joining Date</TableHead>
-                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                      <span className="md:block">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody className="divide-y divide-border/30">
                   {filteredTeachers.map((teacher) => (
                     <TableRow key={teacher.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="py-4 pl-6 align-top">
-                        <div className="space-y-1 max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={teacher.name}>
-                            {teacher.name.length > 15 ? `${teacher.name.slice(0, 15)}...` : teacher.name}
+                      <TableCell className="py-4 align-middle">
+                        <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
+                          <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={teacher.name}>
+                            {teacher.name}
                           </p>
 
-                          <p className="text-xs text-muted-foreground">{teacher.email ? (teacher.email.length > 25 ? `${teacher.email.slice(0, 25)}...` : teacher.email) : "--"}</p>
-
-                          <p className="text-sm text-foreground/50 md:hidden">{teacher.teacherCode}</p>
+                          <p className="text-sm text-foreground/50 truncate md:hidden">{teacher.teacherCode}</p>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell py-4">{teacher.teacherCode}</TableCell>
@@ -463,7 +463,7 @@ export default function TeachersPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell py-4">
+                      <TableCell className="py-4 align-middle">
                         <Badge className={teacher.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{teacher.isActive ? "Active" : "Inactive"}</Badge>
                       </TableCell>
 
@@ -483,13 +483,27 @@ export default function TeachersPage() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
+                      <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <div className="hidden md:flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(teacher)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                            title="Edit section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openEditDialog(teacher)}
+                          >
                             <Pencil className="size-5" />
                           </Button>
 
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => openDeleteDialog(teacher)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                            title="Delete section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openDeleteDialog(teacher)}
+                          >
                             <Trash2 className="size-5" />
                           </Button>
                         </div>
@@ -497,7 +511,7 @@ export default function TeachersPage() {
                         <div className="md:hidden flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-9">
+                              <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
                                 <MoreVertical className="size-5" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -679,8 +693,7 @@ export default function TeachersPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete teacher?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingTeacher?.name && (deletingTeacher.name.length > 10 ? `${deletingTeacher.name.slice(0, 10)}...` : deletingTeacher.name)}</span>
+              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingTeacher?.name}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 

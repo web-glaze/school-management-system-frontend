@@ -306,30 +306,33 @@ export default function SubjectsPage() {
               <Table>
                 <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
                   <TableRow className="hover:bg-transparent">
+                    
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Subject</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Optional</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-foreground/80 text-right min-w-12.5">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Optional</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                      <span className="md:block">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody className="divide-y divide-border/30">
                   {filteredSubjects.map((subject) => (
                     <TableRow key={subject.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="py-4 pl-6 align-top">
-                        <div className="space-y-1 max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={subject.name}>
-                            {subject.name.length > 15 ? `${subject.name.slice(0, 15)}...` : subject.name}
+                      <TableCell className="py-4 align-middle">
+                        <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
+                          <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={subject.name}>
+                            {subject.name}
                           </p>
 
-                          <p className="text-sm text-foreground/50 md:hidden">{subject.subjectCode}</p>
+                          <p className="text-sm text-foreground/50 truncate md:hidden">{subject.subjectCode}</p>
                         </div>
                       </TableCell>
 
                       <TableCell className="hidden md:table-cell py-4">{subject.subjectCode}</TableCell>
 
-                      <TableCell className="hidden md:table-cell py-4">
+                      <TableCell className="py-4 align-middle">
                         <Badge className={subject.isOptional ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : "bg-muted text-muted-foreground"}>{subject.isOptional ? "Yes" : "No"}</Badge>
                       </TableCell>
 
@@ -349,13 +352,27 @@ export default function SubjectsPage() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
+                      <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <div className="hidden md:flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(subject)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                            title="Edit section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openEditDialog(subject)}
+                          >
                             <Pencil className="size-5" />
                           </Button>
 
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => openDeleteDialog(subject)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                            title="Delete section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openDeleteDialog(subject)}
+                          >
                             <Trash2 className="size-5" />
                           </Button>
                         </div>
@@ -363,7 +380,7 @@ export default function SubjectsPage() {
                         <div className="md:hidden flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-9">
+                              <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
                                 <MoreVertical className="size-5" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -467,8 +484,7 @@ export default function SubjectsPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete subject?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingSubject?.name && (deletingSubject.name.length > 10 ? `${deletingSubject.name.slice(0,10)}...` : deletingSubject.name)}</span>
+              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingSubject?.name}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 

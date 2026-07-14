@@ -1364,7 +1364,7 @@ export default function StudentAttendancePage() {
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Class</TableHead>
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Section</TableHead>
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Date</TableHead>
-                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 ">Status</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-right text-foreground/80 min-w-12.5">Actions</TableHead>
                     </TableRow>
                   </TableHeader>

@@ -793,9 +793,11 @@ export default function StudentEnrollmentsPage() {
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Session</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Class</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Section</TableHead>
-                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-right text-foreground/80 min-w-12.5">Actions</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                      <span className="md:block">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -804,15 +806,13 @@ export default function StudentEnrollmentsPage() {
                     <TableRow key={enrollment.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="hidden md:table-cell py-4 pl-6 font-medium">{enrollment.student.admissionNo}</TableCell>
 
-                      <TableCell className="py-4 ">
-                        <div className="space-y-1 max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight hover:text-primary transition-colors" title={`${enrollment.student.firstName} ${enrollment.student.lastName}`}>
-                            {`${enrollment.student.firstName} ${enrollment.student.lastName}`.length > 15
-                              ? `${`${enrollment.student.firstName} ${enrollment.student.lastName}`.slice(0, 15)}...`
-                              : `${enrollment.student.firstName} ${enrollment.student.lastName}`}
+                      <TableCell className="py-4 align-middle">
+                        <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
+                          <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={`${enrollment.student.firstName} ${enrollment.student.lastName}`}>
+                            {`${enrollment.student.firstName} ${enrollment.student.lastName}`}
                           </p>
 
-                          <p className="text-sm text-foreground/50 md:hidden">{enrollment.student.admissionNo}</p>
+                          <p className="text-sm text-foreground/50 truncate md:hidden">{enrollment.student.admissionNo}</p>
                         </div>
                       </TableCell>
 
@@ -822,7 +822,7 @@ export default function StudentEnrollmentsPage() {
 
                       <TableCell className="hidden md:table-cell">{enrollment.section.name}</TableCell>
 
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell className="py-4 align-middle">
                         <Badge
                           className={
                             enrollment.enrollmentStatus === "ACTIVE"
@@ -856,9 +856,16 @@ export default function StudentEnrollmentsPage() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
+                      <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <div className="hidden md:flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(enrollment)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                            title="Edit section"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openEditDialog(enrollment)}
+                          >
                             <Pencil className="size-5" />
                           </Button>
 
@@ -866,6 +873,8 @@ export default function StudentEnrollmentsPage() {
                             variant="ghost"
                             size="icon"
                             className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                            title="Delete section"
+                            onPointerDown={(e) => e.stopPropagation()}
                             onClick={() => openDeleteDialog(enrollment)}
                           >
                             <Trash2 className="size-5" />
@@ -875,7 +884,7 @@ export default function StudentEnrollmentsPage() {
                         <div className="md:hidden flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-9">
+                              <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
                                 <MoreVertical className="size-5" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -1042,14 +1051,7 @@ export default function StudentEnrollmentsPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete enrollment?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove{" "}
-              <span className="font-semibold text-foreground">
-                {deletingEnrollment &&
-                  (`${deletingEnrollment.student.firstName} ${deletingEnrollment.student.lastName}`.length > 10
-                    ? `${`${deletingEnrollment.student.firstName} ${deletingEnrollment.student.lastName}`.slice(0, 10)}...`
-                    : `${deletingEnrollment.student.firstName} ${deletingEnrollment.student.lastName}`)}
-              </span>
-              .
+              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingEnrollment && `${deletingEnrollment.student.firstName} ${deletingEnrollment.student.lastName}` }</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 
