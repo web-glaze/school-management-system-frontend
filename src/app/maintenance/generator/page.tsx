@@ -742,7 +742,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
                   <TableCell className="py-4 pl-6 pr-4  max-w-40">
                     <div className="flex items-center gap-3">
                       <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Zap className="size-4.5 text-primary" />
                       </div>
 
                       <div className="space-y-0.5 min-w-0 flex-1">
