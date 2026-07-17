@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { BookOpen, CalendarClock, CalendarRange, Loader2, Pencil, Plus, Settings2, Sparkles, Trash2, User } from "lucide-react";
+import { BookOpen, CalendarClock, CalendarRange, CheckCircle2, ClipboardList, Coffee, Loader2, Pencil, Plus, Settings2, Sparkles, Trash2, User } from "lucide-react";
 import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -25,9 +25,6 @@ type ApiErrorResponse = {
 
 type DayKey = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
 
-// Full universe of weekdays the school could ever use. Which ones are
-// actually active (and how many periods each has) is now user-configurable
-// via `dayConfig` below, rather than a fixed constant.
 const ALL_DAYS: { key: DayKey; label: string; short: string }[] = [
   { key: "MONDAY", label: "Monday", short: "Mon" },
   { key: "TUESDAY", label: "Tuesday", short: "Tue" },
@@ -40,9 +37,7 @@ const ALL_DAYS: { key: DayKey; label: string; short: string }[] = [
 const DEFAULT_PERIOD_COUNT = 8;
 const MIN_PERIODS = 1;
 const MAX_PERIODS = 12;
-
 type DayConfig = Record<DayKey, { enabled: boolean; periods: number }>;
-
 const DEFAULT_DAY_CONFIG: DayConfig = ALL_DAYS.reduce((acc, d) => {
   acc[d.key] = { enabled: true, periods: DEFAULT_PERIOD_COUNT };
   return acc;
@@ -56,7 +51,6 @@ function loadDayConfig(): DayConfig {
     const raw = window.localStorage.getItem(DAY_CONFIG_STORAGE_KEY);
     if (!raw) return DEFAULT_DAY_CONFIG;
     const parsed = JSON.parse(raw);
-    // Merge with defaults so newly-added day keys don't break old saves
     return { ...DEFAULT_DAY_CONFIG, ...parsed };
   } catch {
     return DEFAULT_DAY_CONFIG;
@@ -107,60 +101,146 @@ const emptySlotForm: SlotFormState = {
   subjectAllocationId: "",
 };
 
+interface StoredUser {
+  teacherId?: string | null;
+}
+
 export default function TimetablePage() {
-  const { loading, sessions, classes, sections, subjectAllocations, timetables, fetchSessions, fetchClasses, fetchSections, fetchSubjectAllocations, fetchTimetables, createTimetable, updateTimetable, deleteTimetable } =
-    useAcademicStore();
+  const {
+    loading,
+    sessions,
+    classes,
+    sections,
+    subjectAllocations,
+    timetables,
+    teacherAssignments,
+    fetchSessions,
+    fetchClasses,
+    fetchSections,
+    fetchSubjectAllocations,
+    fetchTimetables,
+    fetchTeacherAssignments,
+    createTimetable,
+    updateTimetable,
+    deleteTimetable,
+  } = useAcademicStore();
 
   const authorized = usePermission("timetable.read");
 
+  // ── Current user / teacher context ────────────────────────────────────
+  const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
+  const [myPermissions, setMyPermissions] = useState<string[]>([]);
+  const [userChecked, setUserChecked] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      const parsed: (StoredUser & { permissions?: string[] }) | null = stored ? JSON.parse(stored) : null;
+      setMyTeacherId(parsed?.teacherId ?? null);
+      setMyPermissions(parsed?.permissions ?? []);
+    } catch {
+      setMyTeacherId(null);
+      setMyPermissions([]);
+    } finally {
+      setUserChecked(true);
+    }
+  }, []);
+
+  const canManageTimetable = myPermissions.includes("timetable.create") || myPermissions.includes("timetable.update") || myPermissions.includes("timetable.delete");
+
+  // Restricted read-only view only applies to teachers who lack management rights
+  const isTeacherView = Boolean(myTeacherId) && !canManageTimetable;
+  const [teacherTab, setTeacherTab] = useState<"class" | "schedule">("class");
   const [sessionId, setSessionId] = useState("");
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
-
-  // ---- Editable days & periods config ----
   const [dayConfig, setDayConfig] = useState<DayConfig>(DEFAULT_DAY_CONFIG);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draftDayConfig, setDraftDayConfig] = useState<DayConfig>(DEFAULT_DAY_CONFIG);
-
   useEffect(() => {
     setDayConfig(loadDayConfig());
   }, []);
-
   const DAYS = useMemo(() => ALL_DAYS.filter((d) => dayConfig[d.key]?.enabled), [dayConfig]);
   const maxPeriods = useMemo(() => (DAYS.length === 0 ? 0 : Math.max(...DAYS.map((d) => dayConfig[d.key].periods))), [DAYS, dayConfig]);
   const PERIODS = useMemo(() => Array.from({ length: maxPeriods }, (_, i) => i + 1), [maxPeriods]);
-
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
   const firstActiveDay = DAYS[0]?.key ?? "MONDAY";
   const [mobileDay, setMobileDay] = useState<DayKey>(todayKey && dayConfig[todayKey]?.enabled ? todayKey : firstActiveDay);
-
-  // Keep mobileDay valid if the active day set changes (e.g. current day gets disabled)
   useEffect(() => {
     if (DAYS.length > 0 && !DAYS.some((d) => d.key === mobileDay)) {
       setMobileDay(DAYS[0].key);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [DAYS]);
 
   const [slotOpen, setSlotOpen] = useState(false);
   const [slotForm, setSlotForm] = useState<SlotFormState>(emptySlotForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingEntry, setDeletingEntry] = useState<Timetable | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    if (!userChecked) return;
+
     fetchSessions();
-    fetchClasses();
-    fetchSections();
-    fetchSubjectAllocations();
     fetchTimetables();
-  }, [fetchSessions, fetchClasses, fetchSections, fetchSubjectAllocations, fetchTimetables]);
+    fetchTeacherAssignments();
 
+    if (!isTeacherView) {
+      fetchClasses();
+      fetchSections();
+      fetchSubjectAllocations();
+    }
+  }, [userChecked, isTeacherView, fetchSessions, fetchClasses, fetchSections, fetchSubjectAllocations, fetchTimetables, fetchTeacherAssignments]);
+  ``;
+
+  // ── Active session (used for both teacher tabs) ─────────────────────────
+  const activeSessionId = useMemo(() => {
+    const active = sessions.find((s) => s.isActive);
+    return active?.id ?? sessions[0]?.id ?? "";
+  }, [sessions]);
+
+  // ── Tab 1: My Class (as class teacher) ───────────────────────────────────
+  const myClassAssignment = useMemo(() => {
+    if (!myTeacherId || !activeSessionId) return null;
+    return teacherAssignments.find((a) => a.teacherId === myTeacherId && a.sessionId === activeSessionId) ?? null;
+  }, [teacherAssignments, myTeacherId, activeSessionId]);
+
+  const myClassTimetables = useMemo(() => {
+    if (!myClassAssignment) return [];
+    return timetables.filter((t) => t.sessionId === myClassAssignment.sessionId && t.classId === myClassAssignment.classId && t.sectionId === myClassAssignment.sectionId);
+  }, [timetables, myClassAssignment]);
+
+  const myClassCellMap = useMemo(() => {
+    const map: Record<string, Timetable> = {};
+    myClassTimetables.forEach((t) => {
+      map[`${t.dayOfWeek}-${t.periodNo}`] = t;
+    });
+    return map;
+  }, [myClassTimetables]);
+
+  // ── Tab 2: My Schedule (as subject teacher, across all classes) ─────────
+  const myScheduleTimetables = useMemo(() => {
+    if (!myTeacherId || !activeSessionId) return [];
+    return timetables.filter((t) => t.subjectAllocation.teacherId === myTeacherId && t.sessionId === activeSessionId);
+  }, [timetables, myTeacherId, activeSessionId]);
+
+  const myScheduleCellMap = useMemo(() => {
+    const map: Record<string, Timetable> = {};
+    myScheduleTimetables.forEach((t) => {
+      map[`${t.dayOfWeek}-${t.periodNo}`] = t;
+    });
+    return map;
+  }, [myScheduleTimetables]);
+
+  const freePeriodCount = useMemo(() => {
+    const totalSlots = DAYS.reduce((sum, d) => sum + dayConfig[d.key].periods, 0);
+    return totalSlots - myScheduleTimetables.length;
+  }, [DAYS, dayConfig, myScheduleTimetables]);
+
+  // ── Admin scope selection (existing behaviour) ───────────────────────────
   const viewSelected = Boolean(sessionId && classId && sectionId);
-
   const viewTimetables = useMemo(() => {
     if (!viewSelected) return [];
     return timetables.filter((t) => t.sessionId === sessionId && t.classId === classId && t.sectionId === sectionId);
@@ -190,7 +270,6 @@ export default function TimetablePage() {
   const totalSlots = useMemo(() => DAYS.reduce((sum, d) => sum + dayConfig[d.key].periods, 0), [DAYS, dayConfig]);
   const filledSlots = viewTimetables.length;
   const completionPct = totalSlots === 0 ? 0 : Math.round((filledSlots / totalSlots) * 100);
-
   const mobileDayFilled = DAYS.reduce<Record<DayKey, number>>(
     (acc, day) => {
       acc[day.key] = viewTimetables.filter((t) => t.dayOfWeek === day.key).length;
@@ -199,7 +278,7 @@ export default function TimetablePage() {
     {} as Record<DayKey, number>
   );
 
-  if (authorized === null) {
+  if (authorized === null || !userChecked) {
     return null;
   }
 
@@ -302,7 +381,6 @@ export default function TimetablePage() {
 
       if (err.response?.data?.errors) {
         setFormErrors(err.response.data.errors);
-        toast.error(Object.values(err.response.data.errors)[0]);
       } else {
         toast.error(err.response?.data?.message || "Failed to save this period");
       }
@@ -331,8 +409,6 @@ export default function TimetablePage() {
   function renderGridCell(day: DayKey, period: number) {
     const dayPeriodCount = dayConfig[day]?.periods ?? DEFAULT_PERIOD_COUNT;
 
-    // This day doesn't have this many periods (e.g. Monday has 9, Friday has 6) —
-    // render an inert placeholder instead of an "Add" affordance.
     if (period > dayPeriodCount) {
       return <div className="flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-border/40 text-xs text-muted-foreground/30">—</div>;
     }
@@ -441,6 +517,230 @@ export default function TimetablePage() {
     );
   }
 
+  function renderReadonlyCell(entry: Timetable | undefined, subtitle: (t: Timetable) => string, freeLabel: string, dayPeriodCount: number, period: number) {
+    if (period > dayPeriodCount) {
+      return <div className="flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-border/40 text-xs text-muted-foreground/30">—</div>;
+    }
+
+    if (!entry) {
+      return (
+        <div className="flex h-20 w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border/60 text-muted-foreground/50">
+          <Coffee className="size-3.5" />
+          <span className="text-[11px] font-medium">{freeLabel}</span>
+        </div>
+      );
+    }
+
+    const color = subjectColor(entry.subjectAllocation.subject.id);
+
+    return (
+      <div className={cn("flex h-20 w-full min-w-0 flex-col justify-center gap-0.5 overflow-hidden rounded-xl border px-3 py-2", color.bg, color.border)}>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className={cn("size-1.5 shrink-0 rounded-full", color.dot)} />
+          <p className={cn("min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight", color.text)} title={entry.subjectAllocation.subject.name}>
+            {entry.subjectAllocation.subject.name}
+          </p>
+        </div>
+        <p className="truncate pl-3 text-xs text-muted-foreground" title={subtitle(entry)}>
+          {subtitle(entry)}
+        </p>
+      </div>
+    );
+  }
+
+  function renderReadonlyMobileRow(entry: Timetable | undefined, subtitle: (t: Timetable) => string, freeLabel: string, dayPeriodCount: number, period: number) {
+    if (period > dayPeriodCount) return null;
+
+    if (!entry) {
+      return (
+        <div className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border/60 px-4 py-3.5 text-muted-foreground/60">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">P{period}</span>
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <Coffee className="size-4" />
+            {freeLabel}
+          </span>
+        </div>
+      );
+    }
+
+    const color = subjectColor(entry.subjectAllocation.subject.id);
+
+    return (
+      <div className={cn("flex w-full items-center gap-3 rounded-xl border px-4 py-3.5", color.bg, color.border)}>
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background/70 text-xs font-semibold text-muted-foreground">P{period}</span>
+        <div className="min-w-0 flex-1">
+          <p className={cn("truncate text-sm font-semibold leading-tight", color.text)}>{entry.subjectAllocation.subject.name}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle(entry)}</p>
+        </div>
+      </div>
+    );
+  }
+
+  function renderReadonlySchedule(cellMapForView: Record<string, Timetable>, subtitle: (t: Timetable) => string, freeLabel: string) {
+    return (
+      <>
+        <div className="md:hidden">
+          <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
+            {DAYS.map((day) => {
+              const isActive = mobileDay === day.key;
+              return (
+                <button
+                  key={day.key}
+                  type="button"
+                  onClick={() => setMobileDay(day.key)}
+                  className={cn(
+                    "flex shrink-0 flex-col items-center rounded-xl border px-3.5 py-2 transition-colors",
+                    isActive ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground",
+                    !isActive && day.key === todayKey && "border-primary/40 text-primary"
+                  )}
+                >
+                  <span className="text-xs font-semibold">{day.short}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-2">
+            {PERIODS.map((period) => {
+              const dayPeriodCount = dayConfig[mobileDay]?.periods ?? DEFAULT_PERIOD_COUNT;
+              const entry = cellMapForView[`${mobileDay}-${period}`];
+              return <div key={period}>{renderReadonlyMobileRow(entry, subtitle, freeLabel, dayPeriodCount, period)}</div>;
+            })}
+          </div>
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
+          <Table className="min-w-240 table-fixed border-separate border-spacing-y-2">
+            <colgroup>
+              <col className="w-20" />
+              {DAYS.map((day) => (
+                <col key={day.key} className="w-37.5" />
+              ))}
+            </colgroup>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-foreground/80">Period</TableHead>
+                {DAYS.map((day) => (
+                  <TableHead key={day.key} className={cn("rounded-t-lg text-center text-xs font-bold uppercase tracking-wider text-foreground/80", day.key === todayKey && "bg-primary/5 text-primary")}>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {day.label}
+                      {day.key === todayKey && <span className="size-1.5 rounded-full bg-primary" />}
+                    </div>
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {PERIODS.map((period) => (
+                <TableRow key={period} className="hover:bg-transparent">
+                  <TableCell className="align-middle text-sm font-semibold text-muted-foreground">Period {period}</TableCell>
+                  {DAYS.map((day) => {
+                    const dayPeriodCount = dayConfig[day.key]?.periods ?? DEFAULT_PERIOD_COUNT;
+                    const entry = cellMapForView[`${day.key}-${period}`];
+                    return (
+                      <TableCell key={day.key} className={cn("p-1.5 align-top", day.key === todayKey && "bg-primary/2")}>
+                        {renderReadonlyCell(entry, subtitle, freeLabel, dayPeriodCount, period)}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // TEACHER VIEW
+  // ══════════════════════════════════════════════════════════════════════
+  if (isTeacherView) {
+    return (
+      <DashboardLayout>
+        <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-xl font-bold text-foreground sm:text-2xl">My Timetable</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">View your class and teaching schedule</p>
+          </div>
+        </div>
+
+        <div className="mb-6 inline-flex rounded-xl border bg-card p-1">
+          <button
+            type="button"
+            onClick={() => setTeacherTab("class")}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
+              teacherTab === "class" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <ClipboardList className="size-4" />
+            My Class
+          </button>
+          <button
+            type="button"
+            onClick={() => setTeacherTab("schedule")}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
+              teacherTab === "schedule" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <CalendarClock className="size-4" />
+            My Schedule
+          </button>
+        </div>
+
+        <div className="rounded-md border bg-card p-4 sm:p-5">
+          {loading && timetables.length === 0 ? (
+            <div className="space-y-3">
+              {PERIODS.map((p) => (
+                <div key={p} className="h-16 rounded-xl bg-muted animate-pulse sm:h-20" />
+              ))}
+            </div>
+          ) : teacherTab === "class" ? (
+            !myClassAssignment ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center sm:py-20">
+                <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-muted">
+                  <ClipboardList className="size-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">You are not a class teacher</h3>
+                <p className="max-w-sm text-muted-foreground">You are not currently assigned as the class teacher of any section this session.</p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-5 flex flex-wrap items-center gap-2 border-b pb-4">
+                  <CheckCircle2 className="size-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    Class teacher of {myClassAssignment.class.name} — {myClassAssignment.section.name}
+                  </span>
+                </div>
+                {renderReadonlySchedule(myClassCellMap, (t) => `Taught by ${t.subjectAllocation.teacher.name}`, "Free")}
+              </>
+            )
+          ) : (
+            <>
+              <div className="mb-5 flex flex-wrap items-center gap-4 border-b pb-4">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="size-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">{myScheduleTimetables.length} periods this week</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Coffee className="size-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{freePeriodCount} free periods</span>
+                </div>
+              </div>
+              {renderReadonlySchedule(myScheduleCellMap, (t) => `${t.class.name} — ${t.section.name}`, "Free")}
+            </>
+          )}
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ADMIN VIEW
+  // ══════════════════════════════════════════════════════════════════════
   return (
     <DashboardLayout>
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
@@ -464,7 +764,6 @@ export default function TimetablePage() {
         </div>
       </div>
 
-      {/* Scope selector */}
       <div className="mb-6 rounded-md border bg-card p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-1.5">
           <CalendarRange className="size-3.5 text-muted-foreground" />
@@ -552,7 +851,6 @@ export default function TimetablePage() {
         )}
       </div>
 
-      {/* Grid */}
       <div className="rounded-md border bg-card p-4 sm:p-5">
         {DAYS.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center sm:py-20">
@@ -578,7 +876,6 @@ export default function TimetablePage() {
           </div>
         ) : (
           <>
-            {/* Mobile: day tabs + stacked periods for the selected day */}
             <div className="md:hidden">
               <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
                 {DAYS.map((day) => {
@@ -612,8 +909,6 @@ export default function TimetablePage() {
               </div>
             </div>
 
-            {/* Desktop: full week grid, fixed column widths so a long subject
-                name truncates instead of resizing the whole column */}
             <div className="hidden overflow-x-auto md:block">
               <Table className="min-w-240 table-fixed border-separate border-spacing-y-2">
                 <colgroup>
@@ -654,7 +949,6 @@ export default function TimetablePage() {
         )}
       </div>
 
-      {/* Days & Periods settings dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="w-[calc(100%-2rem)] rounded-2xl p-0 overflow-hidden sm:max-w-105">
           <div className="border-b px-6 py-5">
@@ -724,7 +1018,6 @@ export default function TimetablePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Create / Edit slot dialog */}
       <Dialog
         open={slotOpen}
         onOpenChange={(open) => {
@@ -759,7 +1052,6 @@ export default function TimetablePage() {
                       setSlotForm((p) => {
                         const day = value as DayKey;
                         const maxForDay = dayConfig[day]?.periods ?? DEFAULT_PERIOD_COUNT;
-                        // Reset period if it no longer fits the newly-chosen day
                         const periodNo = typeof p.periodNo === "number" && p.periodNo <= maxForDay ? p.periodNo : "";
                         return { ...p, day, periodNo };
                       })
@@ -851,7 +1143,6 @@ export default function TimetablePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent className="w-[calc(100%-2rem)] rounded-2xl sm:max-w-105">
           <AlertDialogHeader>

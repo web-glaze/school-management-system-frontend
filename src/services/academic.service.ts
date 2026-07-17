@@ -57,8 +57,9 @@ export interface CreateTeacherPayload {
   designation: string;
   joiningDate: string;
   isActive: boolean;
+  userName: string;
+  password: string;
 }
-
 export interface UpdateTeacherPayload {
   name: string;
   email: string;
@@ -251,12 +252,22 @@ export const academicService = {
 
     getById: (id: string) => apiClient.get(`/academic/teachers/${id}`),
 
+    generateUsername: (name: string, email?: string, phone?: string) =>
+      apiClient.get("/academic/teachers/generate-username", {
+        params: {
+          name,
+          email,
+          phone,
+        },
+      }),
+
     create: (data: CreateTeacherPayload) => apiClient.post("/academic/teachers", data),
 
     update: (id: string, data: UpdateTeacherPayload) => apiClient.patch(`/academic/teachers/${id}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/teachers/${id}`),
   },
+
   students: {
     getAll: () => apiClient.get("/academic/students"),
 

@@ -70,3 +70,65 @@ export const reportService = {
 
   getFilterOptions: () => apiClient.get("/reports/filter-options"),
 };
+
+// ====================== Generator ======================
+
+export interface CreateGeneratorPayload {
+  name: string;
+  generatorNo: string;
+  location?: string;
+  capacity?: string;
+  manufacturer?: string;
+  isActive?: boolean;
+}
+
+export type UpdateGeneratorPayload = Partial<CreateGeneratorPayload>;
+
+export interface CreateRunningLogPayload {
+  date: string;
+  startTime: string;
+  stopTime: string;
+  totalRunningHours: number;
+  remarks?: string;
+}
+
+export interface CreateDieselLogPayload {
+  date: string;
+  dieselRefilled: number;
+  fuelLeftInStock: number;
+  remarks?: string;
+}
+
+export interface CreateCoolantLogPayload {
+  date: string;
+  coolantLevel: "FULL" | "LOW" | "REFILLED";
+  quantityAdded?: number;
+  remarks?: string;
+}
+
+export const generatorService = {
+  getAll: () => apiClient.get("/generator"),
+
+  getById: (id: string) => apiClient.get(`/generator/${id}`),
+
+  create: (payload: CreateGeneratorPayload) => apiClient.post("/generator", payload),
+
+  update: (id: string, payload: UpdateGeneratorPayload) => apiClient.patch(`/generator/${id}`, payload),
+
+  delete: (id: string) => apiClient.delete(`/generator/${id}`),
+
+  // Running Log
+  getRunningLogs: (generatorId: string) => apiClient.get(`/generator/${generatorId}/running-logs`),
+  addRunningLog: (generatorId: string, payload: CreateRunningLogPayload) => apiClient.post(`/generator/${generatorId}/running-logs`, payload),
+  deleteRunningLog: (logId: string) => apiClient.delete(`/generator/running-logs/${logId}`),
+
+  // Diesel Log
+  getDieselLogs: (generatorId: string) => apiClient.get(`/generator/${generatorId}/diesel-logs`),
+  addDieselLog: (generatorId: string, payload: CreateDieselLogPayload) => apiClient.post(`/generator/${generatorId}/diesel-logs`, payload),
+  deleteDieselLog: (logId: string) => apiClient.delete(`/generator/diesel-logs/${logId}`),
+
+  // Coolant Log
+  getCoolantLogs: (generatorId: string) => apiClient.get(`/generator/${generatorId}/coolant-logs`),
+  addCoolantLog: (generatorId: string, payload: CreateCoolantLogPayload) => apiClient.post(`/generator/${generatorId}/coolant-logs`, payload),
+  deleteCoolantLog: (logId: string) => apiClient.delete(`/generator/coolant-logs/${logId}`),
+};

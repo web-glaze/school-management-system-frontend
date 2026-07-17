@@ -20,6 +20,7 @@ function getBreadcrumb(pathname: string): { parent: string | null; parentHref: s
   if (pathname === "/maintenance/tickets") return { parent: "Maintenance", parentHref: "/maintenance", current: "Tickets" };
   if (pathname === "/maintenance/tickets/create") return { parent: "Tickets", parentHref: "/maintenance/tickets", current: "Create Ticket" };
   if (pathname.startsWith("/maintenance/tickets/")) return { parent: "Tickets", parentHref: "/maintenance/tickets", current: "Ticket Detail" };
+  if (pathname === "/maintenance/generator") return { parent: "Maintenance", parentHref: "/maintenance", current: "Generator" }; 
   if (pathname === "/maintenance/departments") return { parent: "Maintenance", parentHref: "/maintenance", current: "Departments" };
   if (pathname === "/maintenance/technician") return { parent: "Maintenance", parentHref: "/maintenance", current: "Technicians" };
   if (pathname === "/maintenance/location") return { parent: "Maintenance", parentHref: "/maintenance", current: "Locations" };

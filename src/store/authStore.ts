@@ -17,9 +17,12 @@ interface GlobalState {
 
 interface UserData {
   id: string;
+  name?: string;
   email: string;
   role: string;
   roles: string[];
+  permissions?: string[];
+  teacherId?: string | null;
 }
 
 interface AuthState {
@@ -74,6 +77,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         role,
         roles,
         permissions: user.permissions || [],
+        teacherId: user.teacherId ?? null,
       };
 
       if (typeof window !== "undefined") {

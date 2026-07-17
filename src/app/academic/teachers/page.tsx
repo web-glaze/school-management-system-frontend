@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CalendarDays, Calendar as CalendarIcon, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
 import { useAcademicStore } from "@/store/academicStore";
+import { academicService } from "@/services/academic.service";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { usePermission } from "@/hooks/usePermission";
@@ -47,6 +48,18 @@ export default function TeachersPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [designation, setDesignation] = useState("");
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [pendingTeacher, setPendingTeacher] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    designation: string;
+    joiningDate: string;
+    isActive: boolean;
+  } | null>(null);
+  const [userName, setUserName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [joiningDate, setJoiningDate] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -65,6 +78,7 @@ export default function TeachersPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [generatingUsername, setGeneratingUsername] = useState(false);
 
   useEffect(() => {
     fetchTeachers();
@@ -73,8 +87,34 @@ export default function TeachersPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    setFormErrors({});
+
+    const errors: Record<string, string> = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[6-9]\d{9}$/;
+
+    if (!name.trim()) errors.name = "Teacher name is required";
+
+    if (!email.trim()) errors.email = "Email is required";
+    else if (!emailRegex.test(email.trim())) errors.email = "Invalid email address";
+
+    if (!phone.trim()) errors.phone = "Phone number is required";
+    else if (!phoneRegex.test(phone.trim())) errors.phone = "Phone number must be a valid 10-digit mobile number";
+
+    if (!designation.trim()) errors.designation = "Designation is required";
+    if (!joiningDate) errors.joiningDate = "Joining date is required";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
     try {
-      await createTeacher({
+      setGeneratingUsername(true);
+
+      const response = await academicService.teachers.generateUsername(name.trim(), email.trim(), phone.trim());
+
+      setPendingTeacher({
         name,
         email,
         phone,
@@ -83,6 +123,61 @@ export default function TeachersPage() {
         isActive,
       });
 
+      setUserName(response.data.data ?? "");
+
+      setPassword("");
+      setConfirmPassword("");
+
+      setAddTeacherOpen(false);
+      setProfileDialogOpen(true);
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
+
+      const errors = apiError.response?.data?.errors;
+
+      if (errors) {
+        setFormErrors(errors);
+        return;
+      }
+
+      toast.error(apiError.response?.data?.message ?? "Validation failed");
+    } finally {
+      setGeneratingUsername(false);
+    }
+  };
+
+  const handleCreateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!pendingTeacher) return;
+
+    if (!userName.trim()) {
+      toast.error("Username is required");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    try {
+      await createTeacher({
+        ...pendingTeacher,
+        userName,
+        password,
+      });
+
+      setProfileDialogOpen(false);
+      setAddTeacherOpen(false);
+
+      setPendingTeacher(null);
+
       setName("");
       setEmail("");
       setPhone("");
@@ -90,8 +185,11 @@ export default function TeachersPage() {
       setJoiningDate("");
       setIsActive(false);
 
+      setUserName("");
+      setPassword("");
+      setConfirmPassword("");
+
       setFormErrors({});
-      setAddTeacherOpen(false);
 
       toast.success("Teacher created successfully");
     } catch (error) {
@@ -238,6 +336,9 @@ export default function TeachersPage() {
                 setDesignation("");
                 setJoiningDate("");
                 setIsActive(false);
+                setUserName("");
+                setPassword("");
+                setConfirmPassword("");
                 setFormErrors({});
               }
             }}
@@ -271,7 +372,10 @@ export default function TeachersPage() {
                     <Input
                       value={name}
                       onChange={(e) => {
-                        setName(e.target.value);
+                        const value = e.target.value;
+
+                        setName(value);
+
                         clearFormError("name");
                       }}
                       className=""
@@ -351,7 +455,12 @@ export default function TeachersPage() {
                   <Field>
                     <Label>Status</Label>
                     <div className="mt-3">
-                      <Switch checked={isActive} onCheckedChange={setIsActive} />
+                      <Switch
+                        checked={isActive}
+                        onCheckedChange={(checked) => {
+                          setIsActive(checked);
+                        }}
+                      />
                     </div>
                   </Field>
                 </FieldGroup>
@@ -363,11 +472,11 @@ export default function TeachersPage() {
                     </Button>
                   </DialogClose>
 
-                  <Button type="submit" disabled={loading} className="min-w-32.5 gap-2 px-5">
-                    {loading ? (
+                  <Button type="submit" disabled={loading || generatingUsername} className="min-w-32.5 gap-2 px-5">
+                    {generatingUsername ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
-                        Creating...
+                        Checking...
                       </>
                     ) : (
                       <>
@@ -379,6 +488,78 @@ export default function TeachersPage() {
                 </DialogFooter>
               </form>
             </DialogContent>
+
+            <Dialog
+              open={profileDialogOpen}
+              onOpenChange={(open) => {
+                setProfileDialogOpen(open);
+
+                if (!open) {
+                  setAddTeacherOpen(true);
+                  setPendingTeacher(null);
+                  setUserName("");
+                  setPassword("");
+                  setConfirmPassword("");
+                }
+              }}
+            >
+              <DialogContent className="sm:max-w-md">
+                <DialogTitle>Create Teacher Profile</DialogTitle>
+
+                <DialogDescription>Set login credentials for this teacher.</DialogDescription>
+
+                <form onSubmit={handleCreateProfile} className="space-y-5 mt-4">
+                  <Field>
+                    <Label>Username</Label>
+
+                    <Input value={userName} onChange={(e) => setUserName(e.target.value)} />
+
+                    {formErrors.userName && <p className="text-sm text-red-500 mt-1">{formErrors.userName}</p>}
+                  </Field>
+
+                  <Field>
+                    <Label>Password</Label>
+
+                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </Field>
+
+                  <Field>
+                    <Label>Confirm Password</Label>
+
+                    <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                  </Field>
+
+                  <Field>
+                    <Label>Role</Label>
+
+                    <Input value="TEACHER" readOnly />
+                  </Field>
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setProfileDialogOpen(false);
+                      }}
+                    >
+                      Back
+                    </Button>
+
+                    <Button type="submit" disabled={loading} className="gap-2">
+                      {loading ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        "Create Teacher"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </Dialog>
         </div>
 

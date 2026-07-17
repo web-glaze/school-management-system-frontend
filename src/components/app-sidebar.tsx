@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser, BookOpenCheck, UserStar, CalendarDays, ClipboardCheck, CalendarCheck2, Briefcase, BookCheck } from "lucide-react";
+import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser, BookOpenCheck, UserStar, CalendarDays, ClipboardCheck, CalendarCheck2, Briefcase, BookCheck, Cog } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -18,6 +18,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       url: "/maintenance/tickets",
       icon: Ticket,
       isActive: pathname.startsWith("/maintenance/tickets"),
+    },
+
+    permissions.includes("generator.read") && {
+      title: "Generator management",
+      url: "/maintenance/generator",
+      icon: Cog,
+      isActive: pathname.startsWith("/maintenance/generator"),
     },
 
     permissions.includes("department.read") && {
