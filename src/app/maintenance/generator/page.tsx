@@ -741,8 +741,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
                 <TableRow key={generator.id} className="hover:bg-muted/20 transition-colors cursor-pointer group" onClick={() => onSelect(generator)}>
                   <TableCell className="py-4 pl-6 pr-4  max-w-40">
                     <div className="flex items-center gap-3">
-                      <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      </div>
 
                       <div className="space-y-0.5 min-w-0 flex-1">
                         <p className="font-semibold text-foreground text-base leading-tight truncate" title={generator.name}>
