@@ -168,6 +168,20 @@ export interface UpdateStudentAttendancePayload {
   remarks?: string;
 }
 
+export interface CreateSubjectAttendancePayload {
+  enrollmentId: string;
+  subjectAllocationId: string;
+  attendanceDate: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+  remarks?: string;
+}
+
+export interface UpdateSubjectAttendancePayload {
+  attendanceDate: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+  remarks?: string;
+}
+
 export interface CreateFacultyAttendancePayload {
   sessionId: string;
   teacherId: string;
@@ -338,6 +352,18 @@ export const academicService = {
     update: (id: string, data: UpdateStudentAttendancePayload) => apiClient.patch(`/academic/student-attendance/${id}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/student-attendance/${id}`),
+  },
+
+  subjectAttendances: {
+    getAll: () => apiClient.get("/academic/subject-attendance"),
+
+    getById: (id: string) => apiClient.get(`/academic/subject-attendance/${id}`),
+
+    create: (data: CreateSubjectAttendancePayload) => apiClient.post("/academic/subject-attendance", data),
+
+    update: (id: string, data: UpdateSubjectAttendancePayload) => apiClient.patch(`/academic/subject-attendance/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/subject-attendance/${id}`),
   },
 
   facultyAttendances: {

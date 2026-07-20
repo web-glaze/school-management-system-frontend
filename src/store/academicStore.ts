@@ -24,6 +24,8 @@ import {
   UpdateTimetablePayload,
   CreateStudentAttendancePayload,
   UpdateStudentAttendancePayload,
+  CreateSubjectAttendancePayload,
+  UpdateSubjectAttendancePayload,
   CreateFacultyAttendancePayload,
   UpdateFacultyAttendancePayload,
   CreateStudentSubjectAllocationPayload,
@@ -190,6 +192,20 @@ export interface StudentSubjectAllocation {
   subjectAllocation: SubjectAllocation;
 }
 
+export interface SubjectAttendance {
+  id: string;
+  enrollmentId: string;
+  subjectAllocationId: string;
+  date: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+  remarks?: string;
+  createdAt: string;
+  updatedAt: string;
+
+  enrollment: StudentEnrollment;
+  subjectAllocation: SubjectAllocation;
+}
+
 export interface FacultyAttendance {
   id: string;
   sessionId: string;
@@ -215,6 +231,7 @@ interface AcademicStore {
   students: Student[];
   studentEnrollments: StudentEnrollment[];
   studentAttendances: StudentAttendance[];
+  subjectAttendances: SubjectAttendance[];
   subjectAllocations: SubjectAllocation[];
   teacherAssignments: TeacherAssignment[];
   facultyAttendances: FacultyAttendance[];
@@ -264,6 +281,11 @@ interface AcademicStore {
   updateStudentAttendance: (id: string, data: UpdateStudentAttendancePayload) => Promise<void>;
   deleteStudentAttendance: (id: string) => Promise<void>;
 
+  fetchSubjectAttendances: () => Promise<void>;
+  createSubjectAttendance: (data: CreateSubjectAttendancePayload) => Promise<void>;
+  updateSubjectAttendance: (id: string, data: UpdateSubjectAttendancePayload) => Promise<void>;
+  deleteSubjectAttendance: (id: string) => Promise<void>;
+
   fetchSubjectAllocations: () => Promise<void>;
   createSubjectAllocation: (data: CreateSubjectAllocationPayload) => Promise<void>;
   updateSubjectAllocation: (id: string, data: UpdateSubjectAllocationPayload) => Promise<void>;
@@ -297,6 +319,7 @@ interface AcademicStore {
   clearStudents: () => void;
   clearStudentEnrollments: () => void;
   clearStudentAttendances: () => void;
+  clearSubjectAttendances: () => void;
   clearSubjectAllocations: () => void;
   clearStudentSubjectAllocations: () => void;
   clearTeacherAssignments: () => void;
@@ -313,6 +336,7 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   students: [],
   studentEnrollments: [],
   studentAttendances: [],
+  subjectAttendances: [],
   subjectAllocations: [],
   studentSubjectAllocations: [],
   teacherAssignments: [],
@@ -523,6 +547,11 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   clearStudentAttendances: () =>
     set({
       studentAttendances: [],
+    }),
+
+  clearSubjectAttendances: () =>
+    set({
+      subjectAttendances: [],
     }),
 
   clearSubjectAllocations: () =>
@@ -784,6 +813,54 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.studentAttendances.delete(id);
       await get().fetchStudentAttendances();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Subject Attendance
+  // ======================
+
+  fetchSubjectAttendances: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.subjectAttendances.getAll();
+
+      set({
+        subjectAttendances: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch subject attendance", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createSubjectAttendance: async (data) => {
+    try {
+      await academicService.subjectAttendances.create(data);
+      await get().fetchSubjectAttendances();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateSubjectAttendance: async (id, data) => {
+    try {
+      await academicService.subjectAttendances.update(id, data);
+      await get().fetchSubjectAttendances();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteSubjectAttendance: async (id) => {
+    try {
+      await academicService.subjectAttendances.delete(id);
+      await get().fetchSubjectAttendances();
     } catch (error) {
       throw error;
     }

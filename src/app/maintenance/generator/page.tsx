@@ -25,7 +25,6 @@ import { AxiosError } from "axios";
 import {
   Zap,
   Calendar as CalendarIcon,
-  // CalendarRange,
   Inbox,
   Loader2,
   Pencil,
@@ -37,21 +36,20 @@ import {
   Clock,
   Fuel,
   Droplet,
-  // MapPin,
   Gauge,
-  // Factory,
-  // ChevronRight,
   TrendingUp,
   AlertTriangle,
   LogIn,
   LogOut,
   Droplets,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useMemo, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { toast } from "sonner";
-import { useGeneratorStore, type Generator, type GeneratorRunningLog, type DieselConsumptionLog, type CoolantLevelLog } from "@/store/maintenanceStore";
+import { useGeneratorStore, type Generator, type GeneratorRunningLog, type DieselConsumptionLog, type CoolantLevelLog, type FuelStockEntry } from "@/store/maintenanceStore";
 
 type ApiErrorResponse = {
   message?: string;
@@ -394,6 +392,7 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [fuelStockOpen, setFuelStockOpen] = useState(false);
 
   const [editingGenerator, setEditingGenerator] = useState<Generator | null>(null);
   const [deletingGenerator, setDeletingGenerator] = useState<Generator | null>(null);
@@ -512,16 +511,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
       editManufacturer !== (editingGenerator.manufacturer || ""));
 
   const filteredGenerators = generators.filter((generator) => generator.name.toLowerCase().includes(search.toLowerCase()) || generator.generatorNo.toLowerCase().includes(search.toLowerCase()));
-  const siteFuelStock = generators.reduce<{ value: number; updatedAt: string; generatorName: string } | null>((latest, g) => {
-    const gAny = g as Generator & { latestFuelStock?: number | null; latestFuelStockUpdatedAt?: string | null };
-    if (gAny.latestFuelStock === undefined || gAny.latestFuelStock === null || !gAny.latestFuelStockUpdatedAt) return latest;
-    if (!latest || new Date(gAny.latestFuelStockUpdatedAt) > new Date(latest.updatedAt)) {
-      return { value: Number(gAny.latestFuelStock), updatedAt: gAny.latestFuelStockUpdatedAt, generatorName: g.name };
-    }
-    return latest;
-  }, null);
-
-  const isSiteFuelLow = siteFuelStock !== null && siteFuelStock.value < LOW_FUEL_THRESHOLD_LITERS;
 
   return (
     <div className="space-y-8">
@@ -669,26 +658,8 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
         </Dialog>
       </div>
 
-      <div className={cn("flex items-center justify-between gap-4 rounded-md border px-5 py-3.5", isSiteFuelLow ? "border-destructive/30 bg-destructive/5" : "border-border/60 bg-card")}>
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={cn("size-9 rounded-lg flex items-center justify-center shrink-0", isSiteFuelLow ? "bg-destructive/10" : "bg-primary/10")}>
-            {isSiteFuelLow ? <AlertTriangle className="size-4.5 text-destructive" /> : <Fuel className="size-4.5 text-primary" />}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">Fuel Stock</p>
-            <p className="text-xs text-muted-foreground truncate">{siteFuelStock ? `Last updated ${formatDateOnly(siteFuelStock.updatedAt)} · ${siteFuelStock.generatorName}` : "No diesel logs recorded yet"}</p>
-          </div>
-        </div>
-
-        <div className="text-right shrink-0">
-          <div className="text-xl font-bold text-foreground">{siteFuelStock ? `${siteFuelStock.value.toFixed(2)} L` : "—"}</div>
-          {isSiteFuelLow && (
-            <Badge variant="outline" className="mt-0.5 bg-destructive/10 text-destructive border-destructive/20">
-              Low stock
-            </Badge>
-          )}
-        </div>
-      </div>
+      <FuelStockCard onOpen={() => setFuelStockOpen(true)} />
+      <FuelStockDialog open={fuelStockOpen} onOpenChange={setFuelStockOpen} />
 
       <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-4">
         <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
@@ -763,7 +734,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
 
                   <TableCell className="py-4 px-4 text-sm text-muted-foreground  max-w-40">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {/* <MapPin className="size-4 text-muted-foreground/80 shrink-0" /> */}
                       <span className="truncate" title={generator.location}>
                         {generator.location}
                       </span>
@@ -772,7 +742,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
 
                   <TableCell className="py-4 px-4 text-sm text-muted-foreground  max-w-32">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {/* <Gauge className="size-4 text-muted-foreground/80 shrink-0" /> */}
                       <span className="truncate" title={generator.capacity}>
                         {generator.capacity} ltr
                       </span>
@@ -781,7 +750,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
 
                   <TableCell className="py-4 px-4 text-sm text-muted-foreground  max-w-40">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {/* <Factory className="size-4 text-muted-foreground/80 shrink-0" /> */}
                       <span className="truncate" title={generator.manufacturer}>
                         {generator.manufacturer}
                       </span>
@@ -797,10 +765,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
                       <IconAction label="Delete Generator" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => openDeleteDialog(generator)}>
                         <Trash2 className="size-5" />
                       </IconAction>
-
-                      {/* <IconAction label="View Logs" className="size-10 rounded-lg text-muted-foreground group-hover:text-primary transition-all" onClick={() => onSelect(generator)}>
-                          <ChevronRight className="size-5" />
-                        </IconAction> */}
                     </div>
                     <div className="md:hidden flex justify-end">
                       <DropdownMenu>
@@ -811,11 +775,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end">
-                          {/* <DropdownMenuItem onClick={() => onSelect(generator)}>
-                              <Factory className="mr-2 size-4" />
-                              View Logs
-                            </DropdownMenuItem> */}
-
                           <DropdownMenuItem onClick={() => openEditDialog(generator)}>
                             <Pencil className="mr-2 size-4" />
                             Edit
@@ -994,6 +953,243 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
   );
 }
 
+/* ---------------- Fuel Stock (site-wide) ---------------- */
+
+function FuelStockCard({ onOpen }: { onOpen: () => void }) {
+  const { fuelStock, fuelStockUpdatedAt, fetchFuelStock } = useGeneratorStore();
+
+  useEffect(() => {
+    fetchFuelStock();
+  }, []);
+
+  const isLow = fuelStock < LOW_FUEL_THRESHOLD_LITERS;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        "flex items-center justify-between gap-4 rounded-md border px-5 py-3.5 w-full text-left transition-colors hover:bg-muted/20",
+        isLow ? "border-destructive/30 bg-destructive/5" : "border-border/60 bg-card"
+      )}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={cn("size-9 rounded-lg flex items-center justify-center shrink-0", isLow ? "bg-destructive/10" : "bg-primary/10")}>
+          {isLow ? <AlertTriangle className="size-4.5 text-destructive" /> : <Fuel className="size-4.5 text-primary" />}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Fuel Stock</p>
+          <p className="text-xs text-muted-foreground truncate">{fuelStockUpdatedAt ? `Last updated ${formatDateOnly(fuelStockUpdatedAt)} · tap to view timeline` : "No fuel entries recorded yet"}</p>
+        </div>
+      </div>
+
+      <div className="text-right shrink-0">
+        <div className="text-xl font-bold text-foreground">{fuelStock.toFixed(2)} L</div>
+        {isLow && (
+          <Badge variant="outline" className="mt-0.5 bg-destructive/10 text-destructive border-destructive/20">
+            Low stock
+          </Badge>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function FuelStockDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { fuelStock, fuelStockTimeline, fuelStockLoading, fetchFuelStockTimeline, addFuelStock } = useGeneratorStore();
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [date, setDate] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (open) fetchFuelStockTimeline();
+  }, [open]);
+
+  const resetForm = () => {
+    setDate("");
+    setQuantity("");
+    setRemarks("");
+    setErrors({});
+  };
+
+  const isValidEntry = date && quantity.trim() !== "" && parseFloat(quantity) > 0;
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValidEntry) return;
+
+    try {
+      setSaving(true);
+      await addFuelStock({
+        date: new Date(date).toISOString(),
+        quantity: parseFloat(quantity),
+        remarks: remarks.trim() || undefined,
+      });
+      resetForm();
+      setAddOpen(false);
+      toast.success("Fuel stock added successfully");
+    } catch (error) {
+      const { fieldErrors, message } = extractApiError(error, "Failed to add fuel stock");
+      if (fieldErrors) setErrors(fieldErrors);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 max-h-[85vh] flex flex-col">
+        <div className="border-b px-6 py-5 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Fuel className="size-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="text-lg">Fuel Stock</DialogTitle>
+                <DialogDescription>Current balance: {fuelStock.toFixed(2)} L</DialogDescription>
+              </div>
+            </div>
+
+            <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetForm(); }}>
+              <DialogTrigger asChild>
+                <div className="pt-4">                <Button size="lg" className="gap-1.5 shrink-0">
+                  <Plus className="size-4" />
+                  Add Stock
+                </Button>
+                </div>
+              </DialogTrigger>
+
+              <DialogContent className="w-[calc(100%-2rem)] sm:max-w-100 p-0 overflow-hidden gap-0">
+                <div className="border-b px-6 py-5">
+                  <DialogTitle className="text-lg">Add Fuel Stock</DialogTitle>
+                  <DialogDescription>Record a new diesel delivery</DialogDescription>
+                </div>
+
+                <form onSubmit={handleAdd} className="space-y-6 p-6">
+                  <FieldGroup>
+                    <Field>
+                      <Label htmlFor="stock-date">Date</Label>
+                      <DatePicker id="stock-date" value={date} onChange={(v) => { setDate(v); setErrors((p) => ({ ...p, date: "" })); }} placeholder="Select date" hasError={!!errors.date} />
+                      <FieldError message={errors.date} />
+                    </Field>
+
+                    <Field>
+                      <Label htmlFor="stock-quantity">Quantity (L)</Label>
+                      <Input
+                        id="stock-quantity"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={quantity}
+                        onChange={(e) => { setQuantity(e.target.value); setErrors((p) => ({ ...p, quantity: "" })); }}
+                        className={cn(errors.quantity && "border-destructive focus-visible:ring-destructive")}
+                        required
+                      />
+                      <FieldError message={errors.quantity} />
+                    </Field>
+
+                    <Field>
+                      <Label htmlFor="stock-remarks">Remarks</Label>
+                      <Textarea id="stock-remarks" placeholder="Optional notes..." value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+                    </Field>
+                  </FieldGroup>
+
+                  <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                    <DialogClose asChild>
+                      <Button variant="outline" type="button" className="w-full sm:w-auto">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+
+                    <Button type="submit" disabled={saving || !isValidEntry} className="w-full sm:w-auto sm:min-w-32.5 gap-2 px-5">
+                      {saving ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="size-4" />
+                          Save
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {fuelStockLoading && fuelStockTimeline.length === 0 ? (
+            <div className="p-6 space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : fuelStockTimeline.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12 text-center">
+              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
+                <Inbox className="size-6 stroke-[1.5]" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">No fuel entries yet.</h3>
+              <p className="text-muted-foreground mt-1.5 max-w-sm text-sm">Add a stock delivery to start tracking.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/40">
+              {fuelStockTimeline.map((entry) => (
+                <FuelStockTimelineRow key={entry.id} entry={entry} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="px-8 pb-8 border-t shrink-0">
+          <DialogClose asChild>
+            <Button variant="outline" type="button" className="w-full sm:w-auto">
+              Close
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FuelStockTimelineRow({ entry }: { entry: FuelStockEntry }) {
+  const isPurchase = entry.type === "PURCHASE";
+
+  return (
+    <div className="flex items-start gap-3 px-6 py-3.5">
+      <div className={cn("size-8 rounded-full flex items-center justify-center shrink-0 mt-0.5", isPurchase ? "bg-emerald-500/10" : "bg-amber-500/10")}>
+        {isPurchase ? <ArrowDownCircle className="size-4 text-emerald-600" /> : <ArrowUpCircle className="size-4 text-amber-600" />}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-foreground truncate">{isPurchase ? "Stock delivered" : `Sent to ${entry.generator?.name ?? "generator"}`}</p>
+          <span className={cn("text-sm font-semibold shrink-0", isPurchase ? "text-emerald-600" : "text-amber-600")}>
+            {isPurchase ? "+" : "−"}
+            {Number(entry.quantity < 0 ? -entry.quantity : entry.quantity).toFixed(2)} L
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <p className="text-xs text-muted-foreground truncate">{formatDateOnly(entry.date)}{entry.remarks ? ` · ${entry.remarks}` : ""}</p>
+          <span className="text-xs text-muted-foreground shrink-0">Bal: {Number(entry.balanceAfter).toFixed(2)} L</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type LogType = "running" | "diesel" | "coolant";
 
 function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: () => void }) {
@@ -1020,18 +1216,6 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
   function clearFilters() {
     setDateRange(undefined);
     setAppliedDateRange(undefined);
-  }
-
-  function dateLabel() {
-    if (dateRange?.from) {
-      if (dateRange.to) {
-        return `${dateRange.from.toLocaleDateString("en-IN")} – ${dateRange.to.toLocaleDateString("en-IN")}`;
-      }
-
-      return dateRange.from.toLocaleDateString("en-IN");
-    }
-
-    return "Custom range";
   }
 
   const [runningOpen, setRunningOpen] = useState(false);
@@ -1089,18 +1273,16 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
   const [dieselOpen, setDieselOpen] = useState(false);
   const [dieselDate, setDieselDate] = useState("");
   const [dieselRefilled, setDieselRefilled] = useState("");
-  const [fuelLeft, setFuelLeft] = useState("");
   const [dieselRemarks, setDieselRemarks] = useState("");
   const [dieselSaving, setDieselSaving] = useState(false);
   const [dieselErrors, setDieselErrors] = useState<Record<string, string>>({});
 
   const capacity = parseFloat(generator.capacity ?? "0");
-  const isDieselValid = dieselDate && dieselRefilled.trim() !== "" && fuelLeft.trim() !== "" && parseFloat(dieselRefilled) <= capacity;
+  const isDieselValid = dieselDate && dieselRefilled.trim() !== "" && parseFloat(dieselRefilled) <= capacity;
 
   const resetDieselForm = () => {
     setDieselDate("");
     setDieselRefilled("");
-    setFuelLeft("");
     setDieselRemarks("");
     setDieselErrors({});
   };
@@ -1123,7 +1305,6 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
       await addDieselLog(generator.id, {
         date: new Date(dieselDate).toISOString(),
         dieselRefilled: parseFloat(dieselRefilled),
-        fuelLeftInStock: parseFloat(fuelLeft),
         remarks: dieselRemarks.trim() || undefined,
       });
 
@@ -1245,10 +1426,6 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
 
     const totalDieselRefilled = filteredDieselLogs.reduce((sum, log) => sum + Number(log.dieselRefilled || 0), 0);
 
-    const latestDieselLog = filteredDieselLogs.length ? [...filteredDieselLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] : null;
-
-    const fuelBeforeRefill = latestDieselLog ? Number(latestDieselLog.fuelLeftInStock) - Number(latestDieselLog.dieselRefilled) : null;
-
     const totalCoolantRefilled = filteredCoolantLogs.reduce((sum, log) => (log.coolantLevel === "REFILLED" ? sum + Number(log.quantityAdded || 0) : sum), 0);
 
     const coolantRefillCount = filteredCoolantLogs.filter((log) => log.coolantLevel === "REFILLED").length;
@@ -1256,8 +1433,6 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
     return {
       totalRunningHours,
       totalDieselRefilled,
-      fuelBeforeRefill,
-      latestDieselLogDate: latestDieselLog?.date ?? null,
       totalCoolantRefilled,
       coolantRefillCount,
     };
@@ -1536,7 +1711,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
 
                       <Field>
                         <Label htmlFor="run-hours">Total Running Hours</Label>
-                        <Input id="run-hours" value={computedHours} disabled placeholder="Calculated automatically" />
+                        <Input id="run-hours" value={computedHours} disabled />
                       </Field>
 
                       <Field>
@@ -1605,7 +1780,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="font-bold text-foreground">Diesel Consumption Log</h3>
-                <p className="text-sm text-muted-foreground">Track fuel refilling and daily fuel balance</p>
+                <p className="text-sm text-muted-foreground">Track diesel refilled into this generator</p>
               </div>
 
               <Dialog
@@ -1630,7 +1805,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
                       </div>
                       <div>
                         <DialogTitle className="text-lg">Add Diesel Log</DialogTitle>
-                        <DialogDescription>Record refill and remaining stock</DialogDescription>
+                        <DialogDescription>Record diesel refilled into this generator</DialogDescription>
                       </div>
                     </div>
                   </div>
@@ -1652,63 +1827,39 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
                         <FieldError message={dieselErrors.date} />
                       </Field>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field>
-                          <Label htmlFor="diesel-refilled">Diesel Refilled (L)</Label>
-                          <Input
-                            id="diesel-refilled"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max={parseFloat(generator.capacity ?? "0")}
-                            placeholder={`Max ${generator.capacity} L`}
-                            value={dieselRefilled}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              const capacity = parseFloat(generator.capacity ?? "0");
+                      <Field>
+                        <Label htmlFor="diesel-refilled">Diesel Refilled (L)</Label>
+                        <Input
+                          id="diesel-refilled"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max={parseFloat(generator.capacity ?? "0")}
+                          placeholder={`Max ${generator.capacity} L`}
+                          value={dieselRefilled}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const capacity = parseFloat(generator.capacity ?? "0");
 
-                              setDieselRefilled(value);
+                            setDieselRefilled(value);
 
-                              if (value !== "" && parseFloat(value) > capacity) {
-                                setDieselErrors((p) => ({
-                                  ...p,
-                                  dieselRefilled: `Cannot refill more than generator capacity (${capacity} L).`,
-                                }));
-                              } else {
-                                setDieselErrors((p) => ({
-                                  ...p,
-                                  dieselRefilled: "",
-                                }));
-                              }
-                            }}
-                            className={cn(dieselErrors.dieselRefilled && "border-destructive focus-visible:ring-destructive")}
-                            required
-                          />
-                          <FieldError message={dieselErrors.dieselRefilled} />
-                        </Field>
-
-                        <Field>
-                          <Label htmlFor="fuel-left">Fuel Left in Stock (L)</Label>
-                          <Input
-                            id="fuel-left"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0.00"
-                            value={fuelLeft}
-                            onChange={(e) => {
-                              setFuelLeft(e.target.value);
+                            if (value !== "" && parseFloat(value) > capacity) {
                               setDieselErrors((p) => ({
                                 ...p,
-                                fuelLeftInStock: "",
+                                dieselRefilled: `Cannot refill more than generator capacity (${capacity} L).`,
                               }));
-                            }}
-                            className={cn(dieselErrors.fuelLeftInStock && "border-destructive focus-visible:ring-destructive")}
-                            required
-                          />
-                          <FieldError message={dieselErrors.fuelLeftInStock} />
-                        </Field>
-                      </div>
+                            } else {
+                              setDieselErrors((p) => ({
+                                ...p,
+                                dieselRefilled: "",
+                              }));
+                            }
+                          }}
+                          className={cn(dieselErrors.dieselRefilled && "border-destructive focus-visible:ring-destructive")}
+                          required
+                        />
+                        <FieldError message={dieselErrors.dieselRefilled} />
+                      </Field>
 
                       <Field>
                         <Label htmlFor="diesel-remarks">Remarks</Label>
@@ -1746,49 +1897,29 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
               loading={logsLoading && dieselLogs.length === 0}
               empty={dieselLogs.length === 0}
               emptyLabel="No diesel log entries yet."
-              headers={["Date", "Refilled (L)", "Stock Left (L)", "In Generator (L)", "Remarks", "Actions"]}
+              headers={["Date", "Refilled (L)", "Remarks", "Actions"]}
             >
-              {filteredDieselLogs.map((log: DieselConsumptionLog) => {
-                const lowStock = Number(log.fuelLeftInStock) < LOW_FUEL_THRESHOLD_LITERS;
-                return (
-                  <TableRow key={log.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setDetailsTarget({ type: "diesel", log })}>
-                    <TableCell className="py-4 pl-6 pr-4 text-sm max-w-32">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <CalendarIcon className="size-4 text-muted-foreground/80 shrink-0" />
-                        <span className="truncate">{formatDateOnly(log.date)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-4 text-sm font-semibold text-foreground max-w-28 truncate">{Number(log.dieselRefilled).toFixed(2)} L</TableCell>
-                    <TableCell className="py-4 px-4 text-sm max-w-36">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={cn("text-muted-foreground truncate", lowStock && "text-destructive font-medium")}>{Number(log.fuelLeftInStock).toFixed(2)} L</span>
-                        {lowStock && (
-                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 shrink-0">
-                            Low
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-4 text-sm text-muted-foreground max-w-32 truncate">
-                      {(log as DieselConsumptionLog & { fuelLeftInGenerator?: number | null }).fuelLeftInGenerator != null ? (
-                        `${Number((log as DieselConsumptionLog & { fuelLeftInGenerator?: number | null }).fuelLeftInGenerator).toFixed(2)} L`
-                      ) : (
-                        <span className="text-foreground/40">&mdash;</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-4 px-4 text-sm text-muted-foreground max-w-50 truncate">{log.remarks || <span className="text-foreground/40">&mdash;</span>}</TableCell>
-                    <TableCell className="py-4 pl-4 pr-4 sm:pr-6 text-right bg-card sticky right-0 shadow-lg sm:shadow-none border-l border-border/40 sm:border-l-0" onClick={(e) => e.stopPropagation()}>
-                      <IconAction
-                        label="Delete Entry"
-                        className="size-9 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                        onClick={() => setDeleteTarget({ type: "diesel", id: log.id })}
-                      >
-                        <Trash2 className="size-4.5" />
-                      </IconAction>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {filteredDieselLogs.map((log: DieselConsumptionLog) => (
+                <TableRow key={log.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setDetailsTarget({ type: "diesel", log })}>
+                  <TableCell className="py-4 pl-6 pr-4 text-sm max-w-32">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <CalendarIcon className="size-4 text-muted-foreground/80 shrink-0" />
+                      <span className="truncate">{formatDateOnly(log.date)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 px-4 text-sm font-semibold text-foreground max-w-28 truncate">{Number(log.dieselRefilled).toFixed(2)} L</TableCell>
+                  <TableCell className="py-4 px-4 text-sm text-muted-foreground max-w-50 truncate">{log.remarks || <span className="text-foreground/40">&mdash;</span>}</TableCell>
+                  <TableCell className="py-4 pl-4 pr-4 sm:pr-6 text-right bg-card sticky right-0 shadow-lg sm:shadow-none border-l border-border/40 sm:border-l-0" onClick={(e) => e.stopPropagation()}>
+                    <IconAction
+                      label="Delete Entry"
+                      className="size-9 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                      onClick={() => setDeleteTarget({ type: "diesel", id: log.id })}
+                    >
+                      <Trash2 className="size-4.5" />
+                    </IconAction>
+                  </TableCell>
+                </TableRow>
+              ))}
             </LogTable>
           </div>
         </TabsContent>
@@ -2025,15 +2156,6 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
               <>
                 <DetailRow label="Date" value={formatDateOnly(detailsTarget.log.date)} icon={<CalendarIcon className="size-4" />} />
                 <DetailRow label="Diesel Refilled" value={`${Number(detailsTarget.log.dieselRefilled).toFixed(2)} L`} icon={<Fuel className="size-4" />} />
-                <DetailRow label="Fuel Left in Stock (site)" value={`${Number(detailsTarget.log.fuelLeftInStock).toFixed(2)} L`} icon={<Gauge className="size-4" />} />
-                {(detailsTarget.log as DieselConsumptionLog & { fuelLeftInGenerator?: number | null }).fuelLeftInGenerator != null && (
-                  <DetailRow
-                    label="Fuel Left Inside Generator"
-                    value={`${Number((detailsTarget.log as DieselConsumptionLog & { fuelLeftInGenerator?: number | null }).fuelLeftInGenerator).toFixed(2)} L`}
-                    icon={<Droplets className="size-4" />}
-                  />
-                )}
-                <DetailRow label="Fuel Level Before Refill" value={`${(Number(detailsTarget.log.fuelLeftInStock) - Number(detailsTarget.log.dieselRefilled)).toFixed(2)} L`} icon={<Droplets className="size-4" />} />
                 <DetailRow label="Remarks" value={detailsTarget.log.remarks || "—"} multiline />
               </>
             )}

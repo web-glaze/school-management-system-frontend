@@ -11,6 +11,7 @@ import {
   type CreateRunningLogPayload,
   type CreateDieselLogPayload,
   type CreateCoolantLogPayload,
+  type CreateFuelStockPayload,
 } from "@/services/maintenance.service";
 // ====================== Department ======================
 
@@ -411,8 +412,6 @@ export interface Generator {
   manufacturer?: string;
   isActive: boolean;
   createdAt: string;
-  latestFuelStock?: number | null;
-  latestFuelStockUpdatedAt?: string | null;
 }
 
 export interface GeneratorRunningLog {
@@ -429,7 +428,6 @@ export interface DieselConsumptionLog {
   id: string;
   date: string;
   dieselRefilled: number;
-  fuelLeftInStock: number;
   remarks?: string;
   createdAt: string;
 }
@@ -439,6 +437,17 @@ export interface CoolantLevelLog {
   date: string;
   coolantLevel: "FULL" | "LOW" | "REFILLED";
   quantityAdded?: number;
+  remarks?: string;
+  createdAt: string;
+}
+
+export interface FuelStockEntry {
+  id: string;
+  type: "PURCHASE" | "GENERATOR_TRANSFER";
+  date: string;
+  quantity: number;
+  balanceAfter: number;
+  generator?: { name: string; generatorNo: string } | null;
   remarks?: string;
   createdAt: string;
 }
@@ -468,6 +477,15 @@ interface GeneratorState {
   fetchCoolantLogs: (generatorId: string) => Promise<void>;
   addCoolantLog: (generatorId: string, payload: CreateCoolantLogPayload) => Promise<void>;
   deleteCoolantLog: (generatorId: string, logId: string) => Promise<void>;
+
+  fuelStock: number;
+  fuelStockUpdatedAt: string | null;
+  fuelStockTimeline: FuelStockEntry[];
+  fuelStockLoading: boolean;
+
+  fetchFuelStock: () => Promise<void>;
+  fetchFuelStockTimeline: () => Promise<void>;
+  addFuelStock: (payload: CreateFuelStockPayload) => Promise<void>;
 }
 
 export const useGeneratorStore = create<GeneratorState>((set) => ({
@@ -478,6 +496,11 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
   dieselLogs: [],
   coolantLogs: [],
   logsLoading: false,
+
+  fuelStock: 0,
+  fuelStockUpdatedAt: null,
+  fuelStockTimeline: [],
+  fuelStockLoading: false,
 
   fetchGenerators: async () => {
     try {
@@ -609,6 +632,37 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
       await useGeneratorStore.getState().fetchCoolantLogs(generatorId);
     } finally {
       set({ logsLoading: false });
+    }
+  },
+
+  fetchFuelStock: async () => {
+    try {
+      const response = await generatorService.getFuelStock();
+      const data = response.data?.data || response.data || {};
+      set({ fuelStock: Number(data.balance) || 0, fuelStockUpdatedAt: data.lastUpdatedAt ?? null });
+    } catch {
+      // interceptor handles redirect
+    }
+  },
+
+  fetchFuelStockTimeline: async () => {
+    try {
+      set({ fuelStockLoading: true });
+      const response = await generatorService.getFuelStockTimeline();
+      set({ fuelStockTimeline: response.data?.data || response.data || [] });
+    } finally {
+      set({ fuelStockLoading: false });
+    }
+  },
+
+  addFuelStock: async (payload) => {
+    try {
+      set({ fuelStockLoading: true });
+      await generatorService.addFuelStock(payload);
+      await useGeneratorStore.getState().fetchFuelStockTimeline();
+      await useGeneratorStore.getState().fetchFuelStock();
+    } finally {
+      set({ fuelStockLoading: false });
     }
   },
 }));

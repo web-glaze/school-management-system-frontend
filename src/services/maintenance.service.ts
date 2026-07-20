@@ -95,7 +95,19 @@ export interface CreateRunningLogPayload {
 export interface CreateDieselLogPayload {
   date: string;
   dieselRefilled: number;
-  fuelLeftInStock: number;
+  remarks?: string;
+}
+
+export interface CreateCoolantLogPayload {
+  date: string;
+  coolantLevel: "FULL" | "LOW" | "REFILLED";
+  quantityAdded?: number;
+  remarks?: string;
+}
+
+export interface CreateFuelStockPayload {
+  date: string;
+  quantity: number;
   remarks?: string;
 }
 
@@ -131,4 +143,9 @@ export const generatorService = {
   getCoolantLogs: (generatorId: string) => apiClient.get(`/generator/${generatorId}/coolant-logs`),
   addCoolantLog: (generatorId: string, payload: CreateCoolantLogPayload) => apiClient.post(`/generator/${generatorId}/coolant-logs`, payload),
   deleteCoolantLog: (logId: string) => apiClient.delete(`/generator/coolant-logs/${logId}`),
+
+  // Fuel Stock (site-wide)
+  getFuelStock: () => apiClient.get("/generator/fuel-stock/current"),
+  getFuelStockTimeline: () => apiClient.get("/generator/fuel-stock/timeline"),
+  addFuelStock: (payload: CreateFuelStockPayload) => apiClient.post("/generator/fuel-stock", payload),
 };

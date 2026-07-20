@@ -21,18 +21,15 @@ import {
   Loader2,
   Pencil,
   Plus,
-  RotateCcw,
   Search,
   SlidersHorizontal,
   Trash2,
   Users,
-  MessageSquare,
-  CircleCheck,
   PieChart,
   ArrowLeft,
   BookOpen,
 } from "lucide-react";
-import { useAcademicStore, StudentAttendance, StudentEnrollment } from "@/store/academicStore";
+import { useAcademicStore, StudentAttendance, SubjectAttendance, StudentEnrollment } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -101,19 +98,6 @@ function statusBadgeClass(status: AttendanceStatus) {
   }
 }
 
-function statusToggleClass(status: AttendanceStatus) {
-  switch (status) {
-    case "PRESENT":
-      return "bg-green-600 border-green-600 text-white hover:bg-green-600";
-    case "ABSENT":
-      return "bg-red-600 border-red-600 text-white hover:bg-red-600";
-    case "LATE":
-      return "bg-amber-500 border-amber-500 text-white hover:bg-amber-500";
-    case "LEAVE":
-      return "bg-blue-600 border-blue-600 text-white hover:bg-blue-600";
-  }
-}
-
 function statusLabel(status: AttendanceStatus) {
   switch (status) {
     case "PRESENT":
@@ -127,8 +111,6 @@ function statusLabel(status: AttendanceStatus) {
   }
 }
 
-type Markings = Record<string, { status: AttendanceStatus; remarks: string }>;
-
 interface StoredUser {
   teacherId?: string | null;
 }
@@ -141,6 +123,7 @@ export default function StudentAttendancePage() {
     sections,
     studentEnrollments,
     studentAttendances,
+    subjectAttendances,
     subjectAllocations,
     studentSubjectAllocations,
     teacherAssignments,
@@ -150,6 +133,7 @@ export default function StudentAttendancePage() {
     fetchSections,
     fetchStudentEnrollments,
     fetchStudentAttendances,
+    fetchSubjectAttendances,
     fetchSubjectAllocations,
     fetchStudentSubjectAllocations,
     fetchTeacherAssignments,
@@ -157,6 +141,9 @@ export default function StudentAttendancePage() {
     createStudentAttendance,
     updateStudentAttendance,
     deleteStudentAttendance,
+    createSubjectAttendance,
+    updateSubjectAttendance,
+    deleteSubjectAttendance,
   } = useAcademicStore();
 
   const authorized = usePermission("student-attendance.read");
@@ -192,6 +179,7 @@ export default function StudentAttendancePage() {
       fetchSubjectAllocations();
       fetchStudentEnrollments();
       fetchStudentSubjectAllocations();
+      fetchSubjectAttendances();
     } else {
       fetchClasses();
       fetchSections();
@@ -207,50 +195,60 @@ export default function StudentAttendancePage() {
     return active?.id ?? sessions[0]?.id ?? "";
   }, [sessions]);
 
-  // ── Shared: seed / save marking rosters ──────────────────────────────
-  function seedMarkingsFor(roster: StudentEnrollment[], date: string): Markings {
-    const seeded: Markings = {};
-    roster.forEach((e) => {
-      const existing = studentAttendances.find((a) => a.enrollmentId === e.id && toDateInputValue(a.date) === date);
-      seeded[e.id] = {
-        status: existing?.status ?? "PRESENT",
-        remarks: existing?.remarks ?? "",
-      };
-    });
-    return seeded;
+  // ── Shared week navigation (used by every register grid) ────────────
+  const [weekAnchor, setWeekAnchor] = useState(() => startOfWeek(new Date()));
+  const [weekPickerOpen, setWeekPickerOpen] = useState(false);
+  const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)), [weekAnchor]);
+
+  function goToPrevWeek() {
+    setWeekAnchor((d) => addDays(d, -7));
+  }
+  function goToNextWeek() {
+    setWeekAnchor((d) => addDays(d, 7));
+  }
+  function goToToday() {
+    setWeekAnchor(startOfWeek(new Date()));
   }
 
-  async function saveRosterMarkings(roster: StudentEnrollment[], date: string, markings: Markings, setSaving: (v: boolean) => void) {
-    setSaving(true);
-    try {
-      const ops = roster
-        .map((e) => {
-          const status = markings[e.id]?.status;
-          const remarks = markings[e.id]?.remarks ?? "";
-          if (!status) return null;
+  const attendanceByKey = useMemo(() => {
+    const map = new Map<string, StudentAttendance>();
+    studentAttendances.forEach((a) => {
+      map.set(`${a.enrollmentId}|${toDateInputValue(a.date)}`, a);
+    });
+    return map;
+  }, [studentAttendances]);
 
-          const existing = studentAttendances.find((a) => a.enrollmentId === e.id && toDateInputValue(a.date) === date);
+  function getAttendanceFor(enrollId: string, dateStr: string) {
+    return attendanceByKey.get(`${enrollId}|${dateStr}`);
+  }
 
-          if (existing) {
-            if (existing.status === status && (existing.remarks ?? "") === remarks) return null;
-            return updateStudentAttendance(existing.id, { attendanceDate: date, status, remarks });
-          }
+  const subjectAttendanceByKey = useMemo(() => {
+    const map = new Map<string, SubjectAttendance>();
+    subjectAttendances.forEach((a) => {
+      map.set(`${a.enrollmentId}|${a.subjectAllocationId}|${toDateInputValue(a.date)}`, a);
+    });
+    return map;
+  }, [subjectAttendances]);
 
-          return createStudentAttendance({ enrollmentId: e.id, attendanceDate: date, status, remarks });
-        })
-        .filter(Boolean) as Promise<void>[];
+  function getSubjectAttendanceFor(enrollId: string, subjectAllocationId: string, dateStr: string) {
+    return subjectAttendanceByKey.get(`${enrollId}|${subjectAllocationId}|${dateStr}`);
+  }
 
-      if (ops.length === 0) {
-        toast.info("No changes to save");
-        return;
-      }
+  function openAddForCell(forEnrollmentId: string, dateStr: string, forSubjectAllocationId?: string) {
+    resetAddForm();
+    setEnrollmentId(forEnrollmentId);
+    setAddDate(dateStr);
+    setAddSubjectAllocationId(forSubjectAllocationId ?? null);
+    setAddOpen(true);
+  }
 
-      await Promise.all(ops);
-      toast.success("Attendance saved successfully");
-    } catch {
-      toast.error("Failed to save attendance");
-    } finally {
-      setSaving(false);
+  function handleCellClick(forEnrollmentId: string, dateStr: string, kind: "student" | "subject" = "student", forSubjectAllocationId?: string) {
+    const record = kind === "subject" && forSubjectAllocationId ? getSubjectAttendanceFor(forEnrollmentId, forSubjectAllocationId, dateStr) : getAttendanceFor(forEnrollmentId, dateStr);
+
+    if (record) {
+      openEditDialog(record, kind);
+    } else {
+      openAddForCell(forEnrollmentId, dateStr, kind === "subject" ? forSubjectAllocationId : undefined);
     }
   }
 
@@ -269,17 +267,7 @@ export default function StudentAttendancePage() {
       .sort((a, b) => `${a.student.firstName} ${a.student.lastName}`.localeCompare(`${b.student.firstName} ${b.student.lastName}`));
   }, [activeEnrollments, myClassAssignment]);
 
-  const [classDate, setClassDate] = useState(todayStr());
-  const [classDateOpen, setClassDateOpen] = useState(false);
-  const [classMarkings, setClassMarkings] = useState<Markings>({});
-  const [classSaving, setClassSaving] = useState(false);
   const [classSearch, setClassSearch] = useState("");
-
-  useEffect(() => {
-    if (myClassRoster.length === 0) return;
-    setClassMarkings(seedMarkingsFor(myClassRoster, classDate));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classDate, myClassAssignment?.id, myClassRoster.length]);
 
   // ══════════════════════════════════════════════════════════════════
   // TEACHER: My Subjects
@@ -296,7 +284,6 @@ export default function StudentAttendancePage() {
     if (!selectedAllocation) return [];
 
     if (selectedAllocation.subject.isOptional) {
-      // Elective — only students explicitly allocated to this subject
       const studentIds = new Set(studentSubjectAllocations.filter((ssa) => ssa.subjectAllocationId === selectedAllocation.id && ssa.isActive).map((ssa) => ssa.studentId));
 
       return activeEnrollments
@@ -304,36 +291,22 @@ export default function StudentAttendancePage() {
         .sort((a, b) => `${a.student.firstName} ${a.student.lastName}`.localeCompare(`${b.student.firstName} ${b.student.lastName}`));
     }
 
-    // Compulsory — the whole enrolled class-section
     return activeEnrollments
       .filter((e) => e.sessionId === selectedAllocation.sessionId && e.classId === selectedAllocation.classId && e.sectionId === selectedAllocation.sectionId)
       .sort((a, b) => `${a.student.firstName} ${a.student.lastName}`.localeCompare(`${b.student.firstName} ${b.student.lastName}`));
   }, [selectedAllocation, activeEnrollments, studentSubjectAllocations]);
 
-  const [subjectDate, setSubjectDate] = useState(todayStr());
-  const [subjectDateOpen, setSubjectDateOpen] = useState(false);
-  const [subjectMarkings, setSubjectMarkings] = useState<Markings>({});
-  const [subjectSaving, setSubjectSaving] = useState(false);
   const [subjectSearch, setSubjectSearch] = useState("");
-
-  useEffect(() => {
-    if (!selectedAllocation || subjectRoster.length === 0) return;
-    setSubjectMarkings(seedMarkingsFor(subjectRoster, subjectDate));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subjectDate, selectedAllocationId, subjectRoster.length]);
-
   const [teacherTab, setTeacherTab] = useState<"class" | "subjects">("class");
 
   // ══════════════════════════════════════════════════════════════════
-  // ADMIN: Attendance grid (session/class/section scoped, weekly view)
+  // ADMIN: Attendance grid (session/class/section scoped)
   // ══════════════════════════════════════════════════════════════════
   const [recSessionId, setRecSessionId] = useState("");
   const [recClassId, setRecClassId] = useState("");
   const [recSectionId, setRecSectionId] = useState("");
   const [recRegisterLoaded, setRecRegisterLoaded] = useState(false);
   const [recSearch, setRecSearch] = useState("");
-  const [weekAnchor, setWeekAnchor] = useState(() => startOfWeek(new Date()));
-  const [weekPickerOpen, setWeekPickerOpen] = useState(false);
 
   const recFilteredSections = useMemo(() => {
     if (recClassId === "all" || !recClassId) return sections;
@@ -347,57 +320,12 @@ export default function StudentAttendancePage() {
       .sort((a, b) => `${a.student.firstName} ${a.student.lastName}`.localeCompare(`${b.student.firstName} ${b.student.lastName}`));
   }, [activeEnrollments, recSessionId, recClassId, recSectionId]);
 
-  const recSearchedStudents = recRegisterStudents.filter((e) => {
-    const name = `${e.student.firstName} ${e.student.lastName}`.toLowerCase();
-    return name.includes(recSearch.toLowerCase()) || e.student.admissionNo.toLowerCase().includes(recSearch.toLowerCase());
-  });
-
-  const attendanceByKey = useMemo(() => {
-    const map = new Map<string, StudentAttendance>();
-    studentAttendances.forEach((a) => {
-      map.set(`${a.enrollmentId}|${toDateInputValue(a.date)}`, a);
-    });
-    return map;
-  }, [studentAttendances]);
-
-  function getAttendanceFor(enrollId: string, dateStr: string) {
-    return attendanceByKey.get(`${enrollId}|${dateStr}`);
-  }
-
-  const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)), [weekAnchor]);
-
   function handleLoadRecordsRegister() {
     if (!recSessionId || !recClassId || !recSectionId) {
       toast.error("Please select session, class and section");
       return;
     }
     setRecRegisterLoaded(true);
-  }
-
-  function goToPrevWeek() {
-    setWeekAnchor((d) => addDays(d, -7));
-  }
-  function goToNextWeek() {
-    setWeekAnchor((d) => addDays(d, 7));
-  }
-  function goToToday() {
-    setWeekAnchor(startOfWeek(new Date()));
-  }
-
-  function openAddForCell(forEnrollmentId: string, dateStr: string) {
-    resetAddForm();
-    setEnrollmentId(forEnrollmentId);
-    setAddDate(dateStr);
-    setAddOpen(true);
-  }
-
-  function handleCellClick(forEnrollmentId: string, dateStr: string) {
-    const record = getAttendanceFor(forEnrollmentId, dateStr);
-    if (record) {
-      openEditDialog(record);
-    } else {
-      openAddForCell(forEnrollmentId, dateStr);
-    }
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -465,19 +393,20 @@ export default function StudentAttendancePage() {
   const [addDate, setAddDate] = useState(todayStr());
   const [addStatus, setAddStatus] = useState<AttendanceStatus>("PRESENT");
   const [addRemarks, setAddRemarks] = useState("");
+  const [addSubjectAllocationId, setAddSubjectAllocationId] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [enrollmentOpen, setEnrollmentOpen] = useState(false);
   const [addDateOpen, setAddDateOpen] = useState(false);
-
   const [editOpen, setEditOpen] = useState(false);
-  const [editingAttendance, setEditingAttendance] = useState<StudentAttendance | null>(null);
+  const [editingAttendance, setEditingAttendance] = useState<StudentAttendance | SubjectAttendance | null>(null);
+  const [editingKind, setEditingKind] = useState<"student" | "subject">("student");
   const [editDate, setEditDate] = useState("");
   const [editStatus, setEditStatus] = useState<AttendanceStatus>("PRESENT");
   const [editRemarks, setEditRemarks] = useState("");
   const [editDateOpen, setEditDateOpen] = useState(false);
-
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deletingAttendance, setDeletingAttendance] = useState<StudentAttendance | null>(null);
+  const [deletingAttendance, setDeletingAttendance] = useState<StudentAttendance | SubjectAttendance | null>(null);
+  const [deletingKind, setDeletingKind] = useState<"student" | "subject">("student");
 
   if (authorized === null || !userChecked) {
     return null;
@@ -488,6 +417,7 @@ export default function StudentAttendancePage() {
     setAddDate(todayStr());
     setAddStatus("PRESENT");
     setAddRemarks("");
+    setAddSubjectAllocationId(null);
     setFormErrors({});
   };
 
@@ -495,12 +425,22 @@ export default function StudentAttendancePage() {
     e.preventDefault();
 
     try {
-      await createStudentAttendance({
-        enrollmentId,
-        attendanceDate: addDate,
-        status: addStatus,
-        remarks: addRemarks,
-      });
+      if (addSubjectAllocationId) {
+        await createSubjectAttendance({
+          enrollmentId,
+          subjectAllocationId: addSubjectAllocationId,
+          attendanceDate: addDate,
+          status: addStatus,
+          remarks: addRemarks,
+        });
+      } else {
+        await createStudentAttendance({
+          enrollmentId,
+          attendanceDate: addDate,
+          status: addStatus,
+          remarks: addRemarks,
+        });
+      }
 
       toast.success("Attendance marked successfully");
       resetAddForm();
@@ -517,11 +457,12 @@ export default function StudentAttendancePage() {
     }
   };
 
-  const openEditDialog = (attendance: StudentAttendance) => {
+  const openEditDialog = (attendance: StudentAttendance | SubjectAttendance, kind: "student" | "subject" = "student") => {
     setEditDate(toDateInputValue(attendance.date));
     setEditStatus(attendance.status);
     setEditRemarks(attendance.remarks ?? "");
     setEditingAttendance(attendance);
+    setEditingKind(kind);
     setEditOpen(true);
   };
 
@@ -530,11 +471,19 @@ export default function StudentAttendancePage() {
     if (!editingAttendance) return;
 
     try {
-      await updateStudentAttendance(editingAttendance.id, {
-        attendanceDate: editDate,
-        status: editStatus,
-        remarks: editRemarks,
-      });
+      if (editingKind === "subject") {
+        await updateSubjectAttendance(editingAttendance.id, {
+          attendanceDate: editDate,
+          status: editStatus,
+          remarks: editRemarks,
+        });
+      } else {
+        await updateStudentAttendance(editingAttendance.id, {
+          attendanceDate: editDate,
+          status: editStatus,
+          remarks: editRemarks,
+        });
+      }
 
       toast.success("Attendance updated successfully");
       setEditOpen(false);
@@ -544,8 +493,9 @@ export default function StudentAttendancePage() {
     }
   };
 
-  const openDeleteDialog = (attendance: StudentAttendance) => {
+  const openDeleteDialog = (attendance: StudentAttendance | SubjectAttendance, kind: "student" | "subject" = "student") => {
     setDeletingAttendance(attendance);
+    setDeletingKind(kind);
     setDeleteOpen(true);
   };
 
@@ -553,7 +503,11 @@ export default function StudentAttendancePage() {
     if (!deletingAttendance) return;
 
     try {
-      await deleteStudentAttendance(deletingAttendance.id);
+      if (deletingKind === "subject") {
+        await deleteSubjectAttendance(deletingAttendance.id);
+      } else {
+        await deleteStudentAttendance(deletingAttendance.id);
+      }
       toast.success("Attendance record deleted");
       setDeleteOpen(false);
       setDeletingAttendance(null);
@@ -564,192 +518,129 @@ export default function StudentAttendancePage() {
 
   const hasEditChanges = editingAttendance && (editDate !== toDateInputValue(editingAttendance.date) || editStatus !== editingAttendance.status || editRemarks !== (editingAttendance.remarks ?? ""));
 
-  // ── Reusable roster-marking panel (My Class / My Subjects) ──────────
-  function renderMarkingPanel(opts: {
-    roster: StudentEnrollment[];
-    date: string;
-    setDate: (v: string) => void;
-    dateOpen: boolean;
-    setDateOpen: (v: boolean) => void;
-    markings: Markings;
-    setMarkings: (m: Markings) => void;
-    search: string;
-    setSearch: (v: string) => void;
-    saving: boolean;
-    onSave: () => void;
-  }) {
-    const { roster, date, setDate, dateOpen, setDateOpen, markings, setMarkings, search, setSearch, saving, onSave } = opts;
-
+  // ── Shared register grid, used by admin AND both teacher tabs ───────
+  function renderAttendanceGrid(roster: StudentEnrollment[], search: string, setSearch: (v: string) => void, kind: "student" | "subject" = "student", subjectAllocationId?: string) {
     const searched = roster.filter((e) => {
       const name = `${e.student.firstName} ${e.student.lastName}`.toLowerCase();
       return name.includes(search.toLowerCase()) || e.student.admissionNo.toLowerCase().includes(search.toLowerCase());
     });
 
-    const stats = { total: roster.length, PRESENT: 0, ABSENT: 0, LATE: 0, LEAVE: 0 };
-    roster.forEach((e) => {
-      const status = markings[e.id]?.status;
-      if (status) stats[status] += 1;
-    });
-
-    function setStatus(id: string, status: AttendanceStatus) {
-      setMarkings({
-        ...markings,
-        [id]: { ...(markings[id] ?? { remarks: "" }), status },
-      });
-    }
-
-    function markAllPresent() {
-      const updated: Markings = { ...markings };
-      roster.forEach((e) => {
-        updated[e.id] = { ...(updated[e.id] ?? { remarks: "" }), status: "PRESENT" };
-      });
-      setMarkings(updated);
-    }
-
-    function resetPanel() {
-      setMarkings(seedMarkingsFor(roster, date));
-      toast.info("Reverted to saved attendance");
-    }
-
     return (
       <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-          <Popover open={dateOpen} onOpenChange={setDateOpen}>
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input placeholder="Search student..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="icon" className="size-10 shrink-0" onClick={goToPrevWeek} aria-label="Previous week">
+            <ChevronLeft className="size-4" />
+          </Button>
+
+          <Popover open={weekPickerOpen} onOpenChange={setWeekPickerOpen}>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" className="h-11 justify-start gap-2 font-normal">
+              <Button type="button" variant="outline" className="h-10 justify-start gap-2 font-medium">
                 <CalendarIcon className="size-4" />
-                {format(new Date(date), "dd MMM yyyy")}
+                {format(weekDates[0], "dd MMM")} - {format(weekDates[6], "dd MMM yyyy")}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
               <Calendar
                 mode="single"
-                selected={new Date(date)}
-                onSelect={(d) => {
-                  if (!d) return;
-                  setDate(format(d, "yyyy-MM-dd"));
-                  setDateOpen(false);
+                selected={weekAnchor}
+                onSelect={(date) => {
+                  if (!date) return;
+                  setWeekAnchor(startOfWeek(date));
+                  setWeekPickerOpen(false);
                 }}
               />
             </PopoverContent>
           </Popover>
 
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input placeholder="Search student..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <div className="rounded-lg border p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
-            <p className="text-2xl font-bold mt-1">{stats.total}</p>
-          </div>
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/40 dark:bg-green-900/10">
-            <p className="text-xs font-medium text-green-700 dark:text-green-400 uppercase tracking-wide">Present</p>
-            <p className="text-2xl font-bold mt-1 text-green-700 dark:text-green-400">{stats.PRESENT}</p>
-          </div>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-900/10">
-            <p className="text-xs font-medium text-red-700 dark:text-red-400 uppercase tracking-wide">Absent</p>
-            <p className="text-2xl font-bold mt-1 text-red-700 dark:text-red-400">{stats.ABSENT}</p>
-          </div>
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
-            <p className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide">Late</p>
-            <p className="text-2xl font-bold mt-1 text-amber-700 dark:text-amber-400">{stats.LATE}</p>
-          </div>
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/40 dark:bg-blue-900/10">
-            <p className="text-xs font-medium text-blue-700 dark:text-blue-400 uppercase tracking-wide">Leave</p>
-            <p className="text-2xl font-bold mt-1 text-blue-700 dark:text-blue-400">{stats.LEAVE}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={markAllPresent} className="gap-1.5">
-            <CircleCheck className="size-4" />
-            Mark all Present
+          <Button variant="outline" size="icon" className="size-10 shrink-0" onClick={goToNextWeek} aria-label="Next week">
+            <ChevronRight className="size-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={resetPanel} className="gap-1.5">
-            <RotateCcw className="size-4" />
-            Reset
+
+          <Button variant="ghost" size="sm" onClick={goToToday} className="text-muted-foreground">
+            Today
           </Button>
         </div>
 
-        <div className="divide-y divide-border/40 rounded-md border">
-          {searched.map((e) => (
-            <div key={e.id} className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 p-4">
-              <div className="flex flex-col gap-3 md:w-64 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
-                    {e.student.firstName.charAt(0)}
-                    {e.student.lastName.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-medium leading-tight">
-                      {e.student.firstName} {e.student.lastName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{e.student.admissionNo}</p>
-                  </div>
-                </div>
+        <div className="overflow-x-auto rounded-md border">
+          <Table>
+            <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="sticky left-0 z-10 bg-gray-50 dark:bg-muted/15 font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-52">Student Profile</TableHead>
+                {weekDates.map((date) => (
+                  <TableHead key={date.toISOString()} className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-center min-w-28">
+                    <div>{format(date, "dd")}</div>
+                    <div className="font-medium normal-case text-[11px] text-muted-foreground">{format(date, "EEEE")}</div>
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
 
-                <div className="relative w-full md:w-56">
-                  <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Remarks (optional)"
-                    value={markings[e.id]?.remarks ?? ""}
-                    onChange={(ev) =>
-                      setMarkings({
-                        ...markings,
-                        [e.id]: { ...(markings[e.id] ?? { status: "PRESENT", remarks: "" }), remarks: ev.target.value },
-                      })
-                    }
-                    className="h-9 pl-8 text-xs"
-                  />
-                </div>
-              </div>
+            <TableBody className="divide-y divide-border/30">
+              {searched.map((enrollment) => (
+                <TableRow key={enrollment.id} className="hover:bg-muted/20 transition-colors">
+                  <TableCell className="sticky left-0 z-10 bg-card py-4 pl-6">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
+                        {enrollment.student.firstName.charAt(0)}
+                        {enrollment.student.lastName.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-semibold leading-tight">
+                          {enrollment.student.firstName} {enrollment.student.lastName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{enrollment.student.admissionNo}</p>
+                      </div>
+                    </div>
+                  </TableCell>
 
-              <div className="flex flex-col md:ml-auto">
-                <div className="grid grid-cols-4 gap-1.5 md:flex md:flex-wrap md:justify-end md:gap-2">
-                  {STATUS_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setStatus(e.id, opt.value)}
-                      className={cn(
-                        "px-2 py-1.5 md:px-3.5 rounded-md text-[11px] md:text-xs font-semibold border transition-colors text-center",
-                        markings[e.id]?.status === opt.value ? statusToggleClass(opt.value) : "border-input text-muted-foreground hover:bg-muted"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
+                  {weekDates.map((date) => {
+                    const dateStr = toISODate(date);
+                    const record = kind === "subject" && subjectAllocationId ? getSubjectAttendanceFor(enrollment.id, subjectAllocationId, dateStr) : getAttendanceFor(enrollment.id, dateStr);
 
-          {searched.length === 0 && <div className="p-8 text-center text-muted-foreground text-sm">No students match your search.</div>}
+                    return (
+                      <TableCell key={dateStr} className="py-3 px-2 align-middle">
+                        {record ? (
+                          <button
+                            type="button"
+                            onClick={() => handleCellClick(enrollment.id, dateStr, kind, subjectAllocationId)}
+                            title={record.remarks || undefined}
+                            className={cn("w-full max-w-32 rounded-md px-2 py-2 text-center text-xs font-semibold transition-colors hover:opacity-80", statusBadgeClass(record.status))}
+                          >
+                            <p>{statusLabel(record.status)}</p>
+                            {record.remarks && <p className="mt-0.5 truncate font-normal opacity-80 text-[10px]">{record.remarks}</p>}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleCellClick(enrollment.id, dateStr, kind, subjectAllocationId)}
+                            className="w-full rounded-md px-2 py-2 text-center text-xs font-medium text-muted-foreground/50 border border-dashed border-border hover:bg-muted/40 transition-colors"
+                          >
+                            Not marked
+                          </button>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+
+              {searched.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="p-8 text-center text-muted-foreground text-sm">
+                    No students match your search.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border bg-muted/30 px-4 py-3">
-          <p className="text-sm text-muted-foreground">
-            Marking attendance for <span className="font-semibold text-foreground">{stats.total}</span> student{stats.total !== 1 ? "s" : ""} on{" "}
-            <span className="font-semibold text-foreground">{format(new Date(date), "dd MMM yyyy")}</span>
-          </p>
-
-          <Button onClick={onSave} disabled={saving} className="w-full sm:w-auto sm:min-w-40 h-10">
-            {saving ? (
-              <>
-                <Loader2 className="size-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Check className="size-4 mr-2" />
-                Save Attendance
-              </>
-            )}
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground">Tap any cell to add or edit that day&apos;s attendance. Hover a marked cell to read its full remark.</p>
       </div>
     );
   }
@@ -991,24 +882,12 @@ export default function StudentAttendancePage() {
                   ) : (
                     <>
                       <div className="mb-5 flex flex-wrap items-center gap-2 border-b pb-4">
-                        <CircleCheck className="size-4 text-primary" />
+                        <Users className="size-4 text-primary" />
                         <span className="text-sm font-medium text-foreground">
                           Class teacher of {myClassAssignment.class.name} — {myClassAssignment.section.name}
                         </span>
                       </div>
-                      {renderMarkingPanel({
-                        roster: myClassRoster,
-                        date: classDate,
-                        setDate: setClassDate,
-                        dateOpen: classDateOpen,
-                        setDateOpen: setClassDateOpen,
-                        markings: classMarkings,
-                        setMarkings: setClassMarkings,
-                        search: classSearch,
-                        setSearch: setClassSearch,
-                        saving: classSaving,
-                        onSave: () => saveRosterMarkings(myClassRoster, classDate, classMarkings, setClassSaving),
-                      })}
+                      {renderAttendanceGrid(myClassRoster, classSearch, setClassSearch)}
                     </>
                   )
                 ) : selectedAllocation ? (
@@ -1026,19 +905,7 @@ export default function StudentAttendancePage() {
                       </span>
                     </div>
 
-                    {renderMarkingPanel({
-                      roster: subjectRoster,
-                      date: subjectDate,
-                      setDate: setSubjectDate,
-                      dateOpen: subjectDateOpen,
-                      setDateOpen: setSubjectDateOpen,
-                      markings: subjectMarkings,
-                      setMarkings: setSubjectMarkings,
-                      search: subjectSearch,
-                      setSearch: setSubjectSearch,
-                      saving: subjectSaving,
-                      onSave: () => saveRosterMarkings(subjectRoster, subjectDate, subjectMarkings, setSubjectSaving),
-                    })}
+                    {renderAttendanceGrid(subjectRoster, subjectSearch, setSubjectSearch, "subject", selectedAllocation.id)}
                   </>
                 ) : mySubjectAllocations.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -1172,122 +1039,7 @@ export default function StudentAttendancePage() {
                   <p className="text-muted-foreground">There are no active enrollments for this class and section.</p>
                 </div>
               ) : (
-                <div className="bg-card rounded-md border p-4 sm:p-6 space-y-5">
-                  <div className="relative w-full md:w-64">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input placeholder="Search student..." value={recSearch} onChange={(e) => setRecSearch(e.target.value)} className="h-10 pl-10" />
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" size="icon" className="size-10 shrink-0" onClick={goToPrevWeek} aria-label="Previous week">
-                      <ChevronLeft className="size-4" />
-                    </Button>
-
-                    <Popover open={weekPickerOpen} onOpenChange={setWeekPickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className="h-10 justify-start gap-2 font-medium">
-                          <CalendarIcon className="size-4" />
-                          {format(weekDates[0], "dd MMM")} - {format(weekDates[6], "dd MMM yyyy")}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
-                        <Calendar
-                          mode="single"
-                          selected={weekAnchor}
-                          onSelect={(date) => {
-                            if (!date) return;
-                            setWeekAnchor(startOfWeek(date));
-                            setWeekPickerOpen(false);
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-
-                    <Button variant="outline" size="icon" className="size-10 shrink-0" onClick={goToNextWeek} aria-label="Next week">
-                      <ChevronRight className="size-4" />
-                    </Button>
-
-                    <Button variant="ghost" size="sm" onClick={goToToday} className="text-muted-foreground">
-                      Today
-                    </Button>
-                  </div>
-
-                  <div className="overflow-x-auto rounded-md border">
-                    <Table>
-                      <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="sticky left-0 z-10 bg-gray-50 dark:bg-muted/15 font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-52">Student Profile</TableHead>
-                          {weekDates.map((date) => (
-                            <TableHead key={date.toISOString()} className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 text-center min-w-28">
-                              <div>{format(date, "dd")}</div>
-                              <div className="font-medium normal-case text-[11px] text-muted-foreground">{format(date, "EEEE")}</div>
-                            </TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-
-                      <TableBody className="divide-y divide-border/30">
-                        {recSearchedStudents.map((enrollment) => (
-                          <TableRow key={enrollment.id} className="hover:bg-muted/20 transition-colors">
-                            <TableCell className="sticky left-0 z-10 bg-card py-4 pl-6">
-                              <div className="flex items-center gap-3">
-                                <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
-                                  {enrollment.student.firstName.charAt(0)}
-                                  {enrollment.student.lastName.charAt(0)}
-                                </div>
-                                <div>
-                                  <p className="font-semibold leading-tight">
-                                    {enrollment.student.firstName} {enrollment.student.lastName}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">{enrollment.student.admissionNo}</p>
-                                </div>
-                              </div>
-                            </TableCell>
-
-                            {weekDates.map((date) => {
-                              const dateStr = toISODate(date);
-                              const record = getAttendanceFor(enrollment.id, dateStr);
-
-                              return (
-                                <TableCell key={dateStr} className="py-3 px-2 align-middle">
-                                  {record ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleCellClick(enrollment.id, dateStr)}
-                                      title={record.remarks || undefined}
-                                      className={cn("w-full max-w-32 rounded-md px-2 py-2 text-center text-xs font-semibold transition-colors hover:opacity-80", statusBadgeClass(record.status))}
-                                    >
-                                      <p>{statusLabel(record.status)}</p>
-                                      {record.remarks && <p className="mt-0.5 truncate font-normal opacity-80 text-[10px]">{record.remarks}</p>}
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleCellClick(enrollment.id, dateStr)}
-                                      className="w-full rounded-md px-2 py-2 text-center text-xs font-medium text-muted-foreground/50 border border-dashed border-border hover:bg-muted/40 transition-colors"
-                                    >
-                                      Not marked
-                                    </button>
-                                  )}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        ))}
-
-                        {recSearchedStudents.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={8} className="p-8 text-center text-muted-foreground text-sm">
-                              No students match your search.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground">Tap any cell to add or edit that day&apos;s attendance. Hover a marked cell to read its full remark.</p>
-                </div>
+                <div className="bg-card rounded-md border p-4 sm:p-6">{renderAttendanceGrid(recRegisterStudents, recSearch, setRecSearch)}</div>
               )}
             </div>
           )
@@ -1425,11 +1177,9 @@ export default function StudentAttendancePage() {
                           <p className="text-xs text-muted-foreground">{e.student.admissionNo}</p>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="text-right">
-                            <p className={cn("text-sm font-bold", stats.pct >= 75 ? "text-green-600" : stats.pct >= 50 ? "text-amber-600" : "text-red-600")}>{stats.pct}%</p>
-                            <p className="text-[11px] text-muted-foreground">{stats.total} days marked</p>
-                          </div>
+                        <div className="text-right shrink-0">
+                          <p className={cn("text-sm font-bold", stats.pct >= 75 ? "text-green-600" : stats.pct >= 50 ? "text-amber-600" : "text-red-600")}>{stats.pct}%</p>
+                          <p className="text-[11px] text-muted-foreground">{stats.total} days marked</p>
                         </div>
                       </button>
                     );
