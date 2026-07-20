@@ -25,7 +25,7 @@ import { AxiosError } from "axios";
 import {
   Zap,
   Calendar as CalendarIcon,
-  CalendarRange,
+  // CalendarRange,
   Inbox,
   Loader2,
   Pencil,
@@ -37,9 +37,9 @@ import {
   Clock,
   Fuel,
   Droplet,
-  MapPin,
+  // MapPin,
   Gauge,
-  Factory,
+  // Factory,
   // ChevronRight,
   TrendingUp,
   AlertTriangle,
@@ -1041,9 +1041,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
   const [runRemarks, setRunRemarks] = useState("");
   const [runSaving, setRunSaving] = useState(false);
   const [runErrors, setRunErrors] = useState<Record<string, string>>({});
-
   const computedHours = useMemo(() => calcRunningHours(runDate, runStart, runStop), [runDate, runStart, runStop]);
-
   const resetRunningForm = () => {
     setRunDate("");
     setRunStart("");
@@ -1096,7 +1094,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
   const [dieselSaving, setDieselSaving] = useState(false);
   const [dieselErrors, setDieselErrors] = useState<Record<string, string>>({});
 
-const capacity = parseFloat(generator.capacity ?? "0");
+  const capacity = parseFloat(generator.capacity ?? "0");
   const isDieselValid = dieselDate && dieselRefilled.trim() !== "" && fuelLeft.trim() !== "" && parseFloat(dieselRefilled) <= capacity;
 
   const resetDieselForm = () => {
@@ -2057,7 +2055,7 @@ const capacity = parseFloat(generator.capacity ?? "0");
             )}
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t shrink-0">
+          <DialogFooter className="px-8 pb-8 border-t shrink-0">
             <DialogClose asChild>
               <Button variant="outline" type="button" className="w-full sm:w-auto">
                 Close
