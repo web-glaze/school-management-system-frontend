@@ -30,13 +30,15 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 403) {
-      const url = error.config?.url || "";
+  console.group("🚨 403 Forbidden");
+  console.log("URL:", error.config?.url);
+  console.log("Method:", error.config?.method);
+  console.log("Request Data:", error.config?.data);
+  console.log("Response:", error.response.data);
+  console.groupEnd();
 
-      if (typeof window !== "undefined" && !url.includes("/auth/login")) {
-        window.location.replace("/403");
-        return new Promise(() => {});
-      }
-    }
+  return Promise.reject(error);
+}
     return Promise.reject(error);
   }
 );

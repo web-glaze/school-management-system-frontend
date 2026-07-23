@@ -14,6 +14,42 @@ export interface UpdateAcademicSessionPayload {
   isActive?: boolean;
 }
 
+export interface CreateEventPayload {
+  title: string;
+  description?: string;
+  sessionId: string;
+  eventType: "HOLIDAY" | "EVENT" | "EXAM" | "PTM" | "SPORTS" | "CULTURAL" | "STAFF_MEETING" | "OTHER";
+  startDate: string;
+  endDate: string;
+  isAllDay?: boolean;
+  startTime?: string;
+  endTime?: string;
+  scope?: "WHOLE_SCHOOL" | "SPECIFIC_CLASSES" | "SPECIFIC_SECTIONS";
+  classIds?: string[];
+  sectionIds?: string[];
+  timetableEffect?: "NONE" | "HOLIDAY_BLOCK_TIMETABLE" | "REPLACE_TIMETABLE" | "NOTICE_ONLY";
+  isPublished?: boolean;
+  isActive?: boolean;
+}
+
+export interface UpdateEventPayload {
+  title: string;
+  description?: string;
+  sessionId: string;
+  eventType: "HOLIDAY" | "EVENT" | "EXAM" | "PTM" | "SPORTS" | "CULTURAL" | "STAFF_MEETING" | "OTHER";
+  startDate: string;
+  endDate: string;
+  isAllDay?: boolean;
+  startTime?: string;
+  endTime?: string;
+  scope?: "WHOLE_SCHOOL" | "SPECIFIC_CLASSES" | "SPECIFIC_SECTIONS";
+  classIds?: string[];
+  sectionIds?: string[];
+  timetableEffect?: "NONE" | "HOLIDAY_BLOCK_TIMETABLE" | "REPLACE_TIMETABLE" | "NOTICE_ONLY";
+  isPublished?: boolean;
+  isActive?: boolean;
+}
+
 export interface CreateClassPayload {
   name: string;
   isActive?: boolean;
@@ -388,5 +424,17 @@ export const academicService = {
     update: (id: string, data: UpdateStudentSubjectAllocationPayload) => apiClient.patch(`/academic/student-subject-allocation/${id}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/student-subject-allocation/${id}`),
+  },
+
+  schedule: {
+    getAll: () => apiClient.get("/academic/schedule"),
+
+    getById: (id: string) => apiClient.get(`/academic/schedule/${id}`),
+
+    create: (data: CreateEventPayload) => apiClient.post("/academic/schedule", data),
+
+    update: (id: string, data: UpdateEventPayload) => apiClient.patch(`/academic/schedule/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/schedule/${id}`),
   },
 };

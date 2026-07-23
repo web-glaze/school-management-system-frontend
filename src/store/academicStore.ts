@@ -30,6 +30,8 @@ import {
   UpdateFacultyAttendancePayload,
   CreateStudentSubjectAllocationPayload,
   UpdateStudentSubjectAllocationPayload,
+  CreateEventPayload,
+  UpdateEventPayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -41,6 +43,41 @@ export interface AcademicSession {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CalendarEventClassRef {
+  id: string;
+  classId: string;
+  class: AcademicClass;
+}
+
+export interface CalendarEventSectionRef {
+  id: string;
+  sectionId: string;
+  section: Section;
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  sessionId: string;
+  eventType: "HOLIDAY" | "EVENT" | "EXAM" | "PTM" | "SPORTS" | "CULTURAL" | "STAFF_MEETING" | "OTHER";
+  startDate: string;
+  endDate: string;
+  isAllDay: boolean;
+  startTime?: string;
+  endTime?: string;
+  scope: "WHOLE_SCHOOL" | "SPECIFIC_CLASSES" | "SPECIFIC_SECTIONS";
+  timetableEffect: "NONE" | "HOLIDAY_BLOCK_TIMETABLE" | "REPLACE_TIMETABLE" | "NOTICE_ONLY";
+  isPublished: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+
+  session: AcademicSession;
+  classes: CalendarEventClassRef[];
+  sections: CalendarEventSectionRef[];
 }
 
 export interface AcademicClass {
@@ -224,6 +261,7 @@ export interface FacultyAttendance {
 
 interface AcademicStore {
   sessions: AcademicSession[];
+  events: CalendarEvent[];
   classes: AcademicClass[];
   sections: Section[];
   subjects: Subject[];
@@ -244,6 +282,11 @@ interface AcademicStore {
   createSession: (data: CreateAcademicSessionPayload) => Promise<void>;
   updateSession: (id: string, data: UpdateAcademicSessionPayload) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
+
+  fetchEvents: () => Promise<void>;
+  createEvent: (data: CreateEventPayload) => Promise<void>;
+  updateEvent: (id: string, data: UpdateEventPayload) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
 
   fetchClasses: () => Promise<void>;
   createClass: (data: CreateClassPayload) => Promise<void>;
@@ -312,6 +355,7 @@ interface AcademicStore {
   deleteTimetable: (id: string) => Promise<void>;
 
   clearSessions: () => void;
+  clearEvents: () => void;
   clearClasses: () => void;
   clearSections: () => void;
   clearSubjects: () => void;
@@ -329,6 +373,7 @@ interface AcademicStore {
 
 export const useAcademicStore = create<AcademicStore>((set, get) => ({
   sessions: [],
+  events: [],
   classes: [],
   sections: [],
   subjects: [],
@@ -387,6 +432,54 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.sessions.delete(id);
       await get().fetchSessions();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Events
+  // ======================
+
+  fetchEvents: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.schedule.getAll();
+
+      set({
+        events: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch events", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createEvent: async (data) => {
+    try {
+      await academicService.schedule.create(data);
+      await get().fetchEvents();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateEvent: async (id, data) => {
+    try {
+      await academicService.schedule.update(id, data);
+      await get().fetchEvents();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteEvent: async (id) => {
+    try {
+      await academicService.schedule.delete(id);
+      await get().fetchEvents();
     } catch (error) {
       throw error;
     }
@@ -512,6 +605,11 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   clearSessions: () =>
     set({
       sessions: [],
+    }),
+
+  clearEvents: () =>
+    set({
+      events: [],
     }),
 
   clearClasses: () =>
