@@ -940,20 +940,22 @@ export default function SchedulePage() {
     return (
       <>
         {renderFiltersBar()}
-        <div className="mb-5 ml-auto flex w-full flex-wrap justify-center gap-1 rounded-xl border bg-card p-1 sm:w-fit sm:justify-end">
-          {UPCOMING_RANGES.map((r) => (
-            <button
-              key={r.key}
-              type="button"
-              onClick={() => setUpcomingRange(r.key)}
-              className={cn(
-                "whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                upcomingRange === r.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {r.label}
-            </button>
-          ))}
+        <div className="mb-5 flex justify-center sm:justify-end">
+          <div className="inline-flex w-full overflow-x-auto rounded-xl border bg-card p-1 sm:w-auto">
+            {UPCOMING_RANGES.map((r) => (
+              <button
+                key={r.key}
+                type="button"
+                onClick={() => setUpcomingRange(r.key)}
+                className={cn(
+                  "flex w-full items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors sm:w-auto",
+                  upcomingRange === r.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="truncate">{r.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -978,7 +980,7 @@ export default function SchedulePage() {
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Basics</p>
           <FieldGroup>
             <Field>
-              <Label>Event Title *</Label>
+              <Label>Event Title</Label>
               <Input placeholder="e.g. Annual Sports Day" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} className="h-10" />
             </Field>
             <Field>
@@ -1019,7 +1021,7 @@ export default function SchedulePage() {
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Schedule</p>
           <FieldGroup>
             <Field>
-              <Label>Academic Session *</Label>
+              <Label>Academic Session</Label>
               <Select value={form.sessionId} onValueChange={(v) => setForm((p) => ({ ...p, sessionId: v }))}>
                 <SelectTrigger className="h-10 w-full">
                   <SelectValue className="truncate" placeholder="Select Session" />
@@ -1036,7 +1038,7 @@ export default function SchedulePage() {
 
             <div className="grid grid-cols-2 gap-3">
               <Field>
-                <Label>Start Date *</Label>
+                <Label>Start Date</Label>
 
                 <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                   <PopoverTrigger asChild>
@@ -1068,7 +1070,7 @@ export default function SchedulePage() {
                 </Popover>
               </Field>
               <Field>
-                <Label>End Date *</Label>
+                <Label>End Date</Label>
 
                 <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                   <PopoverTrigger asChild>
