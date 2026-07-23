@@ -134,7 +134,6 @@ const emptyEventForm: EventFormState = {
   isActive: true,
 };
 
-
 function toDateOnly(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
@@ -1273,9 +1272,9 @@ export default function SchedulePage() {
         </div>
 
         {canCreate && (
-          <Button onClick={() => startCreate()} className="w-full shrink-0 pr-2 sm:w-auto">
-            <Plus className="mr-2 size-4" />
-            Create
+          <Button onClick={() => startCreate()} className="w-full shrink-0 justify-center px-4 sm:w-auto">
+            <Plus className="mr-2 size-4 shrink-0" />
+            <span>Create</span>
           </Button>
         )}
       </div>
