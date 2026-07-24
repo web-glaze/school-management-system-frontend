@@ -48,7 +48,7 @@ import { usePermission } from "@/hooks/usePermission";
 
 type ApiErrorResponse = { message?: string; errors?: Record<string, string> };
 type TabKey = "calendar" | "upcoming";
-type CalendarView = "month" | "week" | "list";
+type CalendarView = "month" | "list";
 type EventType = CalendarEvent["eventType"];
 type EventScope = CalendarEvent["scope"];
 type TimetableEffect = CalendarEvent["timetableEffect"];
@@ -91,7 +91,6 @@ const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const CALENDAR_VIEW_OPTIONS: { key: CalendarView; label: string; icon: typeof CalendarDays }[] = [
   { key: "month", label: "Month", icon: LayoutGrid },
-  { key: "week", label: "Week", icon: CalendarRange },
   { key: "list", label: "List", icon: ListIcon },
 ];
 
@@ -419,6 +418,24 @@ export default function SchedulePage() {
     if (!filterSessionId && activeSessionId) setFilterSessionId(activeSessionId);
   }, [activeSessionId, filterSessionId]);
 
+  const selectedSession = useMemo(
+    () => sessions.find((s) => s.id === filterSessionId) as { id: string; name: string; startDate?: string; endDate?: string } | undefined,
+    [sessions, filterSessionId]
+  );
+
+  const sessionBounds = useMemo(() => {
+    if (!selectedSession?.startDate || !selectedSession?.endDate) return null;
+    const start = toDateOnly(new Date(selectedSession.startDate));
+    const end = toDateOnly(new Date(selectedSession.endDate));
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+    return { start, end };
+  }, [selectedSession]);
+
+  function isOutOfSessionBounds(date: Date) {
+    if (!sessionBounds) return false;
+    return date < sessionBounds.start || date > sessionBounds.end;
+  }
+
   const scopedEvents = useMemo(() => {
     return events.filter((e) => {
       if (filterSessionId && e.sessionId !== filterSessionId) return false;
@@ -440,6 +457,7 @@ export default function SchedulePage() {
   }, [activeSessionId, form.mode, form.sessionId]);
 
   function startCreate(prefillDate?: Date) {
+    if (prefillDate && isOutOfSessionBounds(prefillDate)) return;
     setFormErrors({});
     setForm({
       ...emptyEventForm,
@@ -597,14 +615,8 @@ export default function SchedulePage() {
   const [calendarView, setCalendarView] = useState<CalendarView>("month");
   const [monthCursor, setMonthCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<Date | null>(today);
-  const [weekAnchor, setWeekAnchor] = useState(today);
   const monthMatrix = useMemo(() => getMonthMatrix(monthCursor), [monthCursor]);
   const selectedDateEvents = useMemo(() => (selectedDate ? eventsOnDate(scopedEvents, selectedDate) : []), [scopedEvents, selectedDate]);
-  const weekDates = useMemo(() => {
-    const startWeekday = (weekAnchor.getDay() + 6) % 7;
-    const start = addDays(weekAnchor, -startWeekday);
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  }, [weekAnchor]);
   const listEvents = useMemo(() => {
     const monthStart = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1);
     const monthEnd = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0);
@@ -617,34 +629,69 @@ export default function SchedulePage() {
       .sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [scopedEvents, monthCursor]);
 
+  useEffect(() => {
+    if (!sessionBounds) return;
+    const { start, end } = sessionBounds;
+    const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+
+    setMonthCursor((prev) => {
+      const prevMonth = new Date(prev.getFullYear(), prev.getMonth(), 1);
+      if (prevMonth < startMonth) return startMonth;
+      if (prevMonth > endMonth) return endMonth;
+      return prev;
+    });
+
+    setSelectedDate((prev) => {
+      if (!prev) return start;
+      if (prev < start) return start;
+      if (prev > end) return end;
+      return prev;
+    });
+  }, [sessionBounds]);
+
+  const navBounds = useMemo(() => {
+    if (!sessionBounds) return { prevDisabled: false, nextDisabled: false };
+
+    const curMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1);
+    const startMonth = new Date(sessionBounds.start.getFullYear(), sessionBounds.start.getMonth(), 1);
+    const endMonth = new Date(sessionBounds.end.getFullYear(), sessionBounds.end.getMonth(), 1);
+    return {
+      prevDisabled: curMonth <= startMonth,
+      nextDisabled: curMonth >= endMonth,
+    };
+  }, [sessionBounds, monthCursor]);
+
   function goPrev() {
-    if (calendarView === "week") {
-      setWeekAnchor((d) => addDays(d, -7));
-    } else {
-      setMonthCursor((p) => new Date(p.getFullYear(), p.getMonth() - 1, 1));
-    }
+    setMonthCursor((p) => {
+      const next = new Date(p.getFullYear(), p.getMonth() - 1, 1);
+      if (sessionBounds) {
+        const floor = new Date(sessionBounds.start.getFullYear(), sessionBounds.start.getMonth(), 1);
+        if (next < floor) return p;
+      }
+      return next;
+    });
   }
   function goNext() {
-    if (calendarView === "week") {
-      setWeekAnchor((d) => addDays(d, 7));
-    } else {
-      setMonthCursor((p) => new Date(p.getFullYear(), p.getMonth() + 1, 1));
-    }
+    setMonthCursor((p) => {
+      const next = new Date(p.getFullYear(), p.getMonth() + 1, 1);
+      if (sessionBounds) {
+        const ceil = new Date(sessionBounds.end.getFullYear(), sessionBounds.end.getMonth(), 1);
+        if (next > ceil) return p;
+      }
+      return next;
+    });
   }
   function goToday() {
-    setMonthCursor(new Date(today.getFullYear(), today.getMonth(), 1));
-    setSelectedDate(today);
-    setWeekAnchor(today);
+    let target = today;
+    if (sessionBounds) {
+      if (today < sessionBounds.start) target = sessionBounds.start;
+      else if (today > sessionBounds.end) target = sessionBounds.end;
+    }
+    setMonthCursor(new Date(target.getFullYear(), target.getMonth(), 1));
+    setSelectedDate(target);
   }
   function headerLabel() {
-    if (calendarView === "week") {
-      const start = weekDates[0];
-      const end = weekDates[6];
-      if (start.getMonth() === end.getMonth()) {
-        return `${start.getDate()} – ${end.getDate()} ${formatMonthLabel(start)}`;
-      }
-      return `${start.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })} – ${end.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`;
-    }
     return formatMonthLabel(monthCursor);
   }
 
@@ -732,6 +779,11 @@ export default function SchedulePage() {
                 ))}
               </SelectContent>
             </Select>
+            {sessionBounds && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {formatDisplayDate(formatISODate(sessionBounds.start))} – {formatDisplayDate(formatISODate(sessionBounds.end))}
+              </p>
+            )}
           </Field>
 
           <Field>
@@ -763,11 +815,11 @@ export default function SchedulePage() {
 
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-0">
-            <Button variant="outline" size="icon" className="size-9" onClick={goPrev}>
+            <Button variant="outline" size="icon" className="size-9" onClick={goPrev} disabled={navBounds.prevDisabled} title={navBounds.prevDisabled ? "Start of the academic session" : undefined}>
               <ChevronLeft className="size-4" />
             </Button>
             <span className="min-w-32 text-center text-sm font-semibold text-foreground">{headerLabel()}</span>
-            <Button variant="outline" size="icon" className="size-9" onClick={goNext}>
+            <Button variant="outline" size="icon" className="size-9" onClick={goNext} disabled={navBounds.nextDisabled} title={navBounds.nextDisabled ? "End of the academic session" : undefined}>
               <ChevronRight className="size-4" />
             </Button>
             <div className="bg-card ml-2 rounded-2xl border">
@@ -821,25 +873,32 @@ export default function SchedulePage() {
                     const dayEvents = eventsOnDate(scopedEvents, date);
                     const shown = dayEvents.slice(0, 2);
                     const extra = dayEvents.length - shown.length;
+                    const outOfSession = isOutOfSessionBounds(date);
 
                     return (
                       <button
                         key={di}
                         type="button"
+                        disabled={outOfSession}
                         onClick={() => {
+                          if (outOfSession) return;
                           setSelectedDate(date);
-                          setWeekAnchor(date);
                         }}
-                        onDoubleClick={() => canCreate && startCreate(date)}
+                        onDoubleClick={() => canCreate && !outOfSession && startCreate(date)}
                         className={cn(
                           "group flex h-24 flex-col items-start gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition-colors sm:h-28 sm:p-2",
-                          inMonth ? "bg-background" : "bg-muted/30 text-muted-foreground/50",
-                          isSelected ? "border-primary ring-1 ring-primary" : "border-border/60 hover:border-primary/40"
+                          outOfSession
+                            ? "cursor-not-allowed bg-muted/20 text-muted-foreground/40"
+                            : inMonth
+                              ? "bg-background"
+                              : "bg-muted/30 text-muted-foreground/50",
+                          !outOfSession && (isSelected ? "border-primary ring-1 ring-primary" : "border-border/60 hover:border-primary/40"),
+                          outOfSession && "border-border/40"
                         )}
                       >
                         <div className="flex w-full shrink-0 items-center justify-between">
-                          <span className={cn("text-xs font-semibold", isToday && "flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground")}>{date.getDate()}</span>
-                          {canCreate && (
+                          <span className={cn("text-xs font-semibold", isToday && !outOfSession && "flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground")}>{date.getDate()}</span>
+                          {canCreate && !outOfSession && (
                             <span
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -852,68 +911,25 @@ export default function SchedulePage() {
                           )}
                         </div>
 
-                        <div className="flex w-full min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
-                          {shown.map((ev) => {
-                            const meta = EVENT_TYPE_META[ev.eventType];
-                            return (
-                              <span key={ev.id} className={cn("block w-full truncate rounded px-1 py-0.5 text-[10px] font-medium", meta.bg, meta.text)} title={ev.title}>
-                                {ev.title}
-                              </span>
-                            );
-                          })}
-                          {extra > 0 && <span className="shrink-0 truncate text-[10px] font-medium text-muted-foreground">+{extra} more</span>}
-                        </div>
+                        {!outOfSession && (
+                          <div className="flex w-full min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
+                            {shown.map((ev) => {
+                              const meta = EVENT_TYPE_META[ev.eventType];
+                              return (
+                                <span key={ev.id} className={cn("block w-full truncate rounded px-1 py-0.5 text-[10px] font-medium", meta.bg, meta.text)} title={ev.title}>
+                                  {ev.title}
+                                </span>
+                              );
+                            })}
+                            {extra > 0 && <span className="shrink-0 truncate text-[10px] font-medium text-muted-foreground">+{extra} more</span>}
+                          </div>
+                        )}
                       </button>
                     );
                   })}
                 </div>
               ))}
             </div>
-          </div>
-        ) : calendarView === "week" ? (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
-            {weekDates.map((date, i) => {
-              const dayEvents = eventsOnDate(scopedEvents, date);
-              const isToday = isSameDate(date, today);
-              return (
-                <div key={i} className={cn("rounded-xl border bg-card p-3", isToday && "border-primary/50 bg-primary/5")}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-muted-foreground">{WEEKDAY_LABELS[i]}</span>
-                    <span className={cn("text-sm font-semibold", isToday && "text-primary")}>{date.getDate()}</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {dayEvents.length === 0 ? (
-                      <p className="text-xs text-muted-foreground/50">No events</p>
-                    ) : (
-                      dayEvents.map((ev) => {
-                        const meta = EVENT_TYPE_META[ev.eventType];
-                        return (
-                          <button
-                            key={ev.id}
-                            type="button"
-                            onClick={() => openViewDialog(ev)}
-                            title={ev.title}
-                            className={cn("block w-full truncate rounded-lg border px-2 py-1 text-left text-xs font-medium", meta.bg, meta.border, meta.text)}
-                          >
-                            {ev.title}
-                          </button>
-                        );
-                      })
-                    )}
-                    {canCreate && (
-                      <button
-                        type="button"
-                        onClick={() => startCreate(date)}
-                        className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border py-1.5 text-[11px] text-muted-foreground hover:border-primary/40 hover:text-primary"
-                      >
-                        <Plus className="size-3" />
-                        Add
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         ) : (
           <div className="space-y-2">
@@ -1319,7 +1335,7 @@ export default function SchedulePage() {
             </div>
           </DialogHeader>
 
-          <form onSubmit={handleFormSubmit} className="space-y-6 p-6">
+          <form onSubmit={handleFormSubmit} className="space-y-6 px-6 pb-6 pt-3">
             {renderEventFormFields()}
 
             <DialogFooter className="flex-col gap-2 sm:flex-row">
@@ -1362,7 +1378,7 @@ export default function SchedulePage() {
             </div>
           </DialogHeader>
 
-          <form onSubmit={handleFormSubmit} className="space-y-6 p-6">
+          <form onSubmit={handleFormSubmit} className="space-y-6 px-6 pb-6 pt-3">
             {renderEventFormFields()}
 
             <DialogFooter className="flex-col gap-2 sm:flex-row">
