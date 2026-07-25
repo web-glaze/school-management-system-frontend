@@ -193,7 +193,6 @@ export default function TimetablePage() {
       fetchSubjectAllocations();
     }
   }, [userChecked, isTeacherView, fetchSessions, fetchClasses, fetchSections, fetchSubjectAllocations, fetchTimetables, fetchTeacherAssignments]);
-  ``;
 
   // ── Active session (used for both teacher tabs) ─────────────────────────
   const activeSessionId = useMemo(() => {
@@ -1028,7 +1027,7 @@ export default function TimetablePage() {
           }
         }}
       >
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[22rem] rounded-2xl overflow-hidden p-0 sm:max-w-105">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-88 rounded-2xl overflow-hidden p-0 sm:max-w-105">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">

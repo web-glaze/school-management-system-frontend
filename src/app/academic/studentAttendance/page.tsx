@@ -441,7 +441,7 @@ export default function StudentAttendancePage() {
           remarks: addRemarks,
         });
       }
-
+      
       toast.success("Attendance marked successfully");
       resetAddForm();
       setAddOpen(false);
