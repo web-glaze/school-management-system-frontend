@@ -442,7 +442,7 @@ export default function StudentsPage() {
                             setPhone(value);
                             clearFormError("phone");
                           }}
-                          placeholder="+91 00000 00000"
+                          placeholder="Phone number here"
                         />
                         {editErrors.phone && <p className="text-xs text-red-500 mt-1.5">{editErrors.phone}</p>}
 
