@@ -34,6 +34,7 @@ export default function StudentSubjectAllocationPage() {
     sections,
     subjects,
     students,
+    studentEnrollments,
     subjectAllocations,
     studentSubjectAllocations,
 
@@ -42,6 +43,7 @@ export default function StudentSubjectAllocationPage() {
     fetchSections,
     fetchSubjects,
     fetchStudents,
+    fetchStudentEnrollments,
     fetchSubjectAllocations,
     fetchStudentSubjectAllocations,
 
@@ -90,7 +92,31 @@ export default function StudentSubjectAllocationPage() {
 
   const studentName = (s: { firstName: string; lastName: string }) => `${s.firstName} ${s.lastName}`;
 
-  const allocationLabel = (a: (typeof subjectAllocations)[number]) => `${a.subject.name} • ${a.class.name} ${a.section.name} • ${a.teacher.name} (${a.session.name})`;
+  const allocationLabel = (a: (typeof subjectAllocations)[number]) => `${a.subject.name} • ${a.teacher.name}`;
+
+  const availableSubjectAllocations = useMemo(() => {
+    if (!studentId) return [];
+
+    const studentEnrollment = studentEnrollments.find((e) => e.studentId === studentId && e.enrollmentStatus === "ACTIVE");
+
+    if (!studentEnrollment) return [];
+
+    const alreadyAllocated = new Set(studentSubjectAllocations.filter((a) => a.studentId === studentId).map((a) => a.subjectAllocationId));
+
+    return subjectAllocations.filter(
+      (a) => a.subject.isOptional && a.sessionId === studentEnrollment.sessionId && a.classId === studentEnrollment.classId && a.sectionId === studentEnrollment.sectionId && !alreadyAllocated.has(a.id)
+    );
+  }, [studentId, studentEnrollments, subjectAllocations, studentSubjectAllocations]);
+
+  const availableEditSubjectAllocations = useMemo(() => {
+    if (!editStudentId) return [];
+
+    const studentEnrollment = studentEnrollments.find((e) => e.studentId === editStudentId && e.enrollmentStatus === "ACTIVE");
+
+    if (!studentEnrollment) return [];
+
+    return subjectAllocations.filter((a) => a.subject.isOptional && a.sessionId === studentEnrollment.sessionId && a.classId === studentEnrollment.classId && a.sectionId === studentEnrollment.sectionId);
+  }, [editStudentId, studentEnrollments, subjectAllocations]);
 
   const filteredSections = useMemo(() => {
     if (classFilter === "all") return sections;
@@ -115,6 +141,7 @@ export default function StudentSubjectAllocationPage() {
     fetchSections();
     fetchSubjects();
     fetchStudents();
+    fetchStudentEnrollments();
     fetchSubjectAllocations();
     fetchStudentSubjectAllocations();
   }, [fetchSessions, fetchClasses, fetchSections, fetchSubjects, fetchStudents, fetchSubjectAllocations, fetchStudentSubjectAllocations]);
@@ -267,7 +294,7 @@ export default function StudentSubjectAllocationPage() {
                 <div>
                   <DialogTitle>Create Student Subject Allocation</DialogTitle>
 
-                  <DialogDescription>Assign a student to a subject allocation.</DialogDescription>
+                  <DialogDescription>Assign optional subjects to a student.</DialogDescription>
                 </div>
               </div>
             </div>
@@ -315,6 +342,7 @@ export default function StudentSubjectAllocationPage() {
                                   if (!selected) return;
 
                                   setStudentId(selected.id);
+                                  setSubjectAllocationId("");
 
                                   setFormErrors((p) => ({
                                     ...p,
@@ -345,7 +373,7 @@ export default function StudentSubjectAllocationPage() {
                 </Field>
 
                 <Field>
-                  <Label>Subject Allocation</Label>
+                  <Label>Optional Subject</Label>
 
                   <Select
                     value={subjectAllocationId}
@@ -363,7 +391,7 @@ export default function StudentSubjectAllocationPage() {
                     </SelectTrigger>
 
                     <SelectContent>
-                      {subjectAllocations.map((item) => (
+                      {availableSubjectAllocations.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
                           {allocationLabel(item)}
                         </SelectItem>
@@ -707,15 +735,14 @@ export default function StudentSubjectAllocationPage() {
                 {filteredAllocations.map((allocation) => (
                   <TableRow key={allocation.id} className="hover:bg-muted/20 transition-colors">
                     <TableCell className="py-4 align-middle">
-                        <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={`${studentName(allocation.student)}`}>
-                            {`${studentName(allocation.student)}`}
-                          </p>
+                      <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
+                        <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={`${studentName(allocation.student)}`}>
+                          {`${studentName(allocation.student)}`}
+                        </p>
 
-                          <p className="text-sm text-foreground/50 truncate">{allocation.student.admissionNo}</p>
-                        </div>
-                      
-                      </TableCell>
+                        <p className="text-sm text-foreground/50 truncate">{allocation.student.admissionNo}</p>
+                      </div>
+                    </TableCell>
                     <TableCell className="md:table-cell text-sm">{allocation.subjectAllocation.subject.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{allocation.subjectAllocation.teacher.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{allocation.subjectAllocation.session.name}</TableCell>
@@ -825,6 +852,7 @@ export default function StudentSubjectAllocationPage() {
                   value={editStudentId}
                   onValueChange={(value) => {
                     setEditStudentId(value);
+                    setEditSubjectAllocationId("");
                     setFormErrors((prev) => ({
                       ...prev,
                       studentId: "",
@@ -847,7 +875,7 @@ export default function StudentSubjectAllocationPage() {
               </Field>
 
               <Field>
-                <Label>Subject Allocation</Label>
+                <Label>Optional Subject</Label>
 
                 <Select
                   value={editSubjectAllocationId}
@@ -864,7 +892,7 @@ export default function StudentSubjectAllocationPage() {
                   </SelectTrigger>
 
                   <SelectContent>
-                    {subjectAllocations.map((item) => (
+                    {availableEditSubjectAllocations.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {allocationLabel(item)}
                       </SelectItem>
