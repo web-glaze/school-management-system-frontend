@@ -36,7 +36,6 @@ import {
   Clock,
   Fuel,
   Droplet,
-  Gauge,
   TrendingUp,
   AlertTriangle,
   LogIn,
@@ -712,7 +711,6 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
                 <TableRow key={generator.id} className="hover:bg-muted/20 transition-colors cursor-pointer group" onClick={() => onSelect(generator)}>
                   <TableCell className="py-4 pl-6 pr-4  max-w-40">
                     <div className="flex items-center gap-3">
-
                       <div className="space-y-0.5 min-w-0 flex-1">
                         <p className="font-semibold text-foreground text-base leading-tight truncate" title={generator.name}>
                           {generator.name}
@@ -1056,12 +1054,20 @@ function FuelStockDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
               </div>
             </div>
 
-            <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetForm(); }}>
+            <Dialog
+              open={addOpen}
+              onOpenChange={(o) => {
+                setAddOpen(o);
+                if (!o) resetForm();
+              }}
+            >
               <DialogTrigger asChild>
-                <div className="pt-4">                <Button size="lg" className="gap-1.5 shrink-0">
-                  <Plus className="size-4" />
-                  Add Stock
-                </Button>
+                <div className="pt-4">
+                  {" "}
+                  <Button size="lg" className="gap-1.5 shrink-0">
+                    <Plus className="size-4" />
+                    Add Stock
+                  </Button>
                 </div>
               </DialogTrigger>
 
@@ -1075,7 +1081,16 @@ function FuelStockDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
                   <FieldGroup>
                     <Field>
                       <Label htmlFor="stock-date">Date</Label>
-                      <DatePicker id="stock-date" value={date} onChange={(v) => { setDate(v); setErrors((p) => ({ ...p, date: "" })); }} placeholder="Select date" hasError={!!errors.date} />
+                      <DatePicker
+                        id="stock-date"
+                        value={date}
+                        onChange={(v) => {
+                          setDate(v);
+                          setErrors((p) => ({ ...p, date: "" }));
+                        }}
+                        placeholder="Select date"
+                        hasError={!!errors.date}
+                      />
                       <FieldError message={errors.date} />
                     </Field>
 
@@ -1088,8 +1103,14 @@ function FuelStockDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
                         min="0"
                         placeholder="0.00"
                         value={quantity}
-                        onChange={(e) => { setQuantity(e.target.value); setErrors((p) => ({ ...p, quantity: "" })); }}
-                        className={cn(errors.quantity && "border-destructive focus-visible:ring-destructive")}
+                        onChange={(e) => {
+                          setQuantity(e.target.value);
+                          setErrors((p) => ({ ...p, quantity: "" }));
+                        }}
+                        className={cn(
+                          "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                          errors.quantity && "border-destructive focus-visible:ring-destructive"
+                        )}
                         required
                       />
                       <FieldError message={errors.quantity} />
@@ -1182,7 +1203,10 @@ function FuelStockTimelineRow({ entry }: { entry: FuelStockEntry }) {
           </span>
         </div>
         <div className="flex items-center justify-between gap-2 mt-0.5">
-          <p className="text-xs text-muted-foreground truncate">{formatDateOnly(entry.date)}{entry.remarks ? ` · ${entry.remarks}` : ""}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {formatDateOnly(entry.date)}
+            {entry.remarks ? ` · ${entry.remarks}` : ""}
+          </p>
           <span className="text-xs text-muted-foreground shrink-0">Bal: {Number(entry.balanceAfter).toFixed(2)} L</span>
         </div>
       </div>
@@ -1855,7 +1879,10 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
                               }));
                             }
                           }}
-                          className={cn(dieselErrors.dieselRefilled && "border-destructive focus-visible:ring-destructive")}
+                          className={cn(
+                            "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                            coolantErrors.quantityAdded && "border-destructive focus-visible:ring-destructive"
+                          )}
                           required
                         />
                         <FieldError message={dieselErrors.dieselRefilled} />
@@ -1893,12 +1920,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
               </Dialog>
             </div>
 
-            <LogTable
-              loading={logsLoading && dieselLogs.length === 0}
-              empty={dieselLogs.length === 0}
-              emptyLabel="No diesel log entries yet."
-              headers={["Date", "Refilled (L)", "Remarks", "Actions"]}
-            >
+            <LogTable loading={logsLoading && dieselLogs.length === 0} empty={dieselLogs.length === 0} emptyLabel="No diesel log entries yet." headers={["Date", "Refilled (L)", "Remarks", "Actions"]}>
               {filteredDieselLogs.map((log: DieselConsumptionLog) => (
                 <TableRow key={log.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setDetailsTarget({ type: "diesel", log })}>
                   <TableCell className="py-4 pl-6 pr-4 text-sm max-w-32">
@@ -2014,7 +2036,10 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
                               setCoolantQty(e.target.value);
                               setCoolantErrors((p) => ({ ...p, quantityAdded: "" }));
                             }}
-                            className={cn(coolantErrors.quantityAdded && "border-destructive focus-visible:ring-destructive")}
+                            className={cn(
+                              "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                              coolantErrors.quantityAdded && "border-destructive focus-visible:ring-destructive"
+                            )}
                             required
                           />
                           <FieldError message={coolantErrors.quantityAdded} />

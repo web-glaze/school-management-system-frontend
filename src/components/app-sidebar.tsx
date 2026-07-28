@@ -1,13 +1,55 @@
 "use client";
 
 import * as React from "react";
-import { Hammer, LifeBuoy, MapPin, Send, Ticket, VectorSquare, Users, Scroll, ClipboardMinus, User, Calendars, School, Landmark, BookOpenText, ContactRound, BookUser, FileUser, BookOpenCheck, UserStar, CalendarDays, ClipboardCheck, CalendarCheck2, Briefcase, BookCheck, Cog, CalendarFold } from "lucide-react";
+import { useEffect, useRef } from "react";
+import {
+  Hammer,
+  LifeBuoy,
+  MapPin,
+  Send,
+  Ticket,
+  VectorSquare,
+  Users,
+  Scroll,
+  ClipboardMinus,
+  User,
+  Calendars,
+  School,
+  Landmark,
+  BookOpenText,
+  BookUser,
+  FileUser,
+  BookOpenCheck,
+  UserStar,
+  CalendarDays,
+  ClipboardCheck,
+  CalendarCheck2,
+  Briefcase,
+  BookCheck,
+  Cog,
+  CalendarFold,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const sidebarContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem("sidebar-scroll");
+
+    if (savedScroll && sidebarContentRef.current) {
+      sidebarContentRef.current.scrollTop = Number(savedScroll);
+    }
+  }, []);
+
+  const handleScroll = () => {
+    if (sidebarContentRef.current) {
+      sessionStorage.setItem("sidebar-scroll", sidebarContentRef.current.scrollTop.toString());
+    }
+  };
   const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
 
   const permissions = user.permissions || [];
@@ -135,7 +177,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       icon: FileUser,
       isActive: pathname.startsWith("/academic/enrollment"),
     },
-    
+
     permissions.includes("student-attendance.read") && {
       title: "Student Attendance",
       url: "/academic/studentAttendance",
@@ -177,7 +219,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       icon: CalendarDays,
       isActive: pathname.startsWith("/academic/timetables"),
     },
-
   ].filter(Boolean);
 
   const data = {
@@ -219,7 +260,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       {/* Content */}
-      <SidebarContent>
+      <SidebarContent ref={sidebarContentRef} onScroll={handleScroll}>
         <NavMain maintenanceItems={maintenanceItems} academicItems={academicItems} settingItems={settingItems} />
       </SidebarContent>
     </Sidebar>
