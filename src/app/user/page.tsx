@@ -149,7 +149,7 @@ export default function UserManagementPage() {
       await deleteUser(id);
       setDeleteUserOpen(false);
       setDeletingUser(null);
-      toast.success("User deleted");
+      toast.success(deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Teacher deactivated successfully" : "User deleted successfully");
     } catch (error) {
       toast.error("Failed to delete user");
     }
@@ -479,7 +479,7 @@ export default function UserManagementPage() {
                                   variant="ghost"
                                   size="icon"
                                   className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                                  title="Delete User"
+                                  title={roleNames.includes("TEACHER") ? "Deactivate Teacher" : "Delete User"}
                                   onClick={() => openDeleteDialog(u)}
                                 >
                                   <Trash2 className="size-5" />
@@ -505,7 +505,7 @@ export default function UserManagementPage() {
                                   {!isSystemUser && (
                                     <DropdownMenuItem onClick={() => openDeleteDialog(u)} className="text-destructive">
                                       <Trash2 className="mr-2 size-4" />
-                                      Delete
+                                      {roleNames.includes("TEACHER") ? "Deactivate Teacher" : "Delete User"}
                                     </DropdownMenuItem>
                                   )}
                                 </DropdownMenuContent>
@@ -667,11 +667,20 @@ export default function UserManagementPage() {
               <Trash2 className="size-6 text-destructive" />
             </div>
 
-            <AlertDialogTitle className="w-full text-center text-xl">Delete User?</AlertDialogTitle>
+            <AlertDialogTitle className="w-full text-center text-xl">{deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Deactivate Teacher?" : "Delete User?"}</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center text-sm">
-              This action cannot be undone. This will permanently remove
-              <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
+              {deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? (
+                <>
+                  This will deactivate the teacher account. All attendance, timetable, and academic history will be preserved.
+                  <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
+                </>
+              ) : (
+                <>
+                  This action cannot be undone. This will permanently remove
+                  <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -694,7 +703,7 @@ export default function UserManagementPage() {
               ) : (
                 <>
                   <Trash2 className="mr-2 size-4" />
-                  Delete User
+                  {deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Deactivate Teacher" : "Delete User"}
                 </>
               )}
             </AlertDialogAction>

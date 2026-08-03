@@ -28,6 +28,7 @@ import {
   BookCheck,
   Cog,
   CalendarFold,
+  Summary,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
@@ -162,6 +163,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       url: "/academic/teachers",
       icon: Briefcase,
       isActive: pathname.startsWith("/academic/teachers"),
+    },
+
+    permissions.includes("teacher-transfer.read") && {
+      title: "Teacher Transfer",
+      url: "/academic/teacherTransfer",
+      icon: Summary,
+      isActive: pathname.startsWith("/academic/teacherTransfer"),
     },
 
     permissions.includes("student.read") && {

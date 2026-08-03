@@ -390,11 +390,13 @@ export default function TeacherAssignmentPage() {
                     </SelectTrigger>
 
                     <SelectContent>
-                      {teachers.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
+                      {teachers
+                        .filter((item) => item.isActive)
+                        .map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
 
@@ -877,11 +879,13 @@ export default function TeacherAssignmentPage() {
                   </SelectTrigger>
 
                   <SelectContent>
-                    {teachers.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
+                    {teachers
+                      .filter((item) => item.isActive)
+                      .map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 {formErrors.teacherId && <p className="mt-1 text-sm text-red-500">{formErrors.teacherId}</p>}

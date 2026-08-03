@@ -101,9 +101,13 @@ export const useUserStore = create<UserState>((set) => ({
     try {
       set({ deletingId: id });
       await userService.delete(id);
-      set((state) => ({
-        users: state.users.filter((user) => user.id !== id),
-      }));
+      await userService.getAll();
+
+      const response = await userService.getAll();
+
+      set({
+        users: response.data?.data?.items || response.data?.data || response.data || [],
+      });
     } finally {
       set({ deletingId: null });
     }

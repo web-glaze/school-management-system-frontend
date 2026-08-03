@@ -332,37 +332,39 @@ export default function StudentSubjectAllocationPage() {
                           <CommandEmpty>No student found.</CommandEmpty>
 
                           <CommandGroup>
-                            {students.map((student) => (
-                              <CommandItem
-                                key={student.id}
-                                value={`${student.firstName} ${student.lastName} ${student.admissionNo}`}
-                                onSelect={(currentValue) => {
-                                  const selected = students.find((s) => `${s.firstName} ${s.lastName} ${s.admissionNo}`.toLowerCase() === currentValue.toLowerCase());
+                            {students
+                              .filter((student) => student.isActive)
+                              .map((student) => (
+                                <CommandItem
+                                  key={student.id}
+                                  value={`${student.firstName} ${student.lastName} ${student.admissionNo}`}
+                                  onSelect={(currentValue) => {
+                                    const selected = students.find((s) => `${s.firstName} ${s.lastName} ${s.admissionNo}`.toLowerCase() === currentValue.toLowerCase());
 
-                                  if (!selected) return;
+                                    if (!selected) return;
 
-                                  setStudentId(selected.id);
-                                  setSubjectAllocationId("");
+                                    setStudentId(selected.id);
+                                    setSubjectAllocationId("");
 
-                                  setFormErrors((p) => ({
-                                    ...p,
-                                    studentId: "",
-                                  }));
+                                    setFormErrors((p) => ({
+                                      ...p,
+                                      studentId: "",
+                                    }));
 
-                                  setStudentOpen(false);
-                                }}
-                              >
-                                <Check className={cn("mr-2 size-4", studentId === student.id ? "opacity-100" : "opacity-0")} />
+                                    setStudentOpen(false);
+                                  }}
+                                >
+                                  <Check className={cn("mr-2 size-4", studentId === student.id ? "opacity-100" : "opacity-0")} />
 
-                                <div className="flex flex-col">
-                                  <span className="font-medium">
-                                    {student.firstName} {student.lastName}
-                                  </span>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">
+                                      {student.firstName} {student.lastName}
+                                    </span>
 
-                                  <span className="text-xs text-muted-foreground">{student.admissionNo}</span>
-                                </div>
-                              </CommandItem>
-                            ))}
+                                    <span className="text-xs text-muted-foreground">{student.admissionNo}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
                           </CommandGroup>
                         </CommandList>
                       </Command>
@@ -391,11 +393,13 @@ export default function StudentSubjectAllocationPage() {
                     </SelectTrigger>
 
                     <SelectContent>
-                      {availableSubjectAllocations.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {allocationLabel(item)}
-                        </SelectItem>
-                      ))}
+                      {availableSubjectAllocations
+                        .filter((item) => item.teacher.isActive)
+                        .map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {allocationLabel(item)}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
 
@@ -864,11 +868,13 @@ export default function StudentSubjectAllocationPage() {
                   </SelectTrigger>
 
                   <SelectContent>
-                    {students.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {studentName(item)} ({item.admissionNo})
-                      </SelectItem>
-                    ))}
+                    {students
+                      .filter((item) => item.isActive)
+                      .map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {studentName(item)} ({item.admissionNo})
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 {formErrors.studentId && <p className="mt-1 text-sm text-red-500">{formErrors.studentId}</p>}
@@ -892,11 +898,13 @@ export default function StudentSubjectAllocationPage() {
                   </SelectTrigger>
 
                   <SelectContent>
-                    {availableEditSubjectAllocations.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {allocationLabel(item)}
-                      </SelectItem>
-                    ))}
+                    {availableEditSubjectAllocations
+                      .filter((item) => item.teacher.isActive)
+                      .map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {allocationLabel(item)}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 {formErrors.subjectAllocationId && <p className="mt-1 text-sm text-red-500">{formErrors.subjectAllocationId}</p>}

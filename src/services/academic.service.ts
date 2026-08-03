@@ -166,6 +166,14 @@ export interface CreateTeacherAssignmentPayload {
   teacherId: string;
 }
 
+export interface TransferTeacherPayload {
+  fromTeacherId: string;
+  toTeacherId: string;
+  effectiveDate: string;
+  assignmentTypes: ("SUBJECT_ALLOCATION" | "CLASS_TEACHER")[];
+  remarks?: string;
+}
+
 export interface UpdateTeacherAssignmentPayload {
   sessionId: string;
   classId: string;
@@ -364,6 +372,14 @@ export const academicService = {
     update: (id: string, data: UpdateTeacherAssignmentPayload) => apiClient.patch(`/academic/teacher-assignment/${id}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/teacher-assignment/${id}`),
+  },
+
+  teacherTransfers: {
+    getAll: () => apiClient.get("/academic/teacher-transfer"),
+
+    getById: (id: string) => apiClient.get(`/academic/teacher-transfer/${id}`),
+
+    create: (data: TransferTeacherPayload) => apiClient.post("/academic/teacher-transfer", data),
   },
 
   timetables: {

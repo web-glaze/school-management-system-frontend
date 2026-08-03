@@ -251,7 +251,7 @@ export default function TeachersPage() {
       setDeleteTeacherOpen(false);
       setDeletingTeacher(null);
 
-      toast.success("Teacher data deleted successfully");
+      toast.success("Teacher deactivated successfully");
     } catch (error) {
       const apiError = error as AxiosError<ApiErrorResponse>;
 
@@ -262,7 +262,7 @@ export default function TeachersPage() {
         return;
       }
 
-      toast.error(apiError.response?.data?.message ?? "Failed to delete teacher data");
+      toast.error(apiError.response?.data?.message ?? "Failed to deactivate teacher");
     } finally {
       setDeletingId(null);
     }
@@ -871,10 +871,10 @@ export default function TeachersPage() {
               <Trash2 className="size-6 text-destructive" />
             </div>
 
-            <AlertDialogTitle className="w-full text-center text-xl">Delete teacher?</AlertDialogTitle>
+            <AlertDialogTitle className="w-full text-center text-xl">Deactivate teacher?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingTeacher?.name}</span>
+              This will deactivate the teacher account. All attendance, timetable, and academic history will be preserved. <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingTeacher?.name}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -890,7 +890,7 @@ export default function TeachersPage() {
               ) : (
                 <>
                   <Trash2 className="mr-2 size-4" />
-                  Delete teacher
+                  Deactivate teacher
                 </>
               )}
             </AlertDialogAction>

@@ -441,7 +441,7 @@ export default function StudentAttendancePage() {
           remarks: addRemarks,
         });
       }
-      
+
       toast.success("Attendance marked successfully");
       resetAddForm();
       setAddOpen(false);
@@ -917,23 +917,25 @@ export default function StudentAttendancePage() {
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {mySubjectAllocations.map((a) => (
-                      <button
-                        key={a.id}
-                        type="button"
-                        onClick={() => setSelectedAllocationId(a.id)}
-                        className="flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
-                      >
-                        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <BookOpen className="size-4" />
-                        </div>
-                        <p className="font-semibold text-foreground">{a.subject.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {a.class.name} — {a.section.name}
-                        </p>
-                        {a.subject.isOptional && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Elective</span>}
-                      </button>
-                    ))}
+                    {mySubjectAllocations
+                      .filter((a) => a.teacher.isActive)
+                      .map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => setSelectedAllocationId(a.id)}
+                          className="flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                        >
+                          <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <BookOpen className="size-4" />
+                          </div>
+                          <p className="font-semibold text-foreground">{a.subject.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {a.class.name} — {a.section.name}
+                          </p>
+                          {a.subject.isOptional && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Elective</span>}
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>
@@ -1202,12 +1204,8 @@ export default function StudentAttendancePage() {
                 <PieChart className="size-5 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-lg">
-                  {reportEnrollment ? `${reportEnrollment.student.firstName} ${reportEnrollment.student.lastName}` : "Student Report"}
-                </DialogTitle>
-                <DialogDescription>
-                  {reportEnrollment ? `${reportEnrollment.student.admissionNo} • ${reportEnrollment.class.name} ${reportEnrollment.section.name}` : ""}
-                </DialogDescription>
+                <DialogTitle className="text-lg">{reportEnrollment ? `${reportEnrollment.student.firstName} ${reportEnrollment.student.lastName}` : "Student Report"}</DialogTitle>
+                <DialogDescription>{reportEnrollment ? `${reportEnrollment.student.admissionNo} • ${reportEnrollment.class.name} ${reportEnrollment.section.name}` : ""}</DialogDescription>
               </div>
             </div>
           </div>

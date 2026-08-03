@@ -1101,11 +1101,13 @@ export default function TimetablePage() {
                     <SelectValue placeholder="Select Subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    {scopedAllocations.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.subject.name} — {item.teacher.name}
-                      </SelectItem>
-                    ))}
+                    {scopedAllocations
+                      .filter((item) => item.teacher.isActive)
+                      .map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.subject.name} — {item.teacher.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 {formErrors.subjectAllocationId && <p className="mt-1 text-sm text-red-500">{formErrors.subjectAllocationId}</p>}

@@ -329,38 +329,39 @@ export default function StudentEnrollmentsPage() {
 
                           <CommandList>
                             <CommandEmpty>No student found.</CommandEmpty>
-
                             <CommandGroup>
-                              {students.map((student) => (
-                                <CommandItem
-                                  key={student.id}
-                                  value={`${student.firstName} ${student.lastName} ${student.admissionNo}`}
-                                  onSelect={(currentValue) => {
-                                    const selectedStudent = students.find((s) => `${s.firstName} ${s.lastName} ${s.admissionNo}`.toLowerCase() === currentValue.toLowerCase());
+                              {students
+                                .filter((student) => student.isActive)
+                                .map((student) => (
+                                  <CommandItem
+                                    key={student.id}
+                                    value={`${student.firstName} ${student.lastName} ${student.admissionNo}`}
+                                    onSelect={(currentValue) => {
+                                      const selectedStudent = students.find((s) => `${s.firstName} ${s.lastName} ${s.admissionNo}`.toLowerCase() === currentValue.toLowerCase());
 
-                                    if (!selectedStudent) return;
+                                      if (!selectedStudent) return;
 
-                                    setStudentId(selectedStudent.id);
+                                      setStudentId(selectedStudent.id);
 
-                                    setFormErrors((p) => ({
-                                      ...p,
-                                      studentId: "",
-                                    }));
+                                      setFormErrors((p) => ({
+                                        ...p,
+                                        studentId: "",
+                                      }));
 
-                                    setStudentOpen(false);
-                                  }}
-                                >
-                                  <Check className={cn("mr-2 size-4", studentId === student.id ? "opacity-100" : "opacity-0")} />
+                                      setStudentOpen(false);
+                                    }}
+                                  >
+                                    <Check className={cn("mr-2 size-4", studentId === student.id ? "opacity-100" : "opacity-0")} />
 
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">
-                                      {student.firstName} {student.lastName}
-                                    </span>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">
+                                        {student.firstName} {student.lastName}
+                                      </span>
 
-                                    <span className="text-xs text-muted-foreground">{student.admissionNo}</span>
-                                  </div>
-                                </CommandItem>
-                              ))}
+                                      <span className="text-xs text-muted-foreground">{student.admissionNo}</span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
                             </CommandGroup>
                           </CommandList>
                         </Command>
@@ -1051,7 +1052,8 @@ export default function StudentEnrollmentsPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete enrollment?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingEnrollment && `${deletingEnrollment.student.firstName} ${deletingEnrollment.student.lastName}` }</span>
+              This action cannot be undone. This will permanently remove{" "}
+              <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingEnrollment && `${deletingEnrollment.student.firstName} ${deletingEnrollment.student.lastName}`}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
 
