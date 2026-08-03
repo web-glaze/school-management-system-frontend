@@ -367,7 +367,6 @@ export default function TeacherTransferPage() {
                       <div className="flex items-center gap-2">
                         <Users className="size-4 text-primary" />
                         <span className="font-semibold text-foreground">Class Teacher Duties</span>
-                        <Badge variant="secondary">{affectedClassAssignments.length}</Badge>
                       </div>
 
                       <p className="text-sm text-muted-foreground mt-1">
