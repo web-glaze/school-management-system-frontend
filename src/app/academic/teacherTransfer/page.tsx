@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, BookOpen, Calendar as CalendarIcon, Check, ClipboardList, Eye, Inbox, Loader2, MoreVertical, Clock, Repeat, Search, Users, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Calendar as CalendarIcon, Check, ClipboardList, Eye, Inbox, Loader2, MoreVertical, Repeat, Search, Users, User } from "lucide-react";
 import { useAcademicStore, TeacherTransferHistory } from "@/store/academicStore";
 import { academicService, TransferTeacherPayload } from "@/services/academic.service";
 import { usePermission } from "@/hooks/usePermission";

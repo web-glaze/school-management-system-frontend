@@ -174,11 +174,6 @@ export default function TicketManagementPage() {
     }
 
     try {
-      if (status === "CLOSED" && adminAttachments.length === 0) {
-        toast.error("Please upload at least one image or video before closing the ticket");
-        return;
-      }
-
       await updateComplaint(id, {
         description: complaint.description.trim(),
         status,
@@ -505,7 +500,14 @@ export default function TicketManagementPage() {
                     <FieldGroup>
                       <Field>
                         <Label>Status</Label>
-                        <Select value={status} onValueChange={setStatus} disabled={saving}>
+                        <Select
+                          value={status}
+                          onValueChange={(value) => {
+                            if (complaint.status === "CLOSED") return;
+                            setStatus(value);
+                          }}
+                          disabled={saving || complaint.status === "CLOSED"}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select Status" />
                           </SelectTrigger>
