@@ -14,11 +14,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, BookOpen, Calendar as CalendarIcon, Check, ClipboardList, Eye, Inbox, Loader2, MoreVertical, Repeat, Search, Users, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Calendar as CalendarIcon, Check, ClipboardList, Eye, Inbox, Loader2, MoreVertical, Repeat, Search, Users, User, Wand2 } from "lucide-react";
 import { useAcademicStore, TeacherTransferHistory } from "@/store/academicStore";
-import { academicService, TransferTeacherPayload } from "@/services/academic.service";
+import { academicService } from "@/services/academic.service";
 import { usePermission } from "@/hooks/usePermission";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { cn } from "@/lib/utils";
@@ -29,9 +29,35 @@ type ApiErrorResponse = {
   errors?: Record<string, string>;
 };
 
-type AssignmentType = "SUBJECT_ALLOCATION" | "CLASS_TEACHER";
-
 type TeacherTransferHistoryExtended = TeacherTransferHistory;
+
+/**
+ * NOTE FOR BACKEND / SERVICE LAYER:
+ * The old `TransferTeacherPayload` type (fromTeacherId, toTeacherId,
+ * assignmentTypes) is no longer sufficient — a transfer can now send
+ * class-teacher duty to one teacher while distributing individual
+ * subject allocations across several different teachers (and some
+ * subject allocations may be deliberately left untransferred). Update
+ * the `TransferTeacherPayload` type (and the corresponding endpoint) in
+ * services/academic.service.ts to match this shape, then you can
+ * delete this local type and import it from there instead.
+ */
+type TeacherTransferPayload = {
+  fromTeacherId: string;
+  effectiveDate: string;
+
+  classTransfers?: {
+    classTeacherAssignmentId: string;
+    toTeacherId: string;
+  }[];
+
+  subjectTransfers?: {
+    subjectAllocationId: string;
+    toTeacherId: string;
+  }[];
+
+  remarks?: string;
+};
 
 const STEPS = [
   { label: "Select Teachers", icon: Users },
@@ -58,8 +84,25 @@ export default function TeacherTransferPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [fromTeacherId, setFromTeacherId] = useState("");
-  const [toTeacherId, setToTeacherId] = useState("");
-  const [assignmentTypes, setAssignmentTypes] = useState<AssignmentType[]>([]);
+
+  // Class teacher duty — kept as a single replacement teacher for every
+  // section, since a section can only ever have one class teacher.
+  // Choosing a replacement in Step 1 is enough to include this in the
+  // transfer; transferClassTeacher just tracks whether it's included so
+  // the user can still opt out in Step 2 without losing their selection.
+  const [classTeacherToTeacherId, setClassTeacherToTeacherId] = useState("");
+  const [transferClassTeacher, setTransferClassTeacher] = useState(false);
+
+  // Subject allocations — each allocation can be individually included
+  // or left alone (kept with the outgoing teacher), and every included
+  // allocation gets its own replacement teacher, so one outgoing
+  // teacher's load can be split across several incoming teachers, or
+  // only partially transferred, instead of forcing an all-or-nothing move.
+  const [transferSubjects, setTransferSubjects] = useState(false);
+  const [defaultSubjectTeacherId, setDefaultSubjectTeacherId] = useState("");
+  const [subjectTeacherMap, setSubjectTeacherMap] = useState<Record<string, string>>({});
+  const [subjectIncluded, setSubjectIncluded] = useState<Record<string, boolean>>({});
+
   const [effectiveDate, setEffectiveDate] = useState("");
   const [effectiveDateOpen, setEffectiveDateOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
@@ -82,24 +125,30 @@ export default function TeacherTransferPage() {
   const activeTeachers = useMemo(() => teachers.filter((t) => t.isActive), [teachers]);
 
   const fromTeacher = useMemo(() => teachers.find((t) => t.id === fromTeacherId) ?? null, [teachers, fromTeacherId]);
-  const toTeacher = useMemo(() => teachers.find((t) => t.id === toTeacherId) ?? null, [teachers, toTeacherId]);
+
+  const replacementCandidates = useMemo(() => activeTeachers.filter((t) => t.id !== fromTeacherId), [activeTeachers, fromTeacherId]);
+
+  const teacherName = (id?: string) => (id ? (teachers.find((t) => t.id === id)?.name ?? "-") : "-");
 
   const affectedSubjectAllocations = useMemo(() => subjectAllocations.filter((a) => a.teacherId === fromTeacherId), [subjectAllocations, fromTeacherId]);
+
+  const includedSubjectAllocations = useMemo(() => affectedSubjectAllocations.filter((a) => subjectIncluded[a.id]), [affectedSubjectAllocations, subjectIncluded]);
+
+  const allSubjectsIncluded = affectedSubjectAllocations.length > 0 && affectedSubjectAllocations.every((a) => subjectIncluded[a.id]);
 
   const affectedClassAssignments = useMemo(() => teacherAssignments.filter((a) => a.teacherId === fromTeacherId), [teacherAssignments, fromTeacherId]);
 
   const clearError = (field: string) => setErrors((prev) => ({ ...prev, [field]: "" }));
 
-  const toggleAssignmentType = (type: AssignmentType, checked: boolean) => {
-    setAssignmentTypes((prev) => (checked ? [...prev, type] : prev.filter((t) => t !== type)));
-    clearError("assignmentTypes");
-  };
-
   const resetWizard = () => {
     setStep(0);
     setFromTeacherId("");
-    setToTeacherId("");
-    setAssignmentTypes([]);
+    setClassTeacherToTeacherId("");
+    setTransferClassTeacher(false);
+    setTransferSubjects(false);
+    setDefaultSubjectTeacherId("");
+    setSubjectTeacherMap({});
+    setSubjectIncluded({});
     setEffectiveDate("");
     setRemarks("");
     setErrors({});
@@ -110,15 +159,19 @@ export default function TeacherTransferPage() {
 
     if (current === 0) {
       if (!fromTeacherId) nextErrors.fromTeacherId = "Select the teacher being transferred";
-      if (!toTeacherId) nextErrors.toTeacherId = "Select the replacement teacher";
-      if (fromTeacherId && toTeacherId && fromTeacherId === toTeacherId) {
-        nextErrors.toTeacherId = "Replacement teacher must be different from the transferred teacher";
-      }
     }
 
     if (current === 1) {
-      if (assignmentTypes.length === 0) {
+      if (!transferClassTeacher && !transferSubjects) {
         nextErrors.assignmentTypes = "Select at least one assignment type to transfer";
+      }
+
+      if (transferSubjects) {
+        if (includedSubjectAllocations.length === 0) {
+          nextErrors.subjectTransfers = "Select at least one subject allocation to transfer";
+        } else if (includedSubjectAllocations.some((a) => !subjectTeacherMap[a.id])) {
+          nextErrors.subjectTransfers = "Assign a replacement teacher to every selected subject allocation";
+        }
       }
     }
 
@@ -137,14 +190,55 @@ export default function TeacherTransferPage() {
 
   const goBack = () => setStep((prev) => Math.max(prev - 1, 0));
 
+  // Ticks or unticks every subject allocation row at once. Individual rows
+  // can still be toggled independently afterwards — this is just a shortcut.
+  const toggleSelectAllSubjects = (checked: boolean) => {
+    const next: Record<string, boolean> = { ...subjectIncluded };
+    affectedSubjectAllocations.forEach((a) => {
+      next[a.id] = checked;
+    });
+    setSubjectIncluded(next);
+    clearError("subjectTransfers");
+  };
+
+  // One-click bulk action: ticks every subject allocation and assigns the
+  // chosen default teacher to all of them. This is the "transfer everything
+  // to one teacher" shortcut — individual rows can still be unticked or
+  // reassigned afterwards for a partial transfer.
+  const applyDefaultToAllSubjects = () => {
+    if (!defaultSubjectTeacherId) return;
+    const nextIncluded: Record<string, boolean> = {};
+    const nextMap: Record<string, string> = { ...subjectTeacherMap };
+    affectedSubjectAllocations.forEach((a) => {
+      nextIncluded[a.id] = true;
+      nextMap[a.id] = defaultSubjectTeacherId;
+    });
+    setSubjectIncluded(nextIncluded);
+    setSubjectTeacherMap(nextMap);
+    clearError("subjectTransfers");
+  };
+
   const handleSubmit = async () => {
     if (!validateStep(0) || !validateStep(1) || !validateStep(2)) return;
 
-    const payload: TransferTeacherPayload = {
+    const payload: TeacherTransferPayload = {
       fromTeacherId,
-      toTeacherId,
+
+      classTransfers: transferClassTeacher
+        ? affectedClassAssignments.map((a) => ({
+            classTeacherAssignmentId: a.id,
+            toTeacherId: classTeacherToTeacherId,
+          }))
+        : undefined,
+
+      subjectTransfers: transferSubjects
+        ? includedSubjectAllocations.map((a) => ({
+            subjectAllocationId: a.id,
+            toTeacherId: subjectTeacherMap[a.id],
+          }))
+        : undefined,
+
       effectiveDate,
-      assignmentTypes,
       remarks: remarks.trim() || undefined,
     };
 
@@ -157,7 +251,7 @@ export default function TeacherTransferPage() {
       await Promise.all([fetchTeacherTransfers(), fetchSubjectAllocations(), fetchTeacherAssignments()]);
 
       if (transferred) {
-        toast.success(`Transferred ${transferred.subjectAllocations} subject allocation and ${transferred.classTeacherAssignments} class teacher assignment`);
+        toast.success(`Transferred ${transferred.subjectAllocations} subject allocation(s) and ${transferred.classTeacherAssignments} class teacher assignment(s)`);
       } else {
         toast.success("Teacher transferred successfully");
       }
@@ -180,7 +274,10 @@ export default function TeacherTransferPage() {
   };
 
   const filteredHistory = (Array.isArray(teacherTransfers) ? teacherTransfers : []).filter(
-    (item) => item.fromTeacher?.name.toLowerCase().includes(search.toLowerCase()) || item.toTeacher?.name.toLowerCase().includes(search.toLowerCase())
+    (item) =>
+      item.fromTeacher?.name.toLowerCase().includes(search.toLowerCase()) ||
+      item.subjectTransfers?.some((x) => x.toTeacher?.name.toLowerCase().includes(search.toLowerCase())) ||
+      item.classTransfers?.some((x) => x.toTeacher?.name.toLowerCase().includes(search.toLowerCase()))
   ) as TeacherTransferHistoryExtended[];
 
   const totalPages = Math.max(1, Math.ceil(filteredHistory.length / PAGE_SIZE));
@@ -239,7 +336,7 @@ export default function TeacherTransferPage() {
             </div>
 
             <div className="p-4 sm:p-6">
-              {/* Step 1: Select teachers */}
+              {/* Step 1: Teacher to transfer + class teacher replacement */}
               {step === 0 && (
                 <FieldGroup>
                   <Field>
@@ -249,7 +346,14 @@ export default function TeacherTransferPage() {
                       onValueChange={(value) => {
                         setFromTeacherId(value);
                         clearError("fromTeacherId");
-                        if (value === toTeacherId) setToTeacherId("");
+                        // Everything below depends on the outgoing teacher's
+                        // own assignments, so reset it when they change.
+                        setClassTeacherToTeacherId("");
+                        setTransferClassTeacher(false);
+                        setTransferSubjects(false);
+                        setDefaultSubjectTeacherId("");
+                        setSubjectTeacherMap({});
+                        setSubjectIncluded({});
                       }}
                     >
                       <SelectTrigger className={cn("w-full", errors.fromTeacherId && "border-red-500")}>
@@ -268,121 +372,241 @@ export default function TeacherTransferPage() {
                   </Field>
 
                   <Field>
-                    <Label>Replacement teacher</Label>
+                    <Label>Replacement for Class Teacher Duty</Label>
                     <Select
-                      value={toTeacherId}
+                      value={classTeacherToTeacherId}
                       onValueChange={(value) => {
-                        setToTeacherId(value);
-                        clearError("toTeacherId");
+                        setClassTeacherToTeacherId(value);
+                        clearError("classTeacherToTeacherId");
+                        clearError("assignmentTypes");
+                        // Picking a replacement here is enough to include class
+                        // teacher duty in the transfer — no extra confirmation
+                        // step needed. Clearing the selection excludes it again.
+                        setTransferClassTeacher(!!value && affectedClassAssignments.length > 0);
                       }}
+                      disabled={!fromTeacherId || affectedClassAssignments.length === 0}
                     >
-                      <SelectTrigger className={cn("w-full", errors.toTeacherId && "border-red-500")}>
-                        <SelectValue placeholder="Select replacement teacher" />
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={!fromTeacherId ? "Select a teacher first" : affectedClassAssignments.length === 0 ? "No class teacher duties to transfer" : "Select replacement teacher"} />
                       </SelectTrigger>
 
                       <SelectContent>
-                        {activeTeachers
-                          .filter((teacher) => teacher.id !== fromTeacherId)
-                          .map((teacher) => (
-                            <SelectItem key={teacher.id} value={teacher.id}>
-                              {teacher.name} · {teacher.teacherCode}
-                            </SelectItem>
-                          ))}
+                        {replacementCandidates.map((teacher) => (
+                          <SelectItem key={teacher.id} value={teacher.id}>
+                            {teacher.name} · {teacher.teacherCode}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                    {errors.toTeacherId && <p className="text-sm text-red-500 mt-1">{errors.toTeacherId}</p>}
-                  </Field>
+                    <p className="text-xs text-muted-foreground mt-1">One replacement teacher takes over all class teacher sections below, since a section can only have one class teacher.</p>
 
-                  {fromTeacher && toTeacher && (
-                    <div className="flex items-center justify-center gap-4 rounded-md bg-muted/40 p-4">
-                      <span className="font-semibold text-foreground truncate max-w-40">{fromTeacher.name}</span>
-                      <Repeat className="size-4 text-muted-foreground shrink-0" />
-                      <span className="font-semibold text-foreground truncate max-w-40">{toTeacher.name}</span>
-                    </div>
-                  )}
+                    {affectedClassAssignments.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {affectedClassAssignments.map((a) => (
+                          <Badge key={a.id} className="bg-muted text-muted-foreground font-normal">
+                            {a.class?.name} {a.section?.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </Field>
                 </FieldGroup>
               )}
 
-              {/* Step 2: Assignment types */}
+              {/* Step 2: Assignments */}
               {step === 1 && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Choose what should move from <span className="font-semibold text-foreground">{fromTeacher?.name}</span> to <span className="font-semibold text-foreground">{toTeacher?.name}</span>.
+                    Choose what should move off <span className="font-semibold text-foreground">{fromTeacher?.name}</span>&apos;s plate.
                   </p>
 
+                  {/* Class teacher duty */}
                   <div
                     className={cn(
                       "flex items-start gap-3 rounded-md border p-4 cursor-pointer transition-colors",
-                      assignmentTypes.includes("SUBJECT_ALLOCATION") ? "border-primary bg-primary/5" : "border-border",
-                      affectedSubjectAllocations.length === 0 && "opacity-60 cursor-not-allowed"
+                      transferClassTeacher ? "border-primary bg-primary/5" : "border-border",
+                      (affectedClassAssignments.length === 0 || !classTeacherToTeacherId) && "opacity-60 cursor-not-allowed"
                     )}
                     onClick={() => {
-                      if (affectedSubjectAllocations.length === 0) return;
-                      toggleAssignmentType("SUBJECT_ALLOCATION", !assignmentTypes.includes("SUBJECT_ALLOCATION"));
+                      if (affectedClassAssignments.length === 0 || !classTeacherToTeacherId) return;
+                      setTransferClassTeacher(!transferClassTeacher);
+                      clearError("assignmentTypes");
                     }}
                   >
                     <Checkbox
-                      checked={assignmentTypes.includes("SUBJECT_ALLOCATION")}
-                      disabled={affectedSubjectAllocations.length === 0}
-                      onCheckedChange={(checked) => toggleAssignmentType("SUBJECT_ALLOCATION", checked === true)}
+                      checked={transferClassTeacher}
+                      disabled={affectedClassAssignments.length === 0 || !classTeacherToTeacherId}
+                      onCheckedChange={(checked) => {
+                        setTransferClassTeacher(checked === true);
+                        clearError("assignmentTypes");
+                      }}
                     />
 
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <BookOpen className="size-4 text-primary" />
-                        <span className="font-semibold text-foreground">Subject Allocations</span>
-                        <Badge variant="secondary">{affectedSubjectAllocations.length}</Badge>
+                        <Users className="size-4 text-primary" />
+                        <span className="font-semibold text-foreground">Class Teacher Duty</span>
+                        {affectedClassAssignments.length > 0 && <Badge variant="secondary">{affectedClassAssignments.length}</Badge>}
                       </div>
 
                       <p className="text-sm text-muted-foreground mt-1">
-                        {affectedSubjectAllocations.length === 0 ? "No active subject allocations for this teacher." : "Move all subjects this teacher currently teaches, along with the related timetable slots."}
+                        {affectedClassAssignments.length === 0
+                          ? "This teacher is not a class teacher for any section."
+                          : !classTeacherToTeacherId
+                            ? "Go back and pick a replacement teacher to enable this."
+                            : `All sections below move to ${teacherName(classTeacherToTeacherId)}. Uncheck to leave class teacher duty with ${fromTeacher?.name}.`}
                       </p>
-
-                      {affectedSubjectAllocations.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {affectedSubjectAllocations.map((a) => (
-                            <Badge key={a.id} className="bg-muted text-muted-foreground font-normal">
-                              {a.class?.name} {a.section?.name} · {a.subject?.name}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  <div
-                    className={cn(
-                      "flex items-start gap-3 rounded-md border p-4 cursor-pointer transition-colors",
-                      assignmentTypes.includes("CLASS_TEACHER") ? "border-primary bg-primary/5" : "border-border",
-                      affectedClassAssignments.length === 0 && "opacity-60 cursor-not-allowed"
-                    )}
-                    onClick={() => {
-                      if (affectedClassAssignments.length === 0) return;
-                      toggleAssignmentType("CLASS_TEACHER", !assignmentTypes.includes("CLASS_TEACHER"));
-                    }}
-                  >
-                    <Checkbox checked={assignmentTypes.includes("CLASS_TEACHER")} disabled={affectedClassAssignments.length === 0} onCheckedChange={(checked) => toggleAssignmentType("CLASS_TEACHER", checked === true)} />
+                  {/* Subject allocations */}
+                  <div className={cn("rounded-md border p-4 transition-colors", transferSubjects ? "border-primary bg-primary/5" : "border-border", affectedSubjectAllocations.length === 0 && "opacity-60")}>
+                    <div
+                      className={cn("flex items-start gap-3", affectedSubjectAllocations.length === 0 ? "cursor-not-allowed" : "cursor-pointer")}
+                      onClick={() => {
+                        if (affectedSubjectAllocations.length === 0) return;
+                        setTransferSubjects(!transferSubjects);
+                        clearError("assignmentTypes");
+                      }}
+                    >
+                      <Checkbox
+                        checked={transferSubjects}
+                        disabled={affectedSubjectAllocations.length === 0}
+                        onCheckedChange={(checked) => {
+                          setTransferSubjects(checked === true);
+                          clearError("assignmentTypes");
+                        }}
+                      />
 
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Users className="size-4 text-primary" />
-                        <span className="font-semibold text-foreground">Class Teacher Duties</span>
-                      </div>
-
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {affectedClassAssignments.length === 0 ? "This teacher is not a class teacher for any section." : "Move class teacher responsibility for the sections below."}
-                      </p>
-
-                      {affectedClassAssignments.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {affectedClassAssignments.map((a) => (
-                            <Badge key={a.id} className="bg-muted text-muted-foreground font-normal">
-                              {a.class?.name} {a.section?.name}
-                            </Badge>
-                          ))}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="size-4 text-primary" />
+                          <span className="font-semibold text-foreground">Subject Allocations</span>
+                          {includedSubjectAllocations.length > 0 && <Badge variant="secondary">{includedSubjectAllocations.length}</Badge>}
                         </div>
-                      )}
+
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {affectedSubjectAllocations.length === 0
+                            ? "No active subject allocations for this teacher."
+                            : `Tick a subject below to move it. Leave it unticked and it stays with ${fromTeacher?.name ?? "the current teacher"}.`}
+                        </p>
+                      </div>
                     </div>
+
+                    {transferSubjects && affectedSubjectAllocations.length > 0 && (
+                      <div className="mt-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="rounded-md bg-muted/40 p-3 space-y-2">
+                          <p className="text-xs font-medium text-foreground">Moving everything to one teacher? Use this shortcut:</p>
+
+                          <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                            <Field className="flex-1">
+                              <Label className="text-xs">Replacement teacher</Label>
+                              <Select value={defaultSubjectTeacherId} onValueChange={setDefaultSubjectTeacherId}>
+                                <SelectTrigger className="h-9 w-full bg-background">
+                                  <SelectValue placeholder="Select teacher" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {replacementCandidates.map((t) => (
+                                    <SelectItem key={t.id} value={t.id}>
+                                      {t.name} · {t.teacherCode}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </Field>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-9 shrink-0 gap-1.5 bg-background"
+                              disabled={!defaultSubjectTeacherId}
+                              title={!defaultSubjectTeacherId ? "Pick a replacement teacher first" : undefined}
+                              onClick={applyDefaultToAllSubjects}
+                            >
+                              <Wand2 className="size-3.5" />
+                              Move All Subjects Here
+                            </Button>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground">Ticks every subject below and assigns this teacher to all of them. You can still untick or change individual rows after.</p>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground px-1">Or handle subjects one by one — tick a row, then pick its replacement teacher on the right.</p>
+
+                        <div className="rounded-md border overflow-hidden overflow-x-auto">
+                          <Table className="min-w-160">
+                            <TableHeader className="bg-muted/30">
+                              <TableRow className="hover:bg-transparent">
+                                <TableHead className="text-xs font-bold uppercase tracking-wider w-10">
+                                  <Checkbox
+                                    checked={allSubjectsIncluded}
+                                    onCheckedChange={(checked) => toggleSelectAllSubjects(checked === true)}
+                                    aria-label="Select all subject allocations"
+                                    title="Select / deselect all"
+                                  />
+                                </TableHead>
+                                <TableHead className="text-xs font-bold uppercase tracking-wider">Class</TableHead>
+                                <TableHead className="text-xs font-bold uppercase tracking-wider">Section</TableHead>
+                                <TableHead className="text-xs font-bold uppercase tracking-wider">Subject</TableHead>
+                                <TableHead className="text-xs font-bold uppercase tracking-wider">Current Teacher</TableHead>
+                                <TableHead className="text-xs font-bold uppercase tracking-wider">New Teacher</TableHead>
+                              </TableRow>
+                            </TableHeader>
+
+                            <TableBody>
+                              {affectedSubjectAllocations.map((a) => {
+                                const included = !!subjectIncluded[a.id];
+
+                                return (
+                                  <TableRow key={a.id} className={cn(!included && "opacity-60")}>
+                                    <TableCell>
+                                      <Checkbox
+                                        checked={included}
+                                        onCheckedChange={(checked) => {
+                                          setSubjectIncluded((prev) => ({ ...prev, [a.id]: checked === true }));
+                                          clearError("subjectTransfers");
+                                        }}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="font-medium text-foreground">{a.class?.name}</TableCell>
+                                    <TableCell>{a.section?.name}</TableCell>
+                                    <TableCell>{a.subject?.name}</TableCell>
+                                    <TableCell className="text-muted-foreground">{fromTeacher?.name}</TableCell>
+                                    <TableCell>
+                                      {included ? (
+                                        <Select
+                                          value={subjectTeacherMap[a.id] ?? ""}
+                                          onValueChange={(value) => {
+                                            setSubjectTeacherMap((prev) => ({ ...prev, [a.id]: value }));
+                                            clearError("subjectTransfers");
+                                          }}
+                                        >
+                                          <SelectTrigger className={cn("h-9 w-44", !subjectTeacherMap[a.id] && errors.subjectTransfers && "border-red-500")}>
+                                            <SelectValue placeholder="Select teacher" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {replacementCandidates.map((t) => (
+                                              <SelectItem key={t.id} value={t.id}>
+                                                {t.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      ) : (
+                                        <span className="text-sm text-muted-foreground">Stays with {fromTeacher?.name}</span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+
+                        {errors.subjectTransfers && <p className="text-sm text-red-500">{errors.subjectTransfers}</p>}
+                      </div>
+                    )}
                   </div>
 
                   {errors.assignmentTypes && <p className="text-sm text-red-500">{errors.assignmentTypes}</p>}
@@ -420,7 +644,7 @@ export default function TeacherTransferPage() {
                       </PopoverContent>
                     </Popover>
                     {errors.effectiveDate && <p className="text-sm text-red-500 mt-1">{errors.effectiveDate}</p>}
-                    <p className="text-xs text-muted-foreground mt-1">Existing allocations for {fromTeacher?.name} will be ended on this date; the replacement starts the same day.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Existing allocations for {fromTeacher?.name} will be ended on this date; replacements start the same day.</p>
                   </Field>
 
                   <Field>
@@ -433,24 +657,64 @@ export default function TeacherTransferPage() {
               {/* Step 4: Review */}
               {step === 3 && (
                 <div className="space-y-5">
+                  <div className="rounded-md border border-border/60 p-4">
+                    <span className="text-sm text-muted-foreground">Transferring from</span>
+                    <p className="font-semibold text-foreground mt-1">{fromTeacher?.name}</p>
+                  </div>
+
+                  {transferClassTeacher && (
+                    <div className="rounded-md border border-border/60 overflow-hidden">
+                      <div className="flex items-center gap-2 p-4 border-b border-border/40 bg-muted/20">
+                        <Users className="size-4 text-primary" />
+                        <span className="font-semibold text-foreground">Class Teacher Duty</span>
+                        <Badge variant="secondary">{affectedClassAssignments.length}</Badge>
+                      </div>
+                      <div className="divide-y divide-border/30">
+                        {affectedClassAssignments.map((a) => (
+                          <div key={a.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                            <span className="text-foreground">
+                              {a.class?.name} {a.section?.name}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <ArrowRight className="size-3.5 text-muted-foreground" />
+                              <span className="font-medium text-foreground">{teacherName(classTeacherToTeacherId)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {transferSubjects && includedSubjectAllocations.length > 0 && (
+                    <div className="rounded-md border border-border/60 overflow-hidden">
+                      <div className="flex items-center gap-2 p-4 border-b border-border/40 bg-muted/20">
+                        <BookOpen className="size-4 text-primary" />
+                        <span className="font-semibold text-foreground">Subject Allocations</span>
+                        <Badge variant="secondary">{includedSubjectAllocations.length}</Badge>
+                      </div>
+                      <div className="divide-y divide-border/30">
+                        {includedSubjectAllocations.map((a) => (
+                          <div key={a.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                            <span className="text-foreground">
+                              {a.class?.name} {a.section?.name} · {a.subject?.name}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <ArrowRight className="size-3.5 text-muted-foreground" />
+                              <span className="font-medium text-foreground">{teacherName(subjectTeacherMap[a.id])}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {transferSubjects && affectedSubjectAllocations.length > includedSubjectAllocations.length && (
+                    <p className="text-xs text-muted-foreground">
+                      {affectedSubjectAllocations.length - includedSubjectAllocations.length} subject allocation(s) left unticked will stay with {fromTeacher?.name}.
+                    </p>
+                  )}
+
                   <div className="rounded-md border border-border/60 divide-y divide-border/40">
-                    <div className="flex items-center justify-between p-4">
-                      <span className="text-sm text-muted-foreground">Transfer</span>
-                      <div className="flex items-center gap-2 font-medium text-foreground">
-                        <span>{fromTeacher?.name}</span>
-                        <ArrowRight className="size-4 text-muted-foreground" />
-                        <span>{toTeacher?.name}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4">
-                      <span className="text-sm text-muted-foreground">Assignments moving</span>
-                      <div className="flex gap-1.5">
-                        {assignmentTypes.includes("SUBJECT_ALLOCATION") && <Badge variant="secondary">{affectedSubjectAllocations.length} subject allocation(s)</Badge>}
-                        {assignmentTypes.includes("CLASS_TEACHER") && <Badge variant="secondary">{affectedClassAssignments.length} class teacher role(s)</Badge>}
-                      </div>
-                    </div>
-
                     <div className="flex items-center justify-between p-4">
                       <span className="text-sm text-muted-foreground">Effective date</span>
                       <span className="font-medium text-foreground">{effectiveDate ? format(new Date(effectiveDate), "dd MMM yyyy") : "-"}</span>
@@ -465,7 +729,8 @@ export default function TeacherTransferPage() {
                   </div>
 
                   <p className="text-xs text-muted-foreground">
-                    This action ends the selected assignments for {fromTeacher?.name} on the effective date and creates matching new assignments for {toTeacher?.name}. Attendance and academic history are preserved.
+                    This action ends the selected assignments for {fromTeacher?.name} on the effective date and creates matching new assignments for the replacement teachers above. Attendance and academic history are
+                    preserved.
                   </p>
                 </div>
               )}
@@ -581,9 +846,11 @@ export default function TeacherTransferPage() {
                           <ArrowRight className="size-3.5 text-muted-foreground shrink-0" />
 
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{initials(item.toTeacher?.name)}</div>
-                            <span className="font-semibold text-foreground text-sm truncate max-w-24 sm:max-w-32" title={item.toTeacher?.name}>
-                              {item.toTeacher?.name}
+                            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+                              {initials(item.classTransfers?.[0]?.toTeacher?.name ?? item.subjectTransfers?.[0]?.toTeacher?.name)}
+                            </div>
+                            <span className="font-semibold text-foreground text-sm truncate max-w-24 sm:max-w-32" title={item.classTransfers?.[0]?.toTeacher?.name ?? item.subjectTransfers?.[0]?.toTeacher?.name}>
+                              {item.classTransfers?.[0]?.toTeacher?.name ?? item.subjectTransfers?.[0]?.toTeacher?.name ?? "-"}
                             </span>
                           </div>
                         </div>
@@ -695,7 +962,7 @@ export default function TeacherTransferPage() {
               </div>
               <div>
                 <DialogTitle className="text-lg">Transfer Details</DialogTitle>
-                <DialogDescription>{selectedTransfer ? `${selectedTransfer.fromTeacher?.name} → ${selectedTransfer.toTeacher?.name}` : ""}</DialogDescription>
+                <DialogDescription>{selectedTransfer ? `${selectedTransfer.fromTeacher?.name} Transfer Details` : ""}</DialogDescription>
               </div>
             </div>
           </div>
@@ -717,7 +984,7 @@ export default function TeacherTransferPage() {
                   <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <User className="size-4.5" />
                   </div>
-                  <span className="font-semibold text-foreground text-sm text-center max-w-32 truncate">{selectedTransfer.toTeacher?.name}</span>
+                  <span className="font-semibold text-foreground text-sm text-center max-w-32 truncate">Multiple Teachers</span>
                 </div>
               </div>
 
@@ -753,7 +1020,7 @@ export default function TeacherTransferPage() {
                   <div className="flex flex-wrap gap-1.5">
                     {selectedTransfer.subjectTransfers.map((a) => (
                       <Badge key={a.id} className="bg-muted text-muted-foreground font-normal">
-                        {a.class?.name} {a.section?.name} · {a.subject?.name}
+                        {a.subjectAllocation.class?.name} {a.subjectAllocation.section?.name} · {a.subjectAllocation.subject?.name} → {a.toTeacher?.name}
                       </Badge>
                     ))}
                   </div>
@@ -771,7 +1038,7 @@ export default function TeacherTransferPage() {
                   <div className="flex flex-wrap gap-1.5">
                     {selectedTransfer.classTransfers.map((a) => (
                       <Badge key={a.id} className="bg-muted text-muted-foreground font-normal">
-                        {a.class?.name} {a.section?.name}
+                        {a.classTeacherAssignment.class?.name} {a.classTeacherAssignment.section?.name}
                       </Badge>
                     ))}
                   </div>

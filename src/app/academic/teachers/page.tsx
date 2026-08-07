@@ -212,6 +212,10 @@ export default function TeachersPage() {
     if (!editingTeacher) return;
 
     try {
+      if (editingTeacher.isActive !== editIsActive) {
+        await academicService.teachers.updateStatus(editingTeacher.id, editIsActive);
+      }
+
       await updateTeacher(editingTeacher.id, {
         name: editName,
         email: editEmail,
@@ -871,26 +875,38 @@ export default function TeachersPage() {
               <Trash2 className="size-6 text-destructive" />
             </div>
 
-            <AlertDialogTitle className="w-full text-center text-xl">Deactivate teacher?</AlertDialogTitle>
+            <AlertDialogTitle className="w-full text-center text-xl">{deletingTeacher?.isActive ? "Deactivate Teacher?" : "Teacher Already Deactivated"}</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This will deactivate the teacher account. All attendance, timetable, and academic history will be preserved. <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingTeacher?.name}</span>
+              {deletingTeacher?.isActive ? (
+                <>
+                  This will deactivate the teacher account. All attendance, timetable, and academic history will be preserved.
+                  <span className="font-semibold text-foreground"> {deletingTeacher?.name}</span>.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-foreground">{deletingTeacher?.name}</span>
+                  {"'s"} profile is already deactivated.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <AlertDialogFooter className="mt-4">
             <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
-            <AlertDialogAction onClick={handleDelete} disabled={!!deletingId} className="h-11 bg-destructive text-white hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleDelete} disabled={!!deletingId || !deletingTeacher?.isActive} className="h-11 w-40 bg-destructive text-white hover:bg-destructive/90">
               {deletingId ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
                   Deleting...
                 </>
+              ) : !deletingTeacher?.isActive ? (
+                "Already Deactivated"
               ) : (
                 <>
                   <Trash2 className="mr-2 size-4" />
-                  Deactivate teacher
+                  Deactivate Teacher
                 </>
               )}
             </AlertDialogAction>

@@ -9,6 +9,11 @@ export interface User {
   phone?: string;
   userCode?: string;
   createdAt: string;
+
+  teacher?: {
+    isActive: boolean;
+  };
+
   userRoles: {
     role: {
       name: string;
@@ -101,7 +106,6 @@ export const useUserStore = create<UserState>((set) => ({
     try {
       set({ deletingId: id });
       await userService.delete(id);
-      await userService.getAll();
 
       const response = await userService.getAll();
 

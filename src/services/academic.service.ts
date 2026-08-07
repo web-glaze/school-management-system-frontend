@@ -27,7 +27,6 @@ export interface CreateEventPayload {
   scope?: "WHOLE_SCHOOL" | "SPECIFIC_CLASSES" | "SPECIFIC_SECTIONS";
   classIds?: string[];
   sectionIds?: string[];
-  timetableEffect?: "NONE" | "HOLIDAY_BLOCK_TIMETABLE" | "REPLACE_TIMETABLE" | "NOTICE_ONLY";
   isPublished?: boolean;
   isActive?: boolean;
 }
@@ -45,7 +44,6 @@ export interface UpdateEventPayload {
   scope?: "WHOLE_SCHOOL" | "SPECIFIC_CLASSES" | "SPECIFIC_SECTIONS";
   classIds?: string[];
   sectionIds?: string[];
-  timetableEffect?: "NONE" | "HOLIDAY_BLOCK_TIMETABLE" | "REPLACE_TIMETABLE" | "NOTICE_ONLY";
   isPublished?: boolean;
   isActive?: boolean;
 }
@@ -168,9 +166,18 @@ export interface CreateTeacherAssignmentPayload {
 
 export interface TransferTeacherPayload {
   fromTeacherId: string;
-  toTeacherId: string;
   effectiveDate: string;
-  assignmentTypes: ("SUBJECT_ALLOCATION" | "CLASS_TEACHER")[];
+
+  subjectTransfers?: {
+    subjectAllocationId: string;
+    toTeacherId: string;
+  }[];
+
+  classTransfers?: {
+    classTeacherAssignmentId: string;
+    toTeacherId: string;
+  }[];
+
   remarks?: string;
 }
 
@@ -322,6 +329,8 @@ export const academicService = {
     create: (data: CreateTeacherPayload) => apiClient.post("/academic/teachers", data),
 
     update: (id: string, data: UpdateTeacherPayload) => apiClient.patch(`/academic/teachers/${id}`, data),
+
+    updateStatus: (id: string, isActive: boolean) => apiClient.put(`/academic/teachers/${id}/status/${isActive ? "active" : "inactive"}`),
 
     delete: (id: string) => apiClient.delete(`/academic/teachers/${id}`),
   },

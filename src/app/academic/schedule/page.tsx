@@ -51,7 +51,6 @@ type TabKey = "calendar" | "upcoming";
 type CalendarView = "month" | "list";
 type EventType = CalendarEvent["eventType"];
 type EventScope = CalendarEvent["scope"];
-type TimetableEffect = CalendarEvent["timetableEffect"];
 type UpcomingRangeKey = "TODAY" | "TOMORROW" | "NEXT_7_DAYS" | "NEXT_30_DAYS";
 
 const EVENT_TYPE_META: Record<EventType, { label: string; bg: string; border: string; text: string; dot: string; icon: typeof CalendarDays }> = {
@@ -72,13 +71,6 @@ const SCOPE_META: Record<EventScope, { label: string; icon: typeof School }> = {
   SPECIFIC_CLASSES: { label: "Specific Classes", icon: Layers },
   SPECIFIC_SECTIONS: { label: "Specific Sections", icon: Users },
 };
-
-const TIMETABLE_EFFECT_OPTIONS: { value: TimetableEffect; label: string }[] = [
-  { value: "NONE", label: "None" },
-  { value: "HOLIDAY_BLOCK_TIMETABLE", label: "Holiday" },
-  { value: "REPLACE_TIMETABLE", label: "Replace Timetable" },
-  { value: "NOTICE_ONLY", label: "Notice Only" },
-];
 
 const UPCOMING_RANGES: { key: UpcomingRangeKey; label: string }[] = [
   { key: "TODAY", label: "Today" },
@@ -109,9 +101,6 @@ interface EventFormState {
   scope: EventScope;
   classIds: string[];
   sectionIds: string[];
-  timetableEffect: TimetableEffect;
-  isPublished: boolean;
-  isActive: boolean;
 }
 
 const emptyEventForm: EventFormState = {
@@ -128,9 +117,6 @@ const emptyEventForm: EventFormState = {
   scope: "WHOLE_SCHOOL",
   classIds: [],
   sectionIds: [],
-  timetableEffect: "NONE",
-  isPublished: false,
-  isActive: true,
 };
 
 function toDateOnly(d: Date) {
@@ -365,20 +351,19 @@ export default function SchedulePage() {
 
   const authorized = usePermission("schedule.read");
 
-  const [myPermissions, setMyPermissions] = useState<string[]>([]);
-  const [userChecked, setUserChecked] = useState(false);
-
-  useEffect(() => {
+  function readStoredPermissions(): string[] {
+    if (typeof window === "undefined") return [];
     try {
       const stored = localStorage.getItem("user");
       const parsed: { permissions?: string[] } | null = stored ? JSON.parse(stored) : null;
-      setMyPermissions(parsed?.permissions ?? []);
+      return parsed?.permissions ?? [];
     } catch {
-      setMyPermissions([]);
-    } finally {
-      setUserChecked(true);
+      return [];
     }
-  }, []);
+  }
+
+  const [myPermissions] = useState<string[]>(readStoredPermissions);
+  const [userChecked] = useState(() => typeof window !== "undefined");
 
   const canCreate = myPermissions.includes("schedule.create");
   const canUpdate = myPermissions.includes("schedule.update");
@@ -411,17 +396,18 @@ export default function SchedulePage() {
   ];
 
   // ── Shared filters (Calendar / Upcoming / Dashboard) ────────────────
+  // NOTE: previously this was synced via a `useEffect` that called
+  // `setFilterSessionId` whenever it was empty and `activeSessionId`
+  // became available. That's exactly the "setState synchronously
+  // within an effect" anti-pattern ESLint flagged — the effect exists
+  // purely to derive a value from other state/props, so we compute it
+  // directly during render instead. No extra render, no warning.
   const [filterSessionId, setFilterSessionId] = useState("");
   const [filterEventType, setFilterEventType] = useState<EventType | "ALL">("ALL");
 
-  useEffect(() => {
-    if (!filterSessionId && activeSessionId) setFilterSessionId(activeSessionId);
-  }, [activeSessionId, filterSessionId]);
+  const effectiveFilterSessionId = filterSessionId || activeSessionId;
 
-  const selectedSession = useMemo(
-    () => sessions.find((s) => s.id === filterSessionId) as { id: string; name: string; startDate?: string; endDate?: string } | undefined,
-    [sessions, filterSessionId]
-  );
+  const selectedSession = useMemo(() => sessions.find((s) => s.id === effectiveFilterSessionId) as { id: string; name: string; startDate?: string; endDate?: string } | undefined, [sessions, effectiveFilterSessionId]);
 
   const sessionBounds = useMemo(() => {
     if (!selectedSession?.startDate || !selectedSession?.endDate) return null;
@@ -438,11 +424,11 @@ export default function SchedulePage() {
 
   const scopedEvents = useMemo(() => {
     return events.filter((e) => {
-      if (filterSessionId && e.sessionId !== filterSessionId) return false;
+      if (effectiveFilterSessionId && e.sessionId !== effectiveFilterSessionId) return false;
       if (filterEventType !== "ALL" && e.eventType !== filterEventType) return false;
       return true;
     });
-  }, [events, filterSessionId, filterEventType]);
+  }, [events, effectiveFilterSessionId, filterEventType]);
 
   // ── Create / Edit form ───────────────────────────────────────────────
   const [form, setForm] = useState<EventFormState>(emptyEventForm);
@@ -450,18 +436,20 @@ export default function SchedulePage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (form.mode === "create" && !form.sessionId && activeSessionId) {
-      setForm((p) => ({ ...p, sessionId: activeSessionId }));
-    }
-  }, [activeSessionId, form.mode, form.sessionId]);
+  // Same fix as above: this used to be a `useEffect` that patched
+  // `form.sessionId` in after `activeSessionId` loaded. `startCreate`
+  // and `startEdit` already set `sessionId` explicitly, so the only
+  // gap was the brief window before sessions finish loading — handled
+  // now by falling back to `activeSessionId` wherever the form's
+  // session id is read, instead of writing it back into state.
+  const effectiveFormSessionId = form.sessionId || activeSessionId;
 
   function startCreate(prefillDate?: Date) {
     if (prefillDate && isOutOfSessionBounds(prefillDate)) return;
     setFormErrors({});
     setForm({
       ...emptyEventForm,
-      sessionId: filterSessionId || activeSessionId,
+      sessionId: effectiveFilterSessionId,
       startDate: prefillDate ? formatISODate(prefillDate) : "",
       endDate: prefillDate ? formatISODate(prefillDate) : "",
     });
@@ -485,9 +473,6 @@ export default function SchedulePage() {
       scope: entry.scope,
       classIds: entry.classes?.map((c) => c.classId) ?? [],
       sectionIds: entry.sections?.map((s) => s.sectionId) ?? [],
-      timetableEffect: entry.timetableEffect,
-      isPublished: entry.isPublished,
-      isActive: entry.isActive,
     };
 
     setForm(editForm);
@@ -497,7 +482,7 @@ export default function SchedulePage() {
 
   const formValid =
     form.title.trim().length > 0 &&
-    form.sessionId.length > 0 &&
+    effectiveFormSessionId.length > 0 &&
     form.startDate.length > 0 &&
     form.endDate.length > 0 &&
     form.endDate >= form.startDate &&
@@ -513,7 +498,7 @@ export default function SchedulePage() {
     const payload = {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
-      sessionId: form.sessionId,
+      sessionId: effectiveFormSessionId,
       eventType: form.eventType,
       startDate: form.startDate,
       endDate: form.endDate,
@@ -523,9 +508,6 @@ export default function SchedulePage() {
       scope: form.scope,
       classIds: form.scope === "SPECIFIC_CLASSES" ? form.classIds : undefined,
       sectionIds: form.scope === "SPECIFIC_SECTIONS" ? form.sectionIds : undefined,
-      timetableEffect: form.timetableEffect,
-      isPublished: form.isPublished,
-      isActive: form.isActive,
     };
 
     setSubmitting(true);
@@ -537,7 +519,7 @@ export default function SchedulePage() {
         await createEvent(payload);
         toast.success("Event created successfully");
       }
-      setForm({ ...emptyEventForm, sessionId: filterSessionId || activeSessionId });
+      setForm({ ...emptyEventForm, sessionId: effectiveFilterSessionId });
       setFormErrors({});
       if (wasEdit) {
         setEditDialogOpen(false);
@@ -588,7 +570,7 @@ export default function SchedulePage() {
 
   function closeCreateDialog() {
     setCreateDialogOpen(false);
-    setForm({ ...emptyEventForm, sessionId: filterSessionId || activeSessionId });
+    setForm({ ...emptyEventForm, sessionId: effectiveFilterSessionId });
     setFormErrors({});
   }
 
@@ -597,7 +579,7 @@ export default function SchedulePage() {
 
   function closeEditDialog() {
     setEditDialogOpen(false);
-    setForm({ ...emptyEventForm, sessionId: filterSessionId || activeSessionId });
+    setForm({ ...emptyEventForm, sessionId: effectiveFilterSessionId });
     setInitialForm(null);
     setFormErrors({});
   }
@@ -629,26 +611,37 @@ export default function SchedulePage() {
       .sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [scopedEvents, monthCursor]);
 
-  useEffect(() => {
-    if (!sessionBounds) return;
-    const { start, end } = sessionBounds;
-    const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
-    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+  // Same underlying issue as the two fixes above, but here the values
+  // being adjusted (monthCursor / selectedDate) are genuine, user
+  // navigable state — not something we can just derive during render.
+  // React's own guidance for "adjust state when a value changes" is to
+  // compare against the previous value directly during render and
+  // call setState right there (React detects this and re-renders
+  // immediately before the browser paints, instead of committing once,
+  // running an effect, then committing again — no cascading render).
+  const [prevSessionBounds, setPrevSessionBounds] = useState(sessionBounds);
+  if (sessionBounds !== prevSessionBounds) {
+    setPrevSessionBounds(sessionBounds);
+    if (sessionBounds) {
+      const { start, end } = sessionBounds;
+      const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+      const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
 
-    setMonthCursor((prev) => {
-      const prevMonth = new Date(prev.getFullYear(), prev.getMonth(), 1);
-      if (prevMonth < startMonth) return startMonth;
-      if (prevMonth > endMonth) return endMonth;
-      return prev;
-    });
+      setMonthCursor((prev) => {
+        const prevMonth = new Date(prev.getFullYear(), prev.getMonth(), 1);
+        if (prevMonth < startMonth) return startMonth;
+        if (prevMonth > endMonth) return endMonth;
+        return prev;
+      });
 
-    setSelectedDate((prev) => {
-      if (!prev) return start;
-      if (prev < start) return start;
-      if (prev > end) return end;
-      return prev;
-    });
-  }, [sessionBounds]);
+      setSelectedDate((prev) => {
+        if (!prev) return start;
+        if (prev < start) return start;
+        if (prev > end) return end;
+        return prev;
+      });
+    }
+  }
 
   const navBounds = useMemo(() => {
     if (!sessionBounds) return { prevDisabled: false, nextDisabled: false };
@@ -728,13 +721,7 @@ export default function SchedulePage() {
         }}
         className="group flex cursor-pointer items-center gap-3 rounded-xl border bg-card p-3 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
       >
-        <div
-          className={cn(
-            "flex size-11 shrink-0 flex-col items-center justify-center rounded-lg border text-center",
-            entry.isPublished ? cn(meta.bg, meta.border, meta.text) : "border-dashed border-border bg-muted text-muted-foreground"
-          )}
-          title={entry.isPublished ? "Published" : "Draft"}
-        >
+        <div className={cn("flex size-11 shrink-0 flex-col items-center justify-center rounded-lg border text-center", meta.bg, meta.border, meta.text)}>
           <span className="text-[10px] font-semibold uppercase">{new Date(entry.startDate).toLocaleDateString("en-IN", { month: "short" })}</span>
           <span className="text-sm font-bold leading-none">{new Date(entry.startDate).getDate()}</span>
         </div>
@@ -745,11 +732,6 @@ export default function SchedulePage() {
               <Icon className="size-3 shrink-0" />
               <span className="truncate">{meta.label}</span>
             </span>
-            {!entry.isPublished && (
-              <Badge variant="outline" className="shrink-0 text-[11px]">
-                Draft
-              </Badge>
-            )}
           </div>
           <p className="truncate text-sm font-semibold text-foreground" title={entry.title}>
             {entry.title}
@@ -767,7 +749,7 @@ export default function SchedulePage() {
         <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
           <Field>
             <Label>Academic Session</Label>
-            <Select value={filterSessionId} onValueChange={setFilterSessionId}>
+            <Select value={effectiveFilterSessionId} onValueChange={setFilterSessionId}>
               <SelectTrigger className="h-10 w-full">
                 <SelectValue className="truncate" placeholder="Select Session" />
               </SelectTrigger>
@@ -887,11 +869,7 @@ export default function SchedulePage() {
                         onDoubleClick={() => canCreate && !outOfSession && startCreate(date)}
                         className={cn(
                           "group flex h-24 flex-col items-start gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition-colors sm:h-28 sm:p-2",
-                          outOfSession
-                            ? "cursor-not-allowed bg-muted/20 text-muted-foreground/40"
-                            : inMonth
-                              ? "bg-background"
-                              : "bg-muted/30 text-muted-foreground/50",
+                          outOfSession ? "cursor-not-allowed bg-muted/20 text-muted-foreground/40" : inMonth ? "bg-background" : "bg-muted/30 text-muted-foreground/50",
                           !outOfSession && (isSelected ? "border-primary ring-1 ring-primary" : "border-border/60 hover:border-primary/40"),
                           outOfSession && "border-border/40"
                         )}
@@ -1038,7 +1016,7 @@ export default function SchedulePage() {
           <FieldGroup>
             <Field>
               <Label>Academic Session</Label>
-              <Select value={form.sessionId} onValueChange={(v) => setForm((p) => ({ ...p, sessionId: v }))}>
+              <Select value={effectiveFormSessionId} onValueChange={(v) => setForm((p) => ({ ...p, sessionId: v }))}>
                 <SelectTrigger className="h-10 w-full">
                   <SelectValue className="truncate" placeholder="Select Session" />
                 </SelectTrigger>
@@ -1244,38 +1222,6 @@ export default function SchedulePage() {
             </div>
           )}
         </div>
-
-        {/* Timetable */}
-        <div>
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Timetable Effect</p>
-          <Select value={form.timetableEffect} onValueChange={(v) => setForm((p) => ({ ...p, timetableEffect: v as TimetableEffect }))}>
-            <SelectTrigger className="h-10 w-full">
-              <SelectValue className="truncate" />
-            </SelectTrigger>
-            <SelectContent>
-              {TIMETABLE_EFFECT_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Status */}
-        <div>
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Status</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="flex items-center justify-between rounded-xl border p-3">
-              <span className="text-sm font-medium text-foreground">Published</span>
-              <Switch checked={form.isPublished} onCheckedChange={(checked) => setForm((p) => ({ ...p, isPublished: checked }))} />
-            </div>
-            <div className="flex items-center justify-between rounded-xl border p-3">
-              <span className="text-sm font-medium text-foreground">Active</span>
-              <Switch checked={form.isActive} onCheckedChange={(checked) => setForm((p) => ({ ...p, isActive: checked }))} />
-            </div>
-          </div>
-        </div>
       </>
     );
   }
@@ -1477,16 +1423,6 @@ export default function SchedulePage() {
                         <p className="truncate text-sm font-medium text-foreground" title={scopeLabelFor(viewingEvent)}>
                           {scopeLabelFor(viewingEvent)}
                         </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3">
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                        <CalendarClock className="size-4 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-muted-foreground">Timetable Effect</p>
-                        <p className="truncate text-sm font-medium text-foreground">{TIMETABLE_EFFECT_OPTIONS.find((o) => o.value === viewingEvent.timetableEffect)?.label}</p>
                       </div>
                     </div>
                   </div>

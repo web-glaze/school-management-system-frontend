@@ -70,7 +70,6 @@ export interface CalendarEvent {
   startTime?: string;
   endTime?: string;
   scope: "WHOLE_SCHOOL" | "SPECIFIC_CLASSES" | "SPECIFIC_SECTIONS";
-  timetableEffect: "NONE" | "HOLIDAY_BLOCK_TIMETABLE" | "REPLACE_TIMETABLE" | "NOTICE_ONLY";
   isPublished: boolean;
   isActive: boolean;
   createdAt: string;
@@ -149,7 +148,6 @@ export interface StudentEnrollment {
   enrollmentStatus: "ACTIVE" | "PROMOTED" | "TRANSFERRED" | "GRADUATED" | "DROPPED";
   createdAt: string;
   updatedAt: string;
-
   student: Student;
   session: AcademicSession;
   class: AcademicClass;
@@ -189,6 +187,9 @@ export interface TeacherAssignment {
   classId: string;
   sectionId: string;
   teacherId: string;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 
@@ -202,30 +203,24 @@ export interface TeacherTransferHistory {
   id: string;
   schoolId: string;
   fromTeacherId: string;
-  toTeacherId: string;
   transferredById?: string;
   effectiveDate: string;
   remarks?: string;
   createdAt: string;
-  updatedAt: string;
 
   fromTeacher: Teacher;
-  toTeacher: Teacher;
   transferredBy?: Teacher;
 
   subjectTransfers?: {
     id: string;
-    session: AcademicSession;
-    class: AcademicClass;
-    section: Section;
-    subject: Subject;
+    toTeacher: Teacher;
+    subjectAllocation: SubjectAllocation;
   }[];
 
   classTransfers?: {
     id: string;
-    session: AcademicSession;
-    class: AcademicClass;
-    section: Section;
+    toTeacher: Teacher;
+    classTeacherAssignment: TeacherAssignment;
   }[];
 }
 
@@ -799,6 +794,10 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
 
   updateTeacher: async (id, data) => {
     try {
+      if (data.isActive !== undefined) {
+        await academicService.teachers.updateStatus(id, data.isActive);
+      }
+
       await academicService.teachers.update(id, data);
       await get().fetchTeachers();
     } catch (error) {
@@ -1160,7 +1159,7 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       set({ loading: true });
       const response = await academicService.teacherTransfers.getAll();
       set({
-        teacherTransfers: response.data.data.data ?? response.data.data ?? [],
+        teacherTransfers: response.data.data.data ?? [],
       });
     } catch (error) {
       console.error("Failed to fetch teacher transfers", error);

@@ -61,12 +61,9 @@ export default function UserManagementPage() {
   }, [fetchUsers, fetchRolesAndPermissions]);
 
   // Set default role when roles load
-  useEffect(() => {
-    if (roles.length > 0 && !role) {
-      const safe = roles.find((r) => !["SUPER_ADMIN", "ADMIN"].includes(r.name)) ?? roles[0];
-      setRole(safe.name);
-    }
-  }, [roles, role]);
+  const defaultRole = useMemo(() => {
+    return roles.find((r) => !["SUPER_ADMIN", "ADMIN"].includes(r.name))?.name ?? "";
+  }, [roles]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,16 +88,25 @@ export default function UserManagementPage() {
       setAddUserOpen(false);
 
       toast.success("User created");
-    } catch (error: any) {
-      const errors = error?.response?.data?.errors;
+    } catch (error: unknown) {
+      const response = (
+        error as {
+          response?: {
+            data?: {
+              errors?: Record<string, string>;
+              message?: string;
+            };
+          };
+        }
+      ).response;
 
-      if (errors) {
-        setFormErrors(errors);
+      if (response?.data?.errors) {
+        setFormErrors(response.data.errors);
         return;
       }
 
       toast.error("Failed to create user", {
-        description: error?.response?.data?.message || "Something went wrong",
+        description: response?.data?.message || "Something went wrong",
       });
     }
   };
@@ -113,7 +119,14 @@ export default function UserManagementPage() {
     if (!editingUser) return;
 
     try {
-      const payload: any = {
+      const payload: {
+        name: string;
+        userName: string;
+        email: string;
+        phone: string | null;
+        role: string;
+        password?: string;
+      } = {
         name: editName.trim(),
         userName: editUserName.trim(),
         email: editEmail.trim(),
@@ -131,15 +144,24 @@ export default function UserManagementPage() {
       setEditingUser(null);
 
       toast.success("User updated");
-    } catch (error: any) {
-      const errors = error?.response?.data?.errors;
+    } catch (error: unknown) {
+      const errors = error instanceof Error ? (error as Error & { response?: { data?: { errors?: Record<string, string> } } }).response?.data?.errors : undefined;
 
       if (errors) {
         setEditErrors(errors);
         return;
       }
       toast.error("Failed to update user", {
-        description: error?.response?.data?.message || "Something went wrong",
+        description:
+          (
+            error as {
+              response?: {
+                data?: {
+                  message?: string;
+                };
+              };
+            }
+          ).response?.data?.message || "Something went wrong",
       });
     }
   };
@@ -150,7 +172,7 @@ export default function UserManagementPage() {
       setDeleteUserOpen(false);
       setDeletingUser(null);
       toast.success(deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Teacher deactivated successfully" : "User deleted successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete user");
     }
   };
@@ -200,9 +222,6 @@ export default function UserManagementPage() {
       [field]: "",
     }));
   };
-
-  const fieldBase = "h-10 px-3 rounded-lg border border-gray-200 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition";
-  const selectField = fieldBase + " bg-white pr-8 appearance-none";
 
   const authorized = usePermission("user.read");
 
@@ -320,7 +339,7 @@ export default function UserManagementPage() {
                   <Field>
                     <Label htmlFor="role">Role</Label>
                     <Select
-                      value={role}
+                      value={role || defaultRole}
                       onValueChange={(value) => {
                         setRole(value);
                         clearError("role");
@@ -667,14 +686,25 @@ export default function UserManagementPage() {
               <Trash2 className="size-6 text-destructive" />
             </div>
 
-            <AlertDialogTitle className="w-full text-center text-xl">{deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Deactivate Teacher?" : "Delete User?"}</AlertDialogTitle>
+            <AlertDialogTitle className="w-full text-center text-xl">
+              {deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? (deletingUser.teacher?.isActive ? "Deactivate Teacher?" : "Teacher Already Deactivated") : "Delete User?"}
+            </AlertDialogTitle>
 
             <AlertDialogDescription className="text-center text-sm">
               {deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? (
-                <>
-                  This will deactivate the teacher account. All attendance, timetable, and academic history will be preserved.
-                  <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
-                </>
+                deletingUser?.teacher?.isActive ? (
+                  <>
+                    This will deactivate the teacher account. All attendance, timetable, and academic history will be preserved.
+                    <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
+                  </>
+                ) : (
+                 <span className="block w-full text-center">
+  <span className="font-semibold text-foreground">
+    {deletingUser?.name}
+  </span>
+  &rsquo;s profile is already deactivated.
+</span>
+                )
               ) : (
                 <>
                   This action cannot be undone. This will permanently remove
@@ -688,18 +718,21 @@ export default function UserManagementPage() {
             <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
             <AlertDialogAction
+              disabled={deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") && !deletingUser?.teacher?.isActive}
               onClick={() => {
                 if (deletingUser) {
                   handleDelete(deletingUser.id);
                 }
               }}
-              className="h-11 bg-destructive text-white hover:bg-destructive/90"
+              className="h-11 w-40 bg-destructive text-white hover:bg-destructive/90"
             >
               {deletingId ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
                   Deleting...
                 </>
+              ) : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") && !deletingUser?.teacher?.isActive ? (
+                "Deactivate Teacher"
               ) : (
                 <>
                   <Trash2 className="mr-2 size-4" />
