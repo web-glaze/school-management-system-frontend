@@ -395,13 +395,6 @@ export default function SchedulePage() {
     { key: "upcoming", label: "Upcoming", icon: CalendarClock },
   ];
 
-  // ── Shared filters (Calendar / Upcoming / Dashboard) ────────────────
-  // NOTE: previously this was synced via a `useEffect` that called
-  // `setFilterSessionId` whenever it was empty and `activeSessionId`
-  // became available. That's exactly the "setState synchronously
-  // within an effect" anti-pattern ESLint flagged — the effect exists
-  // purely to derive a value from other state/props, so we compute it
-  // directly during render instead. No extra render, no warning.
   const [filterSessionId, setFilterSessionId] = useState("");
   const [filterEventType, setFilterEventType] = useState<EventType | "ALL">("ALL");
 
@@ -435,15 +428,7 @@ export default function SchedulePage() {
   const [initialForm, setInitialForm] = useState<EventFormState | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-
-  // Same fix as above: this used to be a `useEffect` that patched
-  // `form.sessionId` in after `activeSessionId` loaded. `startCreate`
-  // and `startEdit` already set `sessionId` explicitly, so the only
-  // gap was the brief window before sessions finish loading — handled
-  // now by falling back to `activeSessionId` wherever the form's
-  // session id is read, instead of writing it back into state.
   const effectiveFormSessionId = form.sessionId || activeSessionId;
-
   function startCreate(prefillDate?: Date) {
     if (prefillDate && isOutOfSessionBounds(prefillDate)) return;
     setFormErrors({});
@@ -611,14 +596,6 @@ export default function SchedulePage() {
       .sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [scopedEvents, monthCursor]);
 
-  // Same underlying issue as the two fixes above, but here the values
-  // being adjusted (monthCursor / selectedDate) are genuine, user
-  // navigable state — not something we can just derive during render.
-  // React's own guidance for "adjust state when a value changes" is to
-  // compare against the previous value directly during render and
-  // call setState right there (React detects this and re-renders
-  // immediately before the browser paints, instead of committing once,
-  // running an effect, then committing again — no cascading render).
   const [prevSessionBounds, setPrevSessionBounds] = useState(sessionBounds);
   if (sessionBounds !== prevSessionBounds) {
     setPrevSessionBounds(sessionBounds);

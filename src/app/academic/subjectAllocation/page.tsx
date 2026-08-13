@@ -9,13 +9,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, GraduationCap, Inbox, Loader2, MoreVertical, Pencil, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
 import { useAcademicStore } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
 
@@ -59,7 +57,6 @@ interface SubjectAllocation {
 export default function SubjectAllocationPage() {
   const {
     loading,
-
     sessions,
     classes,
     sections,
@@ -80,9 +77,7 @@ export default function SubjectAllocationPage() {
   } = useAcademicStore();
 
   const authorized = usePermission("subject-allocation.read");
-
   const [search, setSearch] = useState("");
-
   const [classFilter, setClassFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all");
   const [sessionFilter, setSessionFilter] = useState("all");
@@ -98,23 +93,17 @@ export default function SubjectAllocationPage() {
   const [sectionId, setSectionId] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [teacherId, setTeacherId] = useState("");
-
   const [editSessionId, setEditSessionId] = useState("");
   const [editClassId, setEditClassId] = useState("");
   const [editSectionId, setEditSectionId] = useState("");
   const [editSubjectId, setEditSubjectId] = useState("");
   const [editTeacherId, setEditTeacherId] = useState("");
-
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
   const [editingAllocation, setEditingAllocation] = useState<SubjectAllocation | null>(null);
-
   const [deletingAllocation, setDeletingAllocation] = useState<SubjectAllocation | null>(null);
-
   const resetForm = () => {
     setSessionId("");
     setClassId("");
@@ -123,24 +112,16 @@ export default function SubjectAllocationPage() {
     setTeacherId("");
     setFormErrors({});
   };
-
   const filteredSections = useMemo(() => {
     if (classFilter === "all") return sections;
-
     return sections.filter((section) => subjectAllocations.some((allocation) => allocation.class.id === classFilter && allocation.section.id === section.id));
   }, [classFilter, sections, subjectAllocations]);
-
   const filteredAllocations = subjectAllocations.filter((item) => {
     const matchesSearch = item.teacher.name.toLowerCase().includes(search.toLowerCase()) || item.subject.name.toLowerCase().includes(search.toLowerCase());
-
     const matchesClass = appliedFilters.class === "all" || item.class.id === appliedFilters.class;
-
     const matchesSection = appliedFilters.section === "all" || item.section.id === appliedFilters.section;
-
     const matchesSession = appliedFilters.session === "all" || item.session.id === appliedFilters.session;
-
     const matchesSubject = appliedFilters.subject === "all" || item.subject.id === appliedFilters.subject;
-
     return matchesSearch && matchesClass && matchesSection && matchesSession && matchesSubject;
   });
 
@@ -158,9 +139,7 @@ export default function SubjectAllocationPage() {
   }
 
   const hasActiveFilters = appliedFilters.class !== "all" || appliedFilters.section !== "all" || appliedFilters.session !== "all" || appliedFilters.subject !== "all";
-
   const filtersChanged = classFilter !== appliedFilters.class || sectionFilter !== appliedFilters.section || sessionFilter !== appliedFilters.session || subjectFilter !== appliedFilters.subject;
-
   const pendingFilterCount = [classFilter !== "all", sectionFilter !== "all", sessionFilter !== "all", subjectFilter !== "all"].filter(Boolean).length;
 
   function applyFilters() {

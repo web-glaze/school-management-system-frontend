@@ -178,6 +178,12 @@ export interface TransferTeacherPayload {
     toTeacherId: string;
   }[];
 
+  timetableResolutions?: {
+    timetableId: string;
+    dayOfWeek: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+    periodNo: number;
+  }[];
+
   remarks?: string;
 }
 
