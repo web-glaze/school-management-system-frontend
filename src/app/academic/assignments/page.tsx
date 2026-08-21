@@ -563,47 +563,63 @@ export default function AssignmentsPage() {
     return (
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={closeDetail}
-              aria-label="Back to assignments"
-              className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <ArrowLeft className="size-4" />
-            </button>
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <ClipboardList className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">{detailAssignment.title}</h1>
-                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold shrink-0", typeBadgeClass(detailAssignment.type))}>{typeLabel(detailAssignment.type)}</span>
-                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold shrink-0", assignmentStatusBadgeClass(detailAssignment.status))}>{assignmentStatusLabel(detailAssignment.status)}</span>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground truncate">
-                {detailAssignment.teacher.name} • {detailAssignment.subjectAllocation.subject.name} • {detailAssignment.class.name} {detailAssignment.section.name}
-              </p>
-            </div>
-          </div>
+        <div className="border-b pb-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            {/* Left Content */}
+            <div className="flex min-w-0 items-start gap-3">
+              <button
+                type="button"
+                onClick={closeDetail}
+                aria-label="Back to assignments"
+                className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <ArrowLeft className="size-4" />
+              </button>
 
-          {(canUpdate || canDelete) && (
-            <div className="flex items-center gap-2 shrink-0">
-              {canUpdate && (
-                <Button variant="outline" className="h-9 gap-1.5 border-primary/30 px-3.5 text-primary hover:bg-primary/5 hover:text-primary" onClick={() => openEditAssignment(detailAssignment)}>
-                  <Pencil className="size-4" />
-                  Edit
-                </Button>
-              )}
-              {canDelete && (
-                <Button variant="outline" className="h-9 gap-1.5 border-destructive/30 px-3.5 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => openDeleteAssignment(detailAssignment)}>
-                  <Trash2 className="size-4" />
-                  Delete
-                </Button>
-              )}
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ClipboardList className="size-5" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                {/* Title + Badges */}
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h1 className="min-w-0 max-w-full wrap-break-word text-lg font-bold leading-tight text-foreground sm:text-xl">{detailAssignment.title}</h1>
+                </div>
+
+                {/* Assignment Info */}
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:text-sm">
+                  {detailAssignment.teacher.name}
+                  <span className="mx-1.5 text-muted-foreground/50">•</span>
+                  {detailAssignment.subjectAllocation.subject.name}
+                  <span className="mx-1.5 text-muted-foreground/50">•</span>
+                  {detailAssignment.class.name} {detailAssignment.section.name}
+                </p>
+              </div>
             </div>
-          )}
+
+            {/* Actions */}
+            {(canUpdate || canDelete) && (
+              <div className="flex w-full shrink-0 gap-2 sm:w-auto sm:items-center">
+                {canUpdate && (
+                  <Button variant="outline" className="h-9 flex-1 gap-1.5 border-primary/30 px-3.5 text-primary hover:bg-primary/5 hover:text-primary sm:flex-none" onClick={() => openEditAssignment(detailAssignment)}>
+                    <Pencil className="size-4" />
+                    Edit
+                  </Button>
+                )}
+
+                {canDelete && (
+                  <Button
+                    variant="outline"
+                    className="h-9 flex-1 gap-1.5 border-destructive/30 px-3.5 text-destructive hover:bg-destructive/10 hover:text-destructive sm:flex-none"
+                    onClick={() => openDeleteAssignment(detailAssignment)}
+                  >
+                    <Trash2 className="size-4" />
+                    Delete
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Overview card */}
@@ -613,14 +629,51 @@ export default function AssignmentsPage() {
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overview</span>
           </div>
 
-          <div className="grid gap-4 grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Given Date</p>
-              <p className="mt-1 text-sm font-medium">{format(new Date(detailAssignment.givenDate), "dd MMM yyyy")}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {/* Type */}
+            <div className="rounded-lg border bg-muted/20 p-3.5 sm:p-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Type</p>
+
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <ClipboardList className="size-3.5" />
+                </div>
+
+                <p className="truncate text-sm font-semibold text-foreground">{typeLabel(detailAssignment.type)}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Due Date</p>
-              <p className="mt-1 text-sm font-medium">{detailAssignment.dueDate ? format(new Date(detailAssignment.dueDate), "dd MMM yyyy") : "—"}</p>
+
+            {/* Status */}
+            <div className="rounded-lg border bg-muted/20 p-3.5 sm:p-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+
+              <div className="mt-2 flex items-center gap-2">
+                <span
+                  className={cn(
+                    "size-2 shrink-0 rounded-full",
+                    detailAssignment.status === "DRAFT" && "bg-gray-500",
+                    detailAssignment.status === "PUBLISHED" && "bg-blue-500",
+                    detailAssignment.status === "COMPLETED" && "bg-green-500",
+                    detailAssignment.status === "CANCELLED" && "bg-red-500"
+                  )}
+                />
+
+                <p className="truncate text-sm font-semibold text-foreground">{assignmentStatusLabel(detailAssignment.status)}</p>
+              </div>
+            </div>
+
+            {/* Given Date */}
+            <div className="rounded-lg border bg-muted/20 p-3.5 sm:p-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Given Date</p>
+
+              <p className="mt-2 text-sm font-semibold text-foreground">{format(new Date(detailAssignment.givenDate), "dd MMM yyyy")}</p>
+            </div>
+
+            {/* Due Date */}
+            <div className="rounded-lg border bg-muted/20 p-3.5 sm:p-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Due Date</p>
+
+              <p className="mt-2 text-sm font-semibold text-foreground">{detailAssignment.dueDate ? format(new Date(detailAssignment.dueDate), "dd MMM yyyy") : "—"}</p>
             </div>
           </div>
 
