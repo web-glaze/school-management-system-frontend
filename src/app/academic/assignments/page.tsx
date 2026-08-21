@@ -65,32 +65,8 @@ function typeLabel(type: AssignmentTypeT) {
   return TYPE_OPTIONS.find((t) => t.value === type)?.label ?? type;
 }
 
-function typeBadgeClass(type: AssignmentTypeT) {
-  switch (type) {
-    case "HOMEWORK":
-      return "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400";
-    case "HOLIDAY_HOMEWORK":
-      return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
-    case "ASSIGNMENT":
-      return "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400";
-  }
-}
-
 function assignmentStatusLabel(status: AssignmentStatusT) {
   return STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status;
-}
-
-function assignmentStatusBadgeClass(status: AssignmentStatusT) {
-  switch (status) {
-    case "DRAFT":
-      return "bg-gray-100 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300";
-    case "PUBLISHED":
-      return "bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400";
-    case "COMPLETED":
-      return "bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400";
-    case "CANCELLED":
-      return "bg-red-100 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400";
-  }
 }
 
 function studentStatusLabel(status: StudentStatusT) {
@@ -497,7 +473,6 @@ export default function AssignmentsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold leading-tight truncate">{a.title}</p>
-                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold shrink-0", typeBadgeClass(a.type))}>{typeLabel(a.type)}</span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground truncate">
                     {a.teacher.name} • {a.subjectAllocation.subject.name} • {a.class.name} {a.section.name}
