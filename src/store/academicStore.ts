@@ -33,6 +33,9 @@ import {
   UpdateStudentSubjectAllocationPayload,
   CreateEventPayload,
   UpdateEventPayload,
+  CreateAssignmentPayload,
+  UpdateAssignmentPayload,
+  UpdateAssignmentStudentPayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -286,6 +289,43 @@ export interface FacultyAttendance {
   teacher: Teacher;
 }
 
+export interface AssignmentStudent {
+  id: string;
+  assignmentId: string;
+  studentId: string;
+  status: "IN_PROGRESS" | "COMPLETED" | "NOT_SUBMITTED";
+  remarks?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  student: Student;
+}
+
+export interface Assignment {
+  id: string;
+  schoolId: string;
+  sessionId: string;
+  classId: string;
+  sectionId: string;
+  subjectAllocationId: string;
+  teacherId: string;
+  type: "HOMEWORK" | "HOLIDAY_HOMEWORK" | "ASSIGNMENT";
+  title: string;
+  description?: string;
+  givenDate: string;
+  dueDate?: string;
+  attachmentUrl?: string;
+  status: "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED";
+  createdAt: string;
+  updatedAt: string;
+  session: AcademicSession;
+  class: AcademicClass;
+  section: Section;
+  subjectAllocation: SubjectAllocation;
+  teacher: Teacher;
+  students: AssignmentStudent[];
+}
+
 interface AcademicStore {
   sessions: AcademicSession[];
   events: CalendarEvent[];
@@ -303,6 +343,7 @@ interface AcademicStore {
   facultyAttendances: FacultyAttendance[];
   timetables: Timetable[];
   studentSubjectAllocations: StudentSubjectAllocation[];
+  assignments: Assignment[];
 
   loading: boolean;
 
@@ -352,6 +393,12 @@ interface AcademicStore {
   updateStudentAttendance: (id: string, data: UpdateStudentAttendancePayload) => Promise<void>;
   deleteStudentAttendance: (id: string) => Promise<void>;
 
+  fetchAssignments: () => Promise<void>;
+  createAssignment: (data: CreateAssignmentPayload) => Promise<void>;
+  updateAssignment: (id: string, data: UpdateAssignmentPayload) => Promise<void>;
+  updateAssignmentStudentStatus: (assignmentId: string, studentId: string, data: UpdateAssignmentStudentPayload) => Promise<void>;
+  deleteAssignment: (id: string) => Promise<void>;
+
   fetchSubjectAttendances: () => Promise<void>;
   createSubjectAttendance: (data: CreateSubjectAttendancePayload) => Promise<void>;
   updateSubjectAttendance: (id: string, data: UpdateSubjectAttendancePayload) => Promise<void>;
@@ -394,6 +441,7 @@ interface AcademicStore {
   clearStudents: () => void;
   clearStudentEnrollments: () => void;
   clearStudentAttendances: () => void;
+  clearAssignments: () => void;
   clearSubjectAttendances: () => void;
   clearSubjectAllocations: () => void;
   clearStudentSubjectAllocations: () => void;
@@ -413,6 +461,7 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   students: [],
   studentEnrollments: [],
   studentAttendances: [],
+  assignments: [],
   subjectAttendances: [],
   subjectAllocations: [],
   studentSubjectAllocations: [],
@@ -678,6 +727,11 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   clearStudentAttendances: () =>
     set({
       studentAttendances: [],
+    }),
+
+  clearAssignments: () =>
+    set({
+      assignments: [],
     }),
 
   clearSubjectAttendances: () =>
@@ -953,6 +1007,59 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.studentAttendances.delete(id);
       await get().fetchStudentAttendances();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Assignments
+  // ======================
+
+  fetchAssignments: async () => {
+    try {
+      set({ loading: true });
+      const response = await academicService.assignments.getAll();
+      set({ assignments: response.data.data ?? [] });
+    } catch (error) {
+      console.error("Failed to fetch assignments", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createAssignment: async (data) => {
+    try {
+      await academicService.assignments.create(data);
+      await get().fetchAssignments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateAssignment: async (id, data) => {
+    try {
+      await academicService.assignments.update(id, data);
+      await get().fetchAssignments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateAssignmentStudentStatus: async (assignmentId, studentId, data) => {
+    try {
+      await academicService.assignments.updateStudentStatus(assignmentId, studentId, data);
+      await get().fetchAssignments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteAssignment: async (id) => {
+    try {
+      await academicService.assignments.delete(id);
+      await get().fetchAssignments();
     } catch (error) {
       throw error;
     }

@@ -23,8 +23,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   ClipboardList,
   Eye,
   Inbox,

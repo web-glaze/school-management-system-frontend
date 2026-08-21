@@ -29,6 +29,7 @@ import {
   Cog,
   CalendarFold,
   Summary,
+  NotebookTabs,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
@@ -205,6 +206,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       url: "/academic/studentSubjectAllocation",
       icon: BookCheck,
       isActive: pathname.startsWith("/academic/studentSubjectAllocation"),
+    },
+
+    permissions.includes("assignment.read") && {
+      title: "Assignments",
+      url: "/academic/assignments",
+      icon: NotebookTabs,
+      isActive: pathname.startsWith("/academic/assignments"),
     },
 
     permissions.includes("teacher-assignment.read") && {

@@ -225,6 +225,32 @@ export interface UpdateStudentAttendancePayload {
   remarks?: string;
 }
 
+export interface CreateAssignmentPayload {
+  subjectAllocationId: string;
+  type: "HOMEWORK" | "HOLIDAY_HOMEWORK" | "ASSIGNMENT";
+  title: string;
+  description?: string;
+  givenDate: string;
+  dueDate?: string;
+  attachmentUrl?: string;
+  status?: "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED";
+}
+
+export interface UpdateAssignmentPayload {
+  type?: "HOMEWORK" | "HOLIDAY_HOMEWORK" | "ASSIGNMENT";
+  title?: string;
+  description?: string;
+  givenDate?: string;
+  dueDate?: string;
+  attachmentUrl?: string;
+  status?: "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED";
+}
+
+export interface UpdateAssignmentStudentPayload {
+  status: "IN_PROGRESS" | "COMPLETED" | "NOT_SUBMITTED";
+  remarks?: string | null;
+}
+
 export interface CreateSubjectAttendancePayload {
   enrollmentId: string;
   subjectAllocationId: string;
@@ -419,6 +445,20 @@ export const academicService = {
     update: (id: string, data: UpdateStudentAttendancePayload) => apiClient.patch(`/academic/student-attendance/${id}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/student-attendance/${id}`),
+  },
+
+  assignments: {
+    getAll: () => apiClient.get("/academic/assignments"),
+
+    getById: (id: string) => apiClient.get(`/academic/assignments/${id}`),
+
+    create: (data: CreateAssignmentPayload) => apiClient.post("/academic/assignments", data),
+
+    update: (id: string, data: UpdateAssignmentPayload) => apiClient.patch(`/academic/assignments/${id}`, data),
+
+    updateStudentStatus: (assignmentId: string, studentId: string, data: UpdateAssignmentStudentPayload) => apiClient.patch(`/academic/assignments/${assignmentId}/students/${studentId}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/assignments/${id}`),
   },
 
   subjectAttendances: {
