@@ -558,11 +558,11 @@ export default function AssignmentsPage() {
               <div className="min-w-0 flex-1">
                 {/* Title + Badges */}
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <h1 className="min-w-0 max-w-full wrap-break-word text-lg font-bold leading-tight text-foreground sm:text-xl">{detailAssignment.title}</h1>
+                  <h1 className="min-w-0 max-w-full wrap-break-word text-lg font-bold leading-tight text-foreground truncate sm:text-xl">{detailAssignment.title}</h1>
                 </div>
 
                 {/* Assignment Info */}
-                <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:text-sm">
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground truncate sm:text-sm">
                   {detailAssignment.teacher.name}
                   <span className="mx-1.5 text-muted-foreground/50">•</span>
                   {detailAssignment.subjectAllocation.subject.name}

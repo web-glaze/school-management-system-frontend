@@ -1,0 +1,1925 @@
+"use client";
+
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Field, FieldGroup } from "@/components/ui/field";
+import { ArrowLeft, Calendar as CalendarIcon, Clock, ClipboardList, Loader2, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { useAcademicStore, Exam, ExamSchedule } from "@/store/academicStore";
+import { usePermission } from "@/hooks/usePermission";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { AxiosError } from "axios";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+
+type ApiErrorResponse = {
+  message?: string;
+  errors?: Record<string, string>;
+};
+
+type ExamTypeT = "UNIT_TEST" | "MID_TERM" | "ANNUAL" | "PRACTICAL";
+type ExamStatusT = "DRAFT" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+type ExamShiftT = "MORNING" | "AFTERNOON";
+
+interface StoredUser {
+  teacherId?: string | null;
+}
+
+const EXAM_TYPE_OPTIONS: {
+  value: ExamTypeT;
+  label: string;
+}[] = [
+  { value: "UNIT_TEST", label: "Unit Test" },
+  { value: "MID_TERM", label: "Mid Term" },
+  { value: "ANNUAL", label: "Annual" },
+  { value: "PRACTICAL", label: "Practical" },
+];
+
+const EXAM_STATUS_OPTIONS: {
+  value: ExamStatusT;
+  label: string;
+}[] = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "SCHEDULED", label: "Scheduled" },
+  { value: "ONGOING", label: "Ongoing" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
+];
+
+const EXAM_STATUS_FILTER_OPTIONS: {
+  value: ExamStatusT | "ALL";
+  label: string;
+}[] = [{ value: "ALL", label: "All" }, ...EXAM_STATUS_OPTIONS];
+
+const SHIFT_OPTIONS: {
+  value: ExamShiftT;
+  label: string;
+}[] = [
+  { value: "MORNING", label: "Morning" },
+  { value: "AFTERNOON", label: "Afternoon" },
+];
+
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => i * 5);
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function toDateInputValue(value?: string) {
+  return value ? value.slice(0, 10) : "";
+}
+
+function toTimeInputValue(value?: string) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function combineDateAndTime(dateStr: string, timeStr: string): string | undefined {
+  if (!dateStr || !timeStr) return undefined;
+
+  const [hours, minutes] = timeStr.split(":").map(Number);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return undefined;
+
+  const date = new Date(`${dateStr}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) return undefined;
+
+  date.setHours(hours, minutes, 0, 0);
+
+  return date.toISOString();
+}
+
+function formatTimeDisplay(value: string) {
+  if (!value) return "";
+
+  const [hourStr, minuteStr] = value.split(":");
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr);
+
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return "";
+
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+
+  return `${String(displayHour).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${period}`;
+}
+
+function parseTimeValue(value: string) {
+  if (!value) return { hour: 9, minute: 0, period: "AM" as const };
+
+  const [hourStr, minuteStr] = value.split(":");
+  const hour24 = Number(hourStr);
+  const minute = Number(minuteStr);
+
+  const period: "AM" | "PM" = hour24 >= 12 ? "PM" : "AM";
+  const hour = hour24 % 12 === 0 ? 12 : hour24 % 12;
+
+  return { hour, minute, period };
+}
+
+function buildTimeValue(hour: number, minute: number, period: "AM" | "PM") {
+  let hour24 = hour % 12;
+
+  if (period === "PM") hour24 += 12;
+
+  return `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function typeLabel(type: ExamTypeT) {
+  return EXAM_TYPE_OPTIONS.find((item) => item.value === type)?.label ?? type;
+}
+
+function statusLabel(status: ExamStatusT) {
+  return EXAM_STATUS_OPTIONS.find((item) => item.value === status)?.label ?? status;
+}
+
+function shiftLabel(shift: ExamShiftT) {
+  return shift === "MORNING" ? "Morning" : "Afternoon";
+}
+
+function statusDotClass(status: ExamStatusT) {
+  switch (status) {
+    case "DRAFT":
+      return "bg-gray-500";
+    case "SCHEDULED":
+      return "bg-blue-500";
+    case "ONGOING":
+      return "bg-amber-500";
+    case "COMPLETED":
+      return "bg-green-500";
+    case "CANCELLED":
+      return "bg-red-500";
+  }
+}
+
+function statusBadgeClass(status: ExamStatusT) {
+  switch (status) {
+    case "DRAFT":
+      return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
+    case "SCHEDULED":
+      return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+    case "ONGOING":
+      return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+    case "COMPLETED":
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+    case "CANCELLED":
+      return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+  }
+}
+
+interface TimePickerProps {
+  value: string; // "HH:mm" in 24-hour time, "" when unset
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+function TimePicker({ value, onChange, placeholder = "Select time", disabled }: TimePickerProps) {
+  const [open, setOpen] = useState(false);
+
+  const parsed = parseTimeValue(value);
+
+  const update = (patch: Partial<{ hour: number; minute: number; period: "AM" | "PM" }>) => {
+    const next = { ...parsed, ...patch };
+
+    onChange(buildTimeValue(next.hour, next.minute, next.period));
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" disabled={disabled} className="h-11 w-full justify-start gap-2 font-normal">
+          <Clock className="size-4 shrink-0 text-muted-foreground" />
+
+          {value ? formatTimeDisplay(value) : <span className="text-muted-foreground">{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent className="w-auto p-3" align="start">
+        <div className="flex items-center gap-2">
+          <Select value={String(parsed.hour)} onValueChange={(v) => update({ hour: Number(v) })}>
+            <SelectTrigger className="h-9 w-17">
+              <SelectValue />
+            </SelectTrigger>
+
+            <SelectContent>
+              {HOUR_OPTIONS.map((h) => (
+                <SelectItem key={h} value={String(h)}>
+                  {String(h).padStart(2, "0")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <span className="text-sm font-medium text-muted-foreground">:</span>
+
+          <Select value={String(parsed.minute)} onValueChange={(v) => update({ minute: Number(v) })}>
+            <SelectTrigger className="h-9 w-17">
+              <SelectValue />
+            </SelectTrigger>
+
+            <SelectContent>
+              {MINUTE_OPTIONS.map((m) => (
+                <SelectItem key={m} value={String(m)}>
+                  {String(m).padStart(2, "0")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={parsed.period} onValueChange={(v) => update({ period: v as "AM" | "PM" })}>
+            <SelectTrigger className="h-9 w-19">
+              <SelectValue />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="AM">AM</SelectItem>
+              <SelectItem value="PM">PM</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export default function ExamsPage() {
+  const {
+    loading,
+    sessions,
+    subjectAllocations,
+    exams,
+
+    fetchSessions,
+    fetchSubjectAllocations,
+    fetchExams,
+
+    createExam,
+    updateExam,
+    deleteExam,
+
+    createExamSchedule,
+    updateExamSchedule,
+    deleteExamSchedule,
+  } = useAcademicStore();
+
+  const authorized = usePermission("exam.read");
+  const canCreate = usePermission("exam.create");
+  const canUpdate = usePermission("exam.update");
+  const canDelete = usePermission("exam.delete");
+  const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
+  const [userChecked, setUserChecked] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      const parsed: StoredUser | null = stored ? JSON.parse(stored) : null;
+
+      setMyTeacherId(parsed?.teacherId ?? null);
+    } catch {
+      setMyTeacherId(null);
+    } finally {
+      setUserChecked(true);
+    }
+  }, []);
+
+  const isTeacherView = Boolean(myTeacherId);
+
+  useEffect(() => {
+    if (!userChecked) return;
+
+    fetchSessions();
+    fetchExams();
+    fetchSubjectAllocations();
+  }, [userChecked]);
+
+  const activeSessionId = useMemo(() => {
+    const active = sessions.find((session) => session.isActive);
+
+    return active?.id ?? sessions[0]?.id ?? "";
+  }, [sessions]);
+
+  const teacherAllocations = useMemo(() => {
+    if (!myTeacherId) return [];
+
+    return subjectAllocations.filter((allocation) => allocation.teacherId === myTeacherId);
+  }, [subjectAllocations, myTeacherId]);
+
+  const teacherAllocationIds = useMemo(() => new Set(teacherAllocations.map((allocation) => allocation.id)), [teacherAllocations]);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ExamStatusT | "ALL">("ALL");
+  const [sessionFilter, setSessionFilter] = useState("ALL");
+
+  const visibleExams = useMemo(() => {
+    return exams
+      .filter((exam) => {
+        const matchesSearch = exam.name.toLowerCase().includes(search.toLowerCase()) || typeLabel(exam.type).toLowerCase().includes(search.toLowerCase());
+
+        const matchesStatus = statusFilter === "ALL" || exam.status === statusFilter;
+
+        const matchesSession = sessionFilter === "ALL" || exam.sessionId === sessionFilter;
+
+        const matchesTeacher = !isTeacherView || exam.schedules.length === 0 || exam.schedules.some((schedule) => teacherAllocationIds.has(schedule.subjectAllocationId));
+
+        return matchesSearch && matchesStatus && matchesSession && matchesTeacher;
+      })
+      .sort((a, b) => {
+        const first = new Date(a.startDate).getTime();
+        const second = new Date(b.startDate).getTime();
+
+        return second - first;
+      });
+  }, [exams, search, statusFilter, sessionFilter, isTeacherView, teacherAllocationIds]);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [addSessionId, setAddSessionId] = useState("");
+  const [addName, setAddName] = useState("");
+  const [addType, setAddType] = useState<ExamTypeT>("UNIT_TEST");
+  const [addStartDate, setAddStartDate] = useState(todayStr());
+  const [addEndDate, setAddEndDate] = useState(todayStr());
+  const [addDescription, setAddDescription] = useState("");
+  const [addStatus, setAddStatus] = useState<ExamStatusT>("DRAFT");
+  const [addStartOpen, setAddStartOpen] = useState(false);
+  const [addEndOpen, setAddEndOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingExam, setEditingExam] = useState<Exam | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editType, setEditType] = useState<ExamTypeT>("UNIT_TEST");
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editStatus, setEditStatus] = useState<ExamStatusT>("DRAFT");
+  const [editStartOpen, setEditStartOpen] = useState(false);
+  const [editEndOpen, setEditEndOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingExam, setDeletingExam] = useState<Exam | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [detailExamId, setDetailExamId] = useState<string | null>(null);
+  const detailExam = useMemo(() => exams.find((exam) => exam.id === detailExamId) ?? null, [exams, detailExamId]);
+  const [scheduleSearch, setScheduleSearch] = useState("");
+  const [scheduleClassFilter, setScheduleClassFilter] = useState("ALL");
+  const [scheduleSectionFilter, setScheduleSectionFilter] = useState("ALL");
+  const [scheduleShiftFilter, setScheduleShiftFilter] = useState<ExamShiftT | "ALL">("ALL");
+  const hasActiveScheduleFilters = Boolean(scheduleSearch) || scheduleClassFilter !== "ALL" || scheduleSectionFilter !== "ALL" || scheduleShiftFilter !== "ALL";
+  const detailClasses = useMemo(() => {
+    if (!detailExam) return [];
+
+    const map = new Map<string, { id: string; name: string }>();
+
+    detailExam.schedules.forEach((schedule) => {
+      if (isTeacherView && !teacherAllocationIds.has(schedule.subjectAllocationId)) {
+        return;
+      }
+
+      map.set(schedule.subjectAllocation.class.id, {
+        id: schedule.subjectAllocation.class.id,
+        name: schedule.subjectAllocation.class.name,
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [detailExam, isTeacherView, teacherAllocationIds]);
+
+  const detailSections = useMemo(() => {
+    if (!detailExam) return [];
+
+    const map = new Map<string, { id: string; name: string }>();
+
+    detailExam.schedules.forEach((schedule) => {
+      if (isTeacherView && !teacherAllocationIds.has(schedule.subjectAllocationId)) {
+        return;
+      }
+
+      if (scheduleClassFilter !== "ALL" && schedule.subjectAllocation.class.id !== scheduleClassFilter) {
+        return;
+      }
+
+      map.set(schedule.subjectAllocation.section.id, {
+        id: schedule.subjectAllocation.section.id,
+        name: schedule.subjectAllocation.section.name,
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [detailExam, scheduleClassFilter, isTeacherView, teacherAllocationIds]);
+
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
+  const [scheduleAllocationId, setScheduleAllocationId] = useState("");
+  const [scheduleExamDate, setScheduleExamDate] = useState("");
+  const [scheduleShift, setScheduleShift] = useState<ExamShiftT>("MORNING");
+  const [scheduleStartTime, setScheduleStartTime] = useState("");
+  const [scheduleEndTime, setScheduleEndTime] = useState("");
+  const [schedulePaperName, setSchedulePaperName] = useState("");
+  const [scheduleMaxMarks, setScheduleMaxMarks] = useState("");
+  const [schedulePassingMarks, setSchedulePassingMarks] = useState("");
+  const [scheduleRoom, setScheduleRoom] = useState("");
+  const [scheduleAllocationOpen, setScheduleAllocationOpen] = useState(false);
+  const [scheduleDateOpen, setScheduleDateOpen] = useState(false);
+  const [detailScheduleDeleteOpen, setDetailScheduleDeleteOpen] = useState(false);
+  const [deletingSchedule, setDeletingSchedule] = useState<ExamSchedule | null>(null);
+  const availableAllocations = useMemo(() => {
+    if (!detailExam) return [];
+
+    return subjectAllocations.filter((allocation) => {
+      if (allocation.sessionId !== detailExam.sessionId) return false;
+
+      if (isTeacherView && allocation.teacherId !== myTeacherId) return false;
+
+      return true;
+    });
+  }, [subjectAllocations, detailExam, isTeacherView, myTeacherId]);
+
+  const resetAddForm = () => {
+    setAddSessionId(activeSessionId);
+    setAddName("");
+    setAddType("UNIT_TEST");
+    setAddStartDate(todayStr());
+    setAddEndDate(todayStr());
+    setAddDescription("");
+    setAddStatus("DRAFT");
+    setFormErrors({});
+  };
+
+  const resetDetailFilters = () => {
+    setScheduleSearch("");
+    setScheduleClassFilter("ALL");
+    setScheduleSectionFilter("ALL");
+    setScheduleShiftFilter("ALL");
+  };
+
+  const resetScheduleForm = (exam?: Exam) => {
+    setEditingSchedule(null);
+    setScheduleAllocationId("");
+    setScheduleExamDate(exam ? toDateInputValue(exam.startDate) : "");
+    setScheduleShift("MORNING");
+    setScheduleStartTime("");
+    setScheduleEndTime("");
+    setSchedulePaperName("");
+    setScheduleMaxMarks("");
+    setSchedulePassingMarks("");
+    setScheduleRoom("");
+  };
+
+  const openDetail = (exam: Exam) => {
+    setDetailExamId(exam.id);
+    resetDetailFilters();
+  };
+
+  const closeDetail = () => {
+    setDetailExamId(null);
+    resetDetailFilters();
+  };
+
+  const handleCreateExam = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!addSessionId) {
+      setFormErrors((prev) => ({
+        ...prev,
+        sessionId: "Academic session is required",
+      }));
+      return;
+    }
+
+    if (!addName.trim()) {
+      setFormErrors((prev) => ({
+        ...prev,
+        name: "Exam name is required",
+      }));
+      return;
+    }
+
+    if (addEndDate < addStartDate) {
+      setFormErrors((prev) => ({
+        ...prev,
+        endDate: "End date cannot be before start date",
+      }));
+      return;
+    }
+
+    try {
+      await createExam({
+        sessionId: addSessionId,
+        name: addName.trim(),
+        type: addType,
+        startDate: addStartDate,
+        endDate: addEndDate,
+        description: addDescription.trim() || undefined,
+        status: addStatus,
+      });
+
+      toast.success("Exam created successfully");
+
+      resetAddForm();
+      setAddOpen(false);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+
+      if (err.response?.data?.errors) {
+        setFormErrors(err.response.data.errors);
+        return;
+      }
+
+      toast.error(err.response?.data?.message || "Failed to create exam");
+    }
+  };
+
+  const openEditExam = (exam: Exam) => {
+    setEditingExam(exam);
+    setEditName(exam.name);
+    setEditType(exam.type);
+    setEditStartDate(toDateInputValue(exam.startDate));
+    setEditEndDate(toDateInputValue(exam.endDate));
+    setEditDescription(exam.description ?? "");
+    setEditStatus(exam.status);
+    setEditOpen(true);
+  };
+
+  const handleUpdateExam = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingExam) return;
+
+    if (!editName.trim()) {
+      toast.error("Exam name is required");
+      return;
+    }
+
+    if (editEndDate < editStartDate) {
+      toast.error("End date cannot be before start date");
+      return;
+    }
+
+    try {
+      await updateExam(editingExam.id, {
+        name: editName.trim(),
+        type: editType,
+        startDate: editStartDate,
+        endDate: editEndDate,
+        description: editDescription.trim() || undefined,
+        status: editStatus,
+      });
+
+      toast.success("Exam updated successfully");
+
+      setEditOpen(false);
+      setEditingExam(null);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+
+      toast.error(err.response?.data?.message || "Failed to update exam");
+    }
+  };
+
+  const openDeleteExam = (exam: Exam) => {
+    setDeletingExam(exam);
+    setDeleteOpen(true);
+  };
+
+  const handleDeleteExam = async () => {
+    if (!deletingExam) return;
+
+    try {
+      await deleteExam(deletingExam.id);
+
+      toast.success("Exam deleted");
+
+      setDeleteOpen(false);
+      setDeletingExam(null);
+
+      if (detailExamId === deletingExam.id) {
+        setDetailExamId(null);
+      }
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+
+      toast.error(err.response?.data?.message || "Failed to delete exam");
+    }
+  };
+
+  const openAddSchedule = () => {
+    if (!detailExam) return;
+
+    resetScheduleForm(detailExam);
+    setScheduleOpen(true);
+  };
+
+  const openEditSchedule = (schedule: ExamSchedule) => {
+    setEditingSchedule(schedule);
+    setScheduleAllocationId(schedule.subjectAllocationId);
+    setScheduleExamDate(toDateInputValue(schedule.examDate));
+    setScheduleShift(schedule.shift);
+    setScheduleStartTime(toTimeInputValue(schedule.startTime));
+    setScheduleEndTime(toTimeInputValue(schedule.endTime));
+    setSchedulePaperName(schedule.paperName ?? "");
+    setScheduleMaxMarks(schedule.maxMarks !== undefined ? String(schedule.maxMarks) : "");
+    setSchedulePassingMarks(schedule.passingMarks !== undefined ? String(schedule.passingMarks) : "");
+    setScheduleRoom(schedule.room ?? "");
+    setScheduleOpen(true);
+  };
+
+  const handleSaveSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!detailExam) return;
+
+    if (!scheduleAllocationId) {
+      toast.error("Subject allocation is required");
+      return;
+    }
+
+    if (!scheduleExamDate) {
+      toast.error("Exam date is required");
+      return;
+    }
+
+    const startTimeIso = combineDateAndTime(scheduleExamDate, scheduleStartTime);
+    const endTimeIso = combineDateAndTime(scheduleExamDate, scheduleEndTime);
+
+    if (startTimeIso && endTimeIso && new Date(endTimeIso) <= new Date(startTimeIso)) {
+      toast.error("End time must be after start time");
+      return;
+    }
+
+    const maxMarks = scheduleMaxMarks ? Number(scheduleMaxMarks) : undefined;
+
+    const passingMarks = schedulePassingMarks ? Number(schedulePassingMarks) : undefined;
+
+    if (maxMarks !== undefined && (Number.isNaN(maxMarks) || maxMarks < 0)) {
+      toast.error("Maximum marks must be valid");
+      return;
+    }
+
+    if (passingMarks !== undefined && (Number.isNaN(passingMarks) || passingMarks < 0)) {
+      toast.error("Passing marks must be valid");
+      return;
+    }
+
+    if (maxMarks !== undefined && passingMarks !== undefined && passingMarks > maxMarks) {
+      toast.error("Passing marks cannot exceed maximum marks");
+      return;
+    }
+
+    try {
+      const payload = {
+        subjectAllocationId: scheduleAllocationId,
+        examDate: scheduleExamDate,
+        startTime: startTimeIso,
+        endTime: endTimeIso,
+        shift: scheduleShift,
+        maxMarks,
+        passingMarks,
+        paperName: schedulePaperName.trim() || undefined,
+        room: scheduleRoom.trim() || undefined,
+      };
+
+      if (editingSchedule) {
+        await updateExamSchedule(editingSchedule.id, payload);
+
+        toast.success("Exam schedule updated");
+      } else {
+        await createExamSchedule(detailExam.id, payload);
+
+        toast.success("Exam schedule added");
+      }
+
+      setScheduleOpen(false);
+      resetScheduleForm(detailExam);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+
+      toast.error(err.response?.data?.message || "Failed to save exam schedule");
+    }
+  };
+
+  const openDeleteSchedule = (schedule: ExamSchedule) => {
+    setDeletingSchedule(schedule);
+    setDetailScheduleDeleteOpen(true);
+  };
+
+  const handleDeleteSchedule = async () => {
+    if (!deletingSchedule) return;
+
+    try {
+      await deleteExamSchedule(deletingSchedule.id);
+
+      toast.success("Exam schedule deleted");
+
+      setDeletingSchedule(null);
+      setDetailScheduleDeleteOpen(false);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+
+      toast.error(err.response?.data?.message || "Failed to delete exam schedule");
+    }
+  };
+
+  const filteredSchedules = useMemo(() => {
+    if (!detailExam) return [];
+
+    return detailExam.schedules
+      .filter((schedule) => {
+        if (isTeacherView && !teacherAllocationIds.has(schedule.subjectAllocationId)) {
+          return false;
+        }
+
+        const allocation = schedule.subjectAllocation;
+        const searchable = [allocation.subject.name, allocation.teacher.name, allocation.class.name, allocation.section.name, schedule.paperName ?? "", schedule.room ?? ""].join(" ").toLowerCase();
+        const matchesSearch = searchable.includes(scheduleSearch.toLowerCase());
+        const matchesClass = scheduleClassFilter === "ALL" || allocation.class.id === scheduleClassFilter;
+        const matchesSection = scheduleSectionFilter === "ALL" || allocation.section.id === scheduleSectionFilter;
+        const matchesShift = scheduleShiftFilter === "ALL" || schedule.shift === scheduleShiftFilter;
+        return matchesSearch && matchesClass && matchesSection && matchesShift;
+      })
+      .sort((a, b) => {
+        const dateDifference = new Date(a.examDate).getTime() - new Date(b.examDate).getTime();
+
+        if (dateDifference !== 0) {
+          return dateDifference;
+        }
+
+        if (a.shift !== b.shift) {
+          return a.shift === "MORNING" ? -1 : 1;
+        }
+
+        return new Date(a.startTime ?? 0).getTime() - new Date(b.startTime ?? 0).getTime();
+      });
+  }, [detailExam, scheduleSearch, scheduleClassFilter, scheduleSectionFilter, scheduleShiftFilter, isTeacherView, teacherAllocationIds]);
+
+  const groupedSchedules = useMemo(() => {
+    const groups = new Map<string, ExamSchedule[]>();
+
+    filteredSchedules.forEach((schedule) => {
+      const key = toDateInputValue(schedule.examDate);
+
+      const existing = groups.get(key) ?? [];
+
+      existing.push(schedule);
+
+      groups.set(key, existing);
+    });
+
+    return Array.from(groups.entries()).sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime());
+  }, [filteredSchedules]);
+
+  if (authorized === null || !userChecked) {
+    return null;
+  }
+
+  const detailUniqueClasses = new Set(filteredSchedules.map((schedule) => schedule.subjectAllocation.class.id)).size;
+  const detailUniqueSections = new Set(filteredSchedules.map((schedule) => schedule.subjectAllocation.section.id)).size;
+  const detailUniqueSubjects = new Set(filteredSchedules.map((schedule) => schedule.subjectAllocation.subject.id)).size;
+  const hasEditChanges =
+    editingExam &&
+    (editName !== editingExam.name ||
+      editType !== editingExam.type ||
+      editStartDate !== toDateInputValue(editingExam.startDate) ||
+      editEndDate !== toDateInputValue(editingExam.endDate) ||
+      editDescription !== (editingExam.description ?? "") ||
+      editStatus !== editingExam.status);
+
+  function renderDetailPage() {
+    if (!detailExam) return null;
+
+    return (
+      <div className="space-y-6">
+        <div className="border-b pb-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <button
+                type="button"
+                onClick={closeDetail}
+                aria-label="Back to exams"
+                className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <ArrowLeft className="size-4" />
+              </button>
+
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ClipboardList className="size-5" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-lg font-bold leading-tight truncate sm:text-xl">{detailExam.name}</h1>
+
+                  <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", statusBadgeClass(detailExam.status))}>{statusLabel(detailExam.status)}</span>
+                </div>
+
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:text-sm">
+                  {typeLabel(detailExam.type)}
+                  <span className="mx-1.5 text-muted-foreground/50">•</span>
+                  {format(new Date(detailExam.startDate), "dd MMM yyyy")}
+                  <span className="mx-1.5 text-muted-foreground/50">-</span>
+                  {format(new Date(detailExam.endDate), "dd MMM yyyy")}
+                  <span className="mx-1.5 text-muted-foreground/50">•</span>
+                  {detailExam.session.name}
+                </p>
+              </div>
+            </div>
+
+            {(canUpdate || canDelete) && (
+              <div className="flex w-full gap-2 sm:w-auto">
+                {canUpdate && (
+                  <Button variant="outline" className="h-9 flex-1 gap-1.5 border-primary/30 px-3.5 text-primary hover:bg-primary/5 hover:text-primary sm:flex-none" onClick={() => openEditExam(detailExam)}>
+                    <Pencil className="size-4" />
+                    Edit
+                  </Button>
+                )}
+
+                {canDelete && (
+                  <Button
+                    variant="outline"
+                    className="h-9 flex-1 gap-1.5 border-destructive/30 px-3.5 text-destructive hover:bg-destructive/10 hover:text-destructive sm:flex-none"
+                    onClick={() => openDeleteExam(detailExam)}
+                  >
+                    <Trash2 className="size-4" />
+                    Delete
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-md border bg-card p-4 sm:p-6">
+          <div className="mb-5 flex items-center gap-1.5">
+            <ClipboardList className="size-3.5 text-muted-foreground" />
+
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Exam Overview</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <div className="rounded-lg border bg-muted/20 p-3.5">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Type</p>
+
+              <p className="mt-2 text-sm font-semibold">{typeLabel(detailExam.type)}</p>
+            </div>
+
+            <div className="rounded-lg border bg-muted/20 p-3.5">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</p>
+
+              <div className="mt-2 flex items-center gap-2">
+                <span className={cn("size-2 rounded-full", statusDotClass(detailExam.status))} />
+
+                <p className="text-sm font-semibold">{statusLabel(detailExam.status)}</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border bg-muted/20 p-3.5">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Classes</p>
+
+              <p className="mt-2 text-sm font-semibold">{detailUniqueClasses}</p>
+            </div>
+
+            <div className="rounded-lg border bg-muted/20 p-3.5">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sections</p>
+
+              <p className="mt-2 text-sm font-semibold">{detailUniqueSections}</p>
+            </div>
+
+            <div className="rounded-lg border bg-muted/20 p-3.5">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Subjects</p>
+
+              <p className="mt-2 text-sm font-semibold">{detailUniqueSubjects}</p>
+            </div>
+          </div>
+
+          {detailExam.description && (
+            <div className="mt-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Description</p>
+
+              <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{detailExam.description}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-md border bg-card p-4 sm:p-6">
+          <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <CalendarIcon className="size-3.5 text-muted-foreground" />
+
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Date Sheet</span>
+              </div>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                {filteredSchedules.length} scheduled paper
+                {filteredSchedules.length === 1 ? "" : "s"}
+              </p>
+            </div>
+
+            {canCreate && (
+              <Button className="h-9 gap-2" onClick={openAddSchedule}>
+                <Plus className="size-4" />
+                Add Schedule
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 items-center gap-3 border-b py-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,160px))_auto]">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
+              <Input placeholder="Search subject, class, teacher..." value={scheduleSearch} onChange={(e) => setScheduleSearch(e.target.value)} className="h-10 pl-10" />
+            </div>
+
+            <Select
+              value={scheduleClassFilter}
+              onValueChange={(value) => {
+                setScheduleClassFilter(value);
+                setScheduleSectionFilter("ALL");
+              }}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="All Classes" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="ALL">All Classes</SelectItem>
+
+                {detailClasses.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={scheduleSectionFilter} onValueChange={setScheduleSectionFilter}>
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="All Sections" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="ALL">All Sections</SelectItem>
+
+                {detailSections.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={scheduleShiftFilter} onValueChange={(value) => setScheduleShiftFilter(value as ExamShiftT | "ALL")}>
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="All Shifts" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="ALL">All Shifts</SelectItem>
+
+                {SHIFT_OPTIONS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {hasActiveScheduleFilters && (
+              <Button type="button" variant="ghost" onClick={resetDetailFilters} className="h-10 gap-1.5 text-muted-foreground hover:text-foreground">
+                <RotateCcw className="size-3.5" />
+                Reset
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-5 space-y-6">
+            {groupedSchedules.map(([date, schedules]) => (
+              <div key={date} className="overflow-hidden rounded-md border">
+                <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
+                  <div>
+                    <p className="font-semibold">{format(new Date(date), "dd MMMM yyyy")}</p>
+
+                    <p className="text-xs text-muted-foreground">{format(new Date(date), "EEEE")}</p>
+                  </div>
+
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {schedules.length} paper
+                    {schedules.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-245 text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/10 text-left">
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Class</th>
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Section</th>
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Subject</th>
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Paper</th>
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Shift</th>
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Time</th>
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Marks</th>
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Room</th>
+                        {(canUpdate || canDelete) && <th className="px-4 py-3" />}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {schedules.map((schedule) => {
+                        const allocation = schedule.subjectAllocation;
+
+                        return (
+                          <tr key={schedule.id} className="border-b last:border-0 hover:bg-muted/10">
+                            <td className="px-4 py-3 font-medium">{allocation.class.name}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{allocation.section.name}</td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium">{allocation.subject.name}</div>
+                              <div className="text-xs text-muted-foreground">{allocation.teacher.name}</div>
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground">{schedule.paperName || "—"}</td>
+                            <td className="px-4 py-3">
+                              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{shiftLabel(schedule.shift)}</span>
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground">
+                              {schedule.startTime && schedule.endTime ? `${format(new Date(schedule.startTime), "hh:mm a")} - ${format(new Date(schedule.endTime), "hh:mm a")}` : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground">{schedule.maxMarks !== undefined ? `${schedule.maxMarks}${schedule.passingMarks !== undefined ? ` / ${schedule.passingMarks}` : ""}` : "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{schedule.room || "—"}</td>
+                            {(canUpdate || canDelete) && (
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-end gap-1">
+                                  {canUpdate && (
+                                    <button
+                                      type="button"
+                                      aria-label="Edit schedule"
+                                      onClick={() => openEditSchedule(schedule)}
+                                      className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                    >
+                                      <Pencil className="size-4" />
+                                    </button>
+                                  )}
+
+                                  {canDelete && (
+                                    <button
+                                      type="button"
+                                      aria-label="Delete schedule"
+                                      onClick={() => openDeleteSchedule(schedule)}
+                                      className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+
+            {filteredSchedules.length === 0 && (
+              <div className="rounded-md border p-10 text-center">
+                <CalendarIcon className="mx-auto size-8 text-muted-foreground" />
+
+                <h3 className="mt-3 font-semibold">No schedules found</h3>
+
+                <p className="mt-1 text-sm text-muted-foreground">{detailExam.schedules.length === 0 ? "This exam does not have any date-sheet entries yet." : "No schedules match the selected filters."}</p>
+
+                {hasActiveScheduleFilters && detailExam.schedules.length > 0 && (
+                  <Button type="button" variant="outline" size="sm" onClick={resetDetailFilters} className="mt-4 gap-1.5">
+                    <RotateCcw className="size-3.5" />
+                    Reset filters
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // Main page
+  // =========================================================
+
+  return (
+    <DashboardLayout>
+      {detailExam ? (
+        renderDetailPage()
+      ) : (
+        <div className="space-y-8">
+          <div className="flex flex-col gap-4 mb-6 sm:mb-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Exams</h1>
+
+                <p className="text-sm sm:text-base text-muted-foreground">Manage examinations and complete date sheets</p>
+              </div>
+
+              {canCreate && (
+                <Button
+                  className="gap-2 px-5"
+                  onClick={() => {
+                    resetAddForm();
+                    setAddOpen(true);
+                  }}
+                >
+                  <Plus className="size-4" />
+                  Add Exam
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-md border bg-card p-4 sm:p-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+              <div className="relative w-full lg:w-80">
+                <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
+                <Input placeholder="Search exams..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
+              </div>
+
+              <Select value={sessionFilter} onValueChange={setSessionFilter}>
+                <SelectTrigger className="h-10 w-full lg:w-60">
+                  <SelectValue placeholder="All Sessions" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="ALL">All Sessions</SelectItem>
+
+                  {sessions.map((session) => (
+                    <SelectItem key={session.id} value={session.id}>
+                      {session.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {EXAM_STATUS_FILTER_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setStatusFilter(option.value)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                      statusFilter === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-md border bg-card">
+            <div className="border-b px-4 py-4 sm:px-6">
+              <div className="flex items-center gap-1.5">
+                <ClipboardList className="size-3.5 text-muted-foreground" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Examinations</span>
+                <span className="text-xs text-muted-foreground">({visibleExams.length})</span>
+              </div>
+            </div>
+
+            <div className="divide-y">
+              {visibleExams.map((exam) => (
+                <div key={exam.id} onClick={() => openDetail(exam)} className="group flex cursor-pointer items-center gap-4 p-4 transition-colors hover:bg-muted/20 sm:px-6">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <ClipboardList className="size-5" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-semibold">{exam.name}</p>
+
+                      <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", statusBadgeClass(exam.status))}>{statusLabel(exam.status)}</span>
+                    </div>
+
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {typeLabel(exam.type)}
+                      <span className="mx-1.5">•</span>
+                      {format(new Date(exam.startDate), "dd MMM yyyy")}
+                      <span className="mx-1.5">-</span>
+                      {format(new Date(exam.endDate), "dd MMM yyyy")}
+                      <span className="mx-1.5">•</span>
+                      {exam.session.name}
+                      <span className="mx-1.5">•</span>
+                      {exam.schedules.length} {exam.schedules.length === 1 ? "schedule" : "schedules"}
+                    </p>
+                  </div>
+
+                  {(canUpdate || canDelete) && (
+                    <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      {canUpdate && (
+                        <button
+                          type="button"
+                          aria-label="Edit exam"
+                          onClick={() => openEditExam(exam)}
+                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                      )}
+
+                      {canDelete && (
+                        <button
+                          type="button"
+                          aria-label="Delete exam"
+                          onClick={() => openDeleteExam(exam)}
+                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {visibleExams.length === 0 && (
+                <div className="p-10 text-center">
+                  <ClipboardList className="mx-auto size-8 text-muted-foreground" />
+
+                  <h3 className="mt-3 font-semibold">No exams found</h3>
+
+                  <p className="mt-1 text-sm text-muted-foreground">Create an exam or change the current filters.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          Add Exam
+      ===================================================== */}
+
+      <Dialog
+        open={addOpen}
+        onOpenChange={(open) => {
+          setAddOpen(open);
+
+          if (!open) {
+            resetAddForm();
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-125">
+          <div className="shrink-0 border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                <ClipboardList className="size-5 text-primary" />
+              </div>
+
+              <div>
+                <DialogTitle className="text-lg">Add Exam</DialogTitle>
+
+                <DialogDescription>Create the examination first, then add its date-sheet entries.</DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleCreateExam} className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6">
+              <FieldGroup>
+                <Field>
+                  <Label>Academic Session</Label>
+
+                  <Select
+                    value={addSessionId}
+                    onValueChange={(value) => {
+                      setAddSessionId(value);
+
+                      setFormErrors((prev) => ({
+                        ...prev,
+                        sessionId: "",
+                      }));
+                    }}
+                  >
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue placeholder="Select Session" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {sessions.map((session) => (
+                        <SelectItem key={session.id} value={session.id}>
+                          {session.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {formErrors.sessionId && <p className="mt-1 text-sm text-red-500">{formErrors.sessionId}</p>}
+                </Field>
+
+                <Field>
+                  <Label>Exam Name</Label>
+
+                  <Input
+                    value={addName}
+                    onChange={(e) => {
+                      setAddName(e.target.value);
+
+                      setFormErrors((prev) => ({
+                        ...prev,
+                        name: "",
+                      }));
+                    }}
+                    placeholder="e.g. Mid Term Examination"
+                    className={cn("h-11", formErrors.name && "border-red-500")}
+                  />
+
+                  {formErrors.name && <p className="mt-1 text-sm text-red-500">{formErrors.name}</p>}
+                </Field>
+
+                <Field>
+                  <Label>Exam Type</Label>
+
+                  <Select value={addType} onValueChange={(value) => setAddType(value as ExamTypeT)}>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {EXAM_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field>
+                    <Label>Start Date</Label>
+
+                    <Popover open={addStartOpen} onOpenChange={setAddStartOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className="h-11 w-full justify-start text-left font-normal">
+                          <CalendarIcon className="mr-2 size-4" />
+
+                          {addStartDate ? format(new Date(addStartDate), "dd MMM yyyy") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={addStartDate ? new Date(addStartDate) : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            const value = format(date, "yyyy-MM-dd");
+
+                            setAddStartDate(value);
+
+                            if (addEndDate < value) {
+                              setAddEndDate(value);
+                            }
+
+                            setAddStartOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </Field>
+
+                  <Field>
+                    <Label>End Date</Label>
+
+                    <Popover open={addEndOpen} onOpenChange={setAddEndOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className="h-11 w-full justify-start text-left font-normal">
+                          <CalendarIcon className="mr-2 size-4" />
+
+                          {addEndDate ? format(new Date(addEndDate), "dd MMM yyyy") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={addEndDate ? new Date(addEndDate) : undefined}
+                          disabled={
+                            addStartDate
+                              ? {
+                                  before: new Date(addStartDate),
+                                }
+                              : undefined
+                          }
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            setAddEndDate(format(date, "yyyy-MM-dd"));
+
+                            setAddEndOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </Field>
+                </div>
+
+                <Field>
+                  <Label>Description</Label>
+
+                  <Textarea value={addDescription} onChange={(e) => setAddDescription(e.target.value)} placeholder="Optional exam details" rows={3} />
+                </Field>
+
+                <Field>
+                  <Label>Status</Label>
+
+                  <Select value={addStatus} onValueChange={(value) => setAddStatus(value as ExamStatusT)}>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {EXAM_STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </FieldGroup>
+            </div>
+
+            <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t px-7 py-4 pb-7">
+              <DialogClose asChild>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
+              </DialogClose>
+
+              <Button type="submit" disabled={loading || !addSessionId || !addName.trim()} className="min-w-32.5">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 size-4" />
+                    Add
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* =====================================================
+          Edit Exam
+      ===================================================== */}
+
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open);
+
+          if (!open) {
+            setEditingExam(null);
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-125">
+          <div className="shrink-0 border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                <Pencil className="size-5 text-primary" />
+              </div>
+
+              <div>
+                <DialogTitle className="text-lg">Edit Exam</DialogTitle>
+
+                <DialogDescription>Update examination details.</DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleUpdateExam} className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6">
+              <FieldGroup>
+                <Field>
+                  <Label>Academic Session</Label>
+
+                  <div className="flex h-11 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">{editingExam?.session.name ?? ""}</div>
+                </Field>
+
+                <Field>
+                  <Label>Exam Name</Label>
+
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-11" />
+                </Field>
+
+                <Field>
+                  <Label>Exam Type</Label>
+
+                  <Select value={editType} onValueChange={(value) => setEditType(value as ExamTypeT)}>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {EXAM_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field>
+                    <Label>Start Date</Label>
+
+                    <Popover open={editStartOpen} onOpenChange={setEditStartOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className="h-11 w-full justify-start text-left font-normal">
+                          <CalendarIcon className="mr-2 size-4" />
+
+                          {editStartDate ? format(new Date(editStartDate), "dd MMM yyyy") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={editStartDate ? new Date(editStartDate) : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            const value = format(date, "yyyy-MM-dd");
+
+                            setEditStartDate(value);
+
+                            if (editEndDate < value) {
+                              setEditEndDate(value);
+                            }
+
+                            setEditStartOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </Field>
+
+                  <Field>
+                    <Label>End Date</Label>
+
+                    <Popover open={editEndOpen} onOpenChange={setEditEndOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className="h-11 w-full justify-start text-left font-normal">
+                          <CalendarIcon className="mr-2 size-4" />
+
+                          {editEndDate ? format(new Date(editEndDate), "dd MMM yyyy") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={editEndDate ? new Date(editEndDate) : undefined}
+                          disabled={
+                            editStartDate
+                              ? {
+                                  before: new Date(editStartDate),
+                                }
+                              : undefined
+                          }
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            setEditEndDate(format(date, "yyyy-MM-dd"));
+
+                            setEditEndOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </Field>
+                </div>
+
+                <Field>
+                  <Label>Description</Label>
+
+                  <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
+                </Field>
+
+                <Field>
+                  <Label>Status</Label>
+
+                  <Select value={editStatus} onValueChange={(value) => setEditStatus(value as ExamStatusT)}>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {EXAM_STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </FieldGroup>
+            </div>
+
+            <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t px-7 py-4 pb-7">
+              <DialogClose asChild>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
+              </DialogClose>
+
+              <Button type="submit" disabled={loading || !hasEditChanges || !editName.trim()} className="min-w-32.5">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="mr-2 size-4" />
+                    Update
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* =====================================================
+          Add / Edit Schedule
+      ===================================================== */}
+
+      <Dialog
+        open={scheduleOpen}
+        onOpenChange={(open) => {
+          setScheduleOpen(open);
+
+          if (!open && detailExam) {
+            resetScheduleForm(detailExam);
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden p-0 sm:max-w-125">
+          <div className="shrink-0 border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                <CalendarIcon className="size-5 text-primary" />
+              </div>
+
+              <div>
+                <DialogTitle className="text-lg">{editingSchedule ? "Edit Exam Schedule" : "Add Exam Schedule"}</DialogTitle>
+
+                <DialogDescription>Add one date-sheet entry for this exam.</DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveSchedule} className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6">
+              <FieldGroup>
+                <Field>
+                  <Label>Subject / Class</Label>
+
+                  <Popover open={scheduleAllocationOpen} onOpenChange={setScheduleAllocationOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" role="combobox" className="h-11 w-full justify-between font-normal">
+                        {scheduleAllocationId
+                          ? (() => {
+                              const allocation = availableAllocations.find((item) => item.id === scheduleAllocationId);
+
+                              return allocation ? `${allocation.subject.name} — ${allocation.class.name} ${allocation.section.name}` : "Select Subject";
+                            })()
+                          : "Select Subject"}
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
+                      <Command>
+                        <CommandInput placeholder="Search subject, class, section..." />
+
+                        <CommandList>
+                          <CommandEmpty>No allocation found.</CommandEmpty>
+
+                          <CommandGroup>
+                            {availableAllocations.map((allocation) => (
+                              <CommandItem
+                                key={allocation.id}
+                                value={`${allocation.subject.name} ${allocation.class.name} ${allocation.section.name} ${allocation.teacher.name}`}
+                                onSelect={() => {
+                                  setScheduleAllocationId(allocation.id);
+                                  setScheduleAllocationOpen(false);
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{allocation.subject.name}</span>
+
+                                  <span className="text-xs text-muted-foreground">
+                                    {allocation.class.name} • {allocation.section.name} • {allocation.teacher.name}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </Field>
+
+                <Field>
+                  <Label>Exam Date</Label>
+
+                  <Popover open={scheduleDateOpen} onOpenChange={setScheduleDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" className="h-11 w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 size-4" />
+
+                        {scheduleExamDate ? format(new Date(scheduleExamDate), "dd MMM yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={scheduleExamDate ? new Date(scheduleExamDate) : undefined}
+                        disabled={
+                          detailExam
+                            ? {
+                                before: new Date(detailExam.startDate),
+                                after: new Date(detailExam.endDate),
+                              }
+                            : undefined
+                        }
+                        onSelect={(date) => {
+                          if (!date) return;
+
+                          setScheduleExamDate(format(date, "yyyy-MM-dd"));
+
+                          setScheduleDateOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </Field>
+
+                <Field>
+                  <Label>Shift</Label>
+
+                  <Select value={scheduleShift} onValueChange={(value) => setScheduleShift(value as ExamShiftT)}>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {SHIFT_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field>
+                  <Label>Paper Name</Label>
+
+                  <Input value={schedulePaperName} onChange={(e) => setSchedulePaperName(e.target.value)} placeholder="e.g. Physics Paper 1" className="h-11" />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field>
+                    <Label>Start Time</Label>
+
+                    <TimePicker value={scheduleStartTime} onChange={setScheduleStartTime} placeholder="Start time" />
+                  </Field>
+
+                  <Field>
+                    <Label>End Time</Label>
+
+                    <TimePicker value={scheduleEndTime} onChange={setScheduleEndTime} placeholder="End time" />
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field>
+                    <Label>Maximum Marks</Label>
+
+                    <Input type="number" min="0" value={scheduleMaxMarks} onChange={(e) => setScheduleMaxMarks(e.target.value)} placeholder="Optional" className="h-11" />
+                  </Field>
+
+                  <Field>
+                    <Label>Passing Marks</Label>
+
+                    <Input type="number" min="0" value={schedulePassingMarks} onChange={(e) => setSchedulePassingMarks(e.target.value)} placeholder="Optional" className="h-11" />
+                  </Field>
+                </div>
+
+                <Field>
+                  <Label>Room</Label>
+
+                  <Input value={scheduleRoom} onChange={(e) => setScheduleRoom(e.target.value)} placeholder="Optional room / hall" className="h-11" />
+                </Field>
+              </FieldGroup>
+            </div>
+
+            <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t px-7 py-4 pb-7">
+              <DialogClose asChild>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
+              </DialogClose>
+
+              <Button type="submit" disabled={loading || !scheduleAllocationId || !scheduleExamDate} className="min-w-32.5">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    {editingSchedule ? <Pencil className="mr-2 size-4" /> : <Plus className="mr-2 size-4" />}
+
+                    {editingSchedule ? "Update" : "Add"}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* =====================================================
+          Delete Exam
+      ===================================================== */}
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this exam?</AlertDialogTitle>
+
+            <AlertDialogDescription>This will also delete all schedules attached to this exam. This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction onClick={handleDeleteExam} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* =====================================================
+          Delete Schedule
+      ===================================================== */}
+
+      <AlertDialog open={detailScheduleDeleteOpen} onOpenChange={setDetailScheduleDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this exam schedule?</AlertDialogTitle>
+
+            <AlertDialogDescription>The selected date-sheet entry will be permanently removed from this exam.</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction onClick={handleDeleteSchedule} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </DashboardLayout>
+  );
+}

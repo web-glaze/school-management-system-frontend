@@ -36,6 +36,10 @@ import {
   CreateAssignmentPayload,
   UpdateAssignmentPayload,
   UpdateAssignmentStudentPayload,
+  CreateExamPayload,
+  UpdateExamPayload,
+  CreateExamSchedulePayload,
+  UpdateExamSchedulePayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -326,6 +330,42 @@ export interface Assignment {
   students: AssignmentStudent[];
 }
 
+export interface ExamSchedule {
+  id: string;
+  examId: string;
+  subjectAllocationId: string;
+  examDate: string;
+  startTime?: string;
+  endTime?: string;
+  shift: "MORNING" | "AFTERNOON";
+  maxMarks?: number;
+  passingMarks?: number;
+  paperName?: string;
+  room?: string;
+  createdAt: string;
+  updatedAt: string;
+
+  exam: Exam;
+  subjectAllocation: SubjectAllocation;
+}
+
+export interface Exam {
+  id: string;
+  schoolId: string;
+  sessionId: string;
+  name: string;
+  type: "UNIT_TEST" | "MID_TERM" | "ANNUAL" | "PRACTICAL";
+  startDate: string;
+  endDate: string;
+  description?: string;
+  status: "DRAFT" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+  createdAt: string;
+  updatedAt: string;
+
+  session: AcademicSession;
+  schedules: ExamSchedule[];
+}
+
 interface AcademicStore {
   sessions: AcademicSession[];
   events: CalendarEvent[];
@@ -344,6 +384,7 @@ interface AcademicStore {
   timetables: Timetable[];
   studentSubjectAllocations: StudentSubjectAllocation[];
   assignments: Assignment[];
+  exams: Exam[];
 
   loading: boolean;
 
@@ -399,6 +440,14 @@ interface AcademicStore {
   updateAssignmentStudentStatus: (assignmentId: string, studentId: string, data: UpdateAssignmentStudentPayload) => Promise<void>;
   deleteAssignment: (id: string) => Promise<void>;
 
+  fetchExams: () => Promise<void>;
+  createExam: (data: CreateExamPayload) => Promise<void>;
+  updateExam: (id: string, data: UpdateExamPayload) => Promise<void>;
+  deleteExam: (id: string) => Promise<void>;
+  createExamSchedule: (examId: string, data: CreateExamSchedulePayload) => Promise<void>;
+  updateExamSchedule: (scheduleId: string, data: UpdateExamSchedulePayload) => Promise<void>;
+  deleteExamSchedule: (scheduleId: string) => Promise<void>;
+
   fetchSubjectAttendances: () => Promise<void>;
   createSubjectAttendance: (data: CreateSubjectAttendancePayload) => Promise<void>;
   updateSubjectAttendance: (id: string, data: UpdateSubjectAttendancePayload) => Promise<void>;
@@ -442,6 +491,7 @@ interface AcademicStore {
   clearStudentEnrollments: () => void;
   clearStudentAttendances: () => void;
   clearAssignments: () => void;
+  clearExams: () => void;
   clearSubjectAttendances: () => void;
   clearSubjectAllocations: () => void;
   clearStudentSubjectAllocations: () => void;
@@ -462,6 +512,7 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   studentEnrollments: [],
   studentAttendances: [],
   assignments: [],
+  exams: [],
   subjectAttendances: [],
   subjectAllocations: [],
   studentSubjectAllocations: [],
@@ -732,6 +783,11 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   clearAssignments: () =>
     set({
       assignments: [],
+    }),
+
+  clearExams: () =>
+    set({
+      exams: [],
     }),
 
   clearSubjectAttendances: () =>
@@ -1060,6 +1116,81 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.assignments.delete(id);
       await get().fetchAssignments();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Exams
+  // ======================
+
+  fetchExams: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.exams.getAll();
+
+      set({
+        exams: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch exams", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createExam: async (data) => {
+    try {
+      await academicService.exams.create(data);
+      await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateExam: async (id, data) => {
+    try {
+      await academicService.exams.update(id, data);
+      await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteExam: async (id) => {
+    try {
+      await academicService.exams.delete(id);
+      await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  createExamSchedule: async (examId, data) => {
+    try {
+      await academicService.exams.createSchedule(examId, data);
+      await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateExamSchedule: async (scheduleId, data) => {
+    try {
+      await academicService.exams.updateSchedule(scheduleId, data);
+      await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteExamSchedule: async (scheduleId) => {
+    try {
+      await academicService.exams.deleteSchedule(scheduleId);
+      await get().fetchExams();
     } catch (error) {
       throw error;
     }

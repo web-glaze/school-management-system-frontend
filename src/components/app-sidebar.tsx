@@ -30,6 +30,7 @@ import {
   CalendarFold,
   Summary,
   NotebookTabs,
+  BookCopy,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
@@ -168,9 +169,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
     permissions.includes("teacher-transfer.read") && {
       title: "Teacher Transfer",
-      url: "/academic/teacherTransfer",
+      url: "/academic/teacher-transfer",
       icon: Summary,
-      isActive: pathname.startsWith("/academic/teacherTransfer"),
+      isActive: pathname.startsWith("/academic/teacher-transfer"),
     },
 
     permissions.includes("student.read") && {
@@ -189,23 +190,23 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
     permissions.includes("student-attendance.read") && {
       title: "Student Attendance",
-      url: "/academic/studentAttendance",
+      url: "/academic/student-attendance",
       icon: ClipboardCheck,
-      isActive: pathname.startsWith("/academic/studentAttendance"),
+      isActive: pathname.startsWith("/academic/student-attendance"),
     },
 
     permissions.includes("subject-allocation.read") && {
       title: "Subject Allocation",
-      url: "/academic/subjectAllocation",
+      url: "/academic/subject-allocation",
       icon: BookOpenCheck,
-      isActive: pathname.startsWith("/academic/subjectAllocation"),
+      isActive: pathname.startsWith("/academic/subject-allocation"),
     },
 
     permissions.includes("student-subject-allocation.read") && {
       title: "Student Subject Allocation",
-      url: "/academic/studentSubjectAllocation",
+      url: "/academic/student-subject-allocation",
       icon: BookCheck,
-      isActive: pathname.startsWith("/academic/studentSubjectAllocation"),
+      isActive: pathname.startsWith("/academic/student-subject-allocation"),
     },
 
     permissions.includes("assignment.read") && {
@@ -215,18 +216,25 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       isActive: pathname.startsWith("/academic/assignments"),
     },
 
+    permissions.includes("exam.read") && {
+      title: "Exams",
+      url: "/academic/exams",
+      icon: BookCopy,
+      isActive: pathname.startsWith("/academic/exams"),
+    },
+
     permissions.includes("teacher-assignment.read") && {
       title: "Teacher Assisgnment",
-      url: "/academic/teacherAssignment",
+      url: "/academic/teacher-assignment",
       icon: UserStar,
-      isActive: pathname.startsWith("/academic/teacherAssignment"),
+      isActive: pathname.startsWith("/academic/teacher-assignment"),
     },
 
     permissions.includes("faculty-attendance.read") && {
       title: "Faculty Attendance",
-      url: "/academic/facultyAttendance",
+      url: "/academic/faculty-attendance",
       icon: CalendarCheck2,
-      isActive: pathname.startsWith("/academic/facultyAttendance"),
+      isActive: pathname.startsWith("/academic/faculty-attendance"),
     },
 
     permissions.includes("timetable.read") && {

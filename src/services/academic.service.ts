@@ -293,6 +293,49 @@ export interface UpdateStudentSubjectAllocationPayload {
   subjectAllocationId: string;
 }
 
+export interface CreateExamPayload {
+  sessionId: string;
+  name: string;
+  type: "UNIT_TEST" | "MID_TERM" | "ANNUAL" | "PRACTICAL";
+  startDate: string;
+  endDate: string;
+  description?: string;
+  status?: "DRAFT" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+}
+
+export interface UpdateExamPayload {
+  name?: string;
+  type?: "UNIT_TEST" | "MID_TERM" | "ANNUAL" | "PRACTICAL";
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+  status?: "DRAFT" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+}
+
+export interface CreateExamSchedulePayload {
+  subjectAllocationId: string;
+  examDate: string;
+  startTime?: string;
+  endTime?: string;
+  shift: "MORNING" | "AFTERNOON";
+  maxMarks?: number;
+  passingMarks?: number;
+  paperName?: string;
+  room?: string;
+}
+
+export interface UpdateExamSchedulePayload {
+  subjectAllocationId?: string;
+  examDate?: string;
+  startTime?: string;
+  endTime?: string;
+  shift?: "MORNING" | "AFTERNOON";
+  maxMarks?: number;
+  passingMarks?: number;
+  paperName?: string;
+  room?: string;
+}
+
 export const academicService = {
   sessions: {
     getAll: () => apiClient.get("/academic/sessions"),
@@ -459,6 +502,26 @@ export const academicService = {
     updateStudentStatus: (assignmentId: string, studentId: string, data: UpdateAssignmentStudentPayload) => apiClient.patch(`/academic/assignments/${assignmentId}/students/${studentId}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/assignments/${id}`),
+  },
+
+  exams: {
+    getAll: () => apiClient.get("/academic/exams"),
+
+    getById: (id: string) => apiClient.get(`/academic/exams/${id}`),
+
+    create: (data: CreateExamPayload) => apiClient.post("/academic/exams", data),
+
+    update: (id: string, data: UpdateExamPayload) => apiClient.patch(`/academic/exams/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/exams/${id}`),
+
+    getSchedules: (examId: string) => apiClient.get(`/academic/exams/${examId}/schedules`),
+
+    createSchedule: (examId: string, data: CreateExamSchedulePayload) => apiClient.post(`/academic/exams/${examId}/schedules`, data),
+
+    updateSchedule: (scheduleId: string, data: UpdateExamSchedulePayload) => apiClient.patch(`/academic/exams/schedules/${scheduleId}`, data),
+
+    deleteSchedule: (scheduleId: string) => apiClient.delete(`/academic/exams/schedules/${scheduleId}`),
   },
 
   subjectAttendances: {
