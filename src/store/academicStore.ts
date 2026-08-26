@@ -40,6 +40,8 @@ import {
   UpdateExamPayload,
   CreateExamSchedulePayload,
   UpdateExamSchedulePayload,
+  CreateExamMarkPayload,
+  UpdateExamMarkPayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -366,6 +368,19 @@ export interface Exam {
   schedules: ExamSchedule[];
 }
 
+export interface ExamMark {
+  id: string;
+  examScheduleId: string;
+  studentId: string;
+  marksObtained?: string;
+  remarks?: string;
+  createdAt: string;
+  updatedAt: string;
+
+  examSchedule: ExamSchedule;
+  student: Student;
+}
+
 interface AcademicStore {
   sessions: AcademicSession[];
   events: CalendarEvent[];
@@ -385,6 +400,7 @@ interface AcademicStore {
   studentSubjectAllocations: StudentSubjectAllocation[];
   assignments: Assignment[];
   exams: Exam[];
+  examMarks: ExamMark[];
 
   loading: boolean;
 
@@ -448,6 +464,11 @@ interface AcademicStore {
   updateExamSchedule: (scheduleId: string, data: UpdateExamSchedulePayload) => Promise<void>;
   deleteExamSchedule: (scheduleId: string) => Promise<void>;
 
+  fetchExamMarks: () => Promise<void>;
+  createExamMark: (data: CreateExamMarkPayload) => Promise<void>;
+  updateExamMark: (id: string, data: UpdateExamMarkPayload) => Promise<void>;
+  deleteExamMark: (id: string) => Promise<void>;
+
   fetchSubjectAttendances: () => Promise<void>;
   createSubjectAttendance: (data: CreateSubjectAttendancePayload) => Promise<void>;
   updateSubjectAttendance: (id: string, data: UpdateSubjectAttendancePayload) => Promise<void>;
@@ -492,6 +513,7 @@ interface AcademicStore {
   clearStudentAttendances: () => void;
   clearAssignments: () => void;
   clearExams: () => void;
+  clearExamMarks: () => void;
   clearSubjectAttendances: () => void;
   clearSubjectAllocations: () => void;
   clearStudentSubjectAllocations: () => void;
@@ -513,6 +535,7 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   studentAttendances: [],
   assignments: [],
   exams: [],
+  examMarks: [],
   subjectAttendances: [],
   subjectAllocations: [],
   studentSubjectAllocations: [],
@@ -788,6 +811,11 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   clearExams: () =>
     set({
       exams: [],
+    }),
+
+  clearExamMarks: () =>
+    set({
+      examMarks: [],
     }),
 
   clearSubjectAttendances: () =>
@@ -1191,6 +1219,54 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.exams.deleteSchedule(scheduleId);
       await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Exam Marks
+  // ======================
+
+  fetchExamMarks: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.examMarks.getAll();
+
+      set({
+        examMarks: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch exam marks", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createExamMark: async (data) => {
+    try {
+      await academicService.examMarks.create(data);
+      await get().fetchExamMarks();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateExamMark: async (id, data) => {
+    try {
+      await academicService.examMarks.update(id, data);
+      await get().fetchExamMarks();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteExamMark: async (id) => {
+    try {
+      await academicService.examMarks.delete(id);
+      await get().fetchExamMarks();
     } catch (error) {
       throw error;
     }

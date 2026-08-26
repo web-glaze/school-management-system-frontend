@@ -8,7 +8,8 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { ArrowLeft, Calendar as CalendarIcon, Clock, ClipboardList, Loader2, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Clock, ClipboardList, Loader2, MoreVertical, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAcademicStore, Exam, ExamSchedule } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useMemo, useState } from "react";
@@ -1032,7 +1033,7 @@ export default function ExamsPage() {
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Time</th>
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Marks</th>
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Room</th>
-                        {(canUpdate || canDelete) && <th className="px-4 py-3" />}
+                        {(canUpdate || canDelete) && <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Actions</th>}
                       </tr>
                     </thead>
 
@@ -1048,39 +1049,69 @@ export default function ExamsPage() {
                               <div className="font-medium">{allocation.subject.name}</div>
                               <div className="text-xs text-muted-foreground">{allocation.teacher.name}</div>
                             </td>
-                            <td className="px-4 py-3 text-muted-foreground">{schedule.paperName || "—"}</td>
+                            <td className="max-w-48 truncate px-4 py-3 text-muted-foreground">{schedule.paperName || "—"}</td>
                             <td className="px-4 py-3">
                               <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{shiftLabel(schedule.shift)}</span>
                             </td>
                             <td className="px-4 py-3 text-muted-foreground">
                               {schedule.startTime && schedule.endTime ? `${format(new Date(schedule.startTime), "hh:mm a")} - ${format(new Date(schedule.endTime), "hh:mm a")}` : "—"}
                             </td>
-                            <td className="px-4 py-3 text-muted-foreground">{schedule.maxMarks !== undefined ? `${schedule.maxMarks}${schedule.passingMarks !== undefined ? ` / ${schedule.passingMarks}` : ""}` : "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{schedule.maxMarks !== undefined ? `${schedule.passingMarks !== undefined ? `${schedule.passingMarks} / ` : ""}${schedule.maxMarks}` : "—"}</td>
                             <td className="px-4 py-3 text-muted-foreground">{schedule.room || "—"}</td>
                             {(canUpdate || canDelete) && (
                               <td className="px-4 py-3">
                                 <div className="flex items-center justify-end gap-1">
-                                  {canUpdate && (
-                                    <button
-                                      type="button"
-                                      aria-label="Edit schedule"
-                                      onClick={() => openEditSchedule(schedule)}
-                                      className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                                    >
-                                      <Pencil className="size-4" />
-                                    </button>
-                                  )}
+                                  {/* Desktop */}
+                                  <div className="hidden items-center gap-1 md:flex">
+                                    {canUpdate && (
+                                      <button
+                                        type="button"
+                                        aria-label="Edit schedule"
+                                        onClick={() => openEditSchedule(schedule)}
+                                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                      >
+                                        <Pencil className="size-4" />
+                                      </button>
+                                    )}
 
-                                  {canDelete && (
-                                    <button
-                                      type="button"
-                                      aria-label="Delete schedule"
-                                      onClick={() => openDeleteSchedule(schedule)}
-                                      className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                                    >
-                                      <Trash2 className="size-4" />
-                                    </button>
-                                  )}
+                                    {canDelete && (
+                                      <button
+                                        type="button"
+                                        aria-label="Delete schedule"
+                                        onClick={() => openDeleteSchedule(schedule)}
+                                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                                      >
+                                        <Trash2 className="size-4" />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Mobile */}
+                                  <div className="md:hidden">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button type="button" aria-label="Schedule actions" className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted">
+                                          <MoreVertical className="size-4" />
+                                        </button>
+                                      </DropdownMenuTrigger>
+
+                                      <DropdownMenuContent align="end">
+                                        {canUpdate && (
+                                          <DropdownMenuItem onClick={() => openEditSchedule(schedule)}>
+                                            <Pencil className="mr-2 size-4" />
+                                            Edit
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {canDelete && (
+                                          <DropdownMenuItem onClick={() => openDeleteSchedule(schedule)} className="text-destructive">
+                                            <Trash2 className="mr-2 size-4" />
+                                            Delete
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
                                 </div>
                               </td>
                             )}

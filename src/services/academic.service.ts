@@ -336,6 +336,20 @@ export interface UpdateExamSchedulePayload {
   room?: string;
 }
 
+export interface CreateExamMarkPayload {
+  examScheduleId: string;
+  studentId: string;
+  marksObtained: number;
+  remarks?: string;
+}
+
+export interface UpdateExamMarkPayload {
+  examScheduleId?: string;
+  studentId?: string;
+  marksObtained?: number;
+  remarks?: string;
+}
+
 export const academicService = {
   sessions: {
     getAll: () => apiClient.get("/academic/sessions"),
@@ -522,6 +536,20 @@ export const academicService = {
     updateSchedule: (scheduleId: string, data: UpdateExamSchedulePayload) => apiClient.patch(`/academic/exams/schedules/${scheduleId}`, data),
 
     deleteSchedule: (scheduleId: string) => apiClient.delete(`/academic/exams/schedules/${scheduleId}`),
+  },
+
+  examMarks: {
+    getAll: () => apiClient.get("/academic/exam-marks"),
+
+    getById: (id: string) => apiClient.get(`/academic/exam-marks/${id}`),
+
+    getBySchedule: (examScheduleId: string) => apiClient.get(`/academic/exam-marks/schedule/${examScheduleId}`),
+
+    create: (data: CreateExamMarkPayload) => apiClient.post("/academic/exam-marks", data),
+
+    update: (id: string, data: UpdateExamMarkPayload) => apiClient.patch(`/academic/exam-marks/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/exam-marks/${id}`),
   },
 
   subjectAttendances: {

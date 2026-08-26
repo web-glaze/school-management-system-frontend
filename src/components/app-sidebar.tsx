@@ -30,7 +30,8 @@ import {
   CalendarFold,
   Summary,
   NotebookTabs,
-  BookCopy,
+  ClipboardList,
+  ClipboardClock,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
@@ -191,7 +192,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     permissions.includes("student-attendance.read") && {
       title: "Student Attendance",
       url: "/academic/student-attendance",
-      icon: ClipboardCheck,
+      icon: ClipboardClock,
       isActive: pathname.startsWith("/academic/student-attendance"),
     },
 
@@ -219,8 +220,15 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     permissions.includes("exam.read") && {
       title: "Exams",
       url: "/academic/exams",
-      icon: BookCopy,
+      icon: ClipboardList,
       isActive: pathname.startsWith("/academic/exams"),
+    },
+
+    permissions.includes("marks.read") && {
+      title: "Exam Marks",
+      url: "/academic/exam-mark",
+      icon: ClipboardCheck,
+      isActive: pathname.startsWith("/academic/exam-mark"),
     },
 
     permissions.includes("teacher-assignment.read") && {
