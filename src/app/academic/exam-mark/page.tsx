@@ -515,7 +515,7 @@ export default function ExamMarksPage() {
                               type="number"
                               min={0}
                               max={selectedSchedule.maxMarks ?? undefined}
-                              step="0.01"
+                              step="1"
                               value={current.marksObtained}
                               disabled={!canEdit}
                               onChange={(e) => {
