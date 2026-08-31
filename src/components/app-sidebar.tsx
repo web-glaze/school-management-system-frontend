@@ -66,12 +66,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       isActive: pathname.startsWith("/maintenance/tickets"),
     },
 
-    permissions.includes("generator.read") && {
-      title: "Generator management",
-      url: "/maintenance/generator",
-      icon: Cog,
-      isActive: pathname.startsWith("/maintenance/generator"),
-    },
+    // permissions.includes("generator.read") && {
+    //   title: "Generator management",
+    //   url: "/maintenance/generator",
+    //   icon: Cog,
+    //   isActive: pathname.startsWith("/maintenance/generator"),
+    // },
 
     permissions.includes("department.read") && {
       title: "Departments",
@@ -217,19 +217,19 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       isActive: pathname.startsWith("/academic/assignments"),
     },
 
-    permissions.includes("exam.read") && {
-      title: "Exams",
-      url: "/academic/exams",
-      icon: ClipboardList,
-      isActive: pathname.startsWith("/academic/exams"),
-    },
+    // permissions.includes("exam.read") && {
+    //   title: "Exams",
+    //   url: "/academic/exams",
+    //   icon: ClipboardList,
+    //   isActive: pathname.startsWith("/academic/exams"),
+    // },
 
-    permissions.includes("marks.read") && {
-      title: "Exam Marks",
-      url: "/academic/exam-mark",
-      icon: ClipboardCheck,
-      isActive: pathname.startsWith("/academic/exam-mark"),
-    },
+    // permissions.includes("marks.read") && {
+    //   title: "Exam Marks",
+    //   url: "/academic/exam-mark",
+    //   icon: ClipboardCheck,
+    //   isActive: pathname.startsWith("/academic/exam-mark"),
+    // },
 
     permissions.includes("teacher-assignment.read") && {
       title: "Teacher Assisgnment",

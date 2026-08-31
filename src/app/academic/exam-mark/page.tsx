@@ -305,7 +305,7 @@ export default function ExamMarksPage() {
           <div className="mb-5 flex items-center gap-1.5">
             <ClipboardCheck className="size-3.5 text-muted-foreground" />
 
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Examination Selection</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Examination Selection</span> 
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -491,9 +491,7 @@ export default function ExamMarksPage() {
                       };
 
                       const numericMarks = current.marksObtained.trim() ? Number(current.marksObtained) : null;
-
                       const hasMarks = numericMarks !== null && !Number.isNaN(numericMarks);
-
                       const isPassed = hasMarks && selectedSchedule.passingMarks !== undefined && numericMarks >= selectedSchedule.passingMarks;
 
                       return (
@@ -504,8 +502,6 @@ export default function ExamMarksPage() {
                             <div className="font-medium">
                               {student.firstName} {student.lastName}
                             </div>
-
-                            <div className="text-xs text-muted-foreground">{student.studentCode}</div>
                           </td>
 
                           <td className="px-4 py-3 text-muted-foreground">{student.admissionNo}</td>
