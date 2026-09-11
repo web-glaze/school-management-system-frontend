@@ -266,49 +266,49 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     },
   ].filter(Boolean);
 
-  const gatepassItems = [
-    permissions.includes("gatepass.config") && {
-      title: "Configuration",
-      url: "/gatepass/configuration",
-      icon: Settings2,
-      isActive: pathname.startsWith("/gatepass/configuration"),
-    },
+  // const gatepassItems = [
+  //   permissions.includes("gatepass.config") && {
+  //     title: "Configuration",
+  //     url: "/gatepass/configuration",
+  //     icon: Settings2,
+  //     isActive: pathname.startsWith("/gatepass/configuration"),
+  //   },
 
-    permissions.includes("movement.request") && {
-      title: "Movement",
-      url: "/gatepass/movement",
-      icon: ArrowLeftRight,
-      isActive: pathname.startsWith("/gatepass/movement"),
-    },
+  //   permissions.includes("movement.request") && {
+  //     title: "Movement",
+  //     url: "/gatepass/movement",
+  //     icon: ArrowLeftRight,
+  //     isActive: pathname.startsWith("/gatepass/movement"),
+  //   },
 
-    permissions.includes("gatepass.issue") && {
-      title: "Gate Passes",
-      url: "/gatepass/movement/passes",
-      icon: BadgeCheck,
-      isActive: pathname.startsWith("/gatepass/movement/passes"),
-    },
+  //   permissions.includes("gatepass.issue") && {
+  //     title: "Gate Passes",
+  //     url: "/gatepass/movement/passes",
+  //     icon: BadgeCheck,
+  //     isActive: pathname.startsWith("/gatepass/movement/passes"),
+  //   },
 
-    permissions.includes("movement.request") && {
-      title: "Visitors",
-      url: "/gatepass/visitor",
-      icon: ContactRound,
-      isActive: pathname.startsWith("/gatepass/visitor"),
-    },
+  //   permissions.includes("movement.request") && {
+  //     title: "Visitors",
+  //     url: "/gatepass/visitor",
+  //     icon: ContactRound,
+  //     isActive: pathname.startsWith("/gatepass/visitor"),
+  //   },
 
-    permissions.includes("gate.scan") && {
-      title: "Gate Scan",
-      url: "/gatepass/gate-scan",
-      icon: ScanLine,
-      isActive: pathname.startsWith("/gatepass/gate-scan"),
-    },
+  //   permissions.includes("gate.scan") && {
+  //     title: "Gate Scan",
+  //     url: "/gatepass/gate-scan",
+  //     icon: ScanLine,
+  //     isActive: pathname.startsWith("/gatepass/gate-scan"),
+  //   },
 
-    permissions.includes("gate.dashboard") && {
-      title: "Gate Dashboard",
-      url: "/gatepass",
-      icon: Gauge,
-      isActive: pathname === "/gatepass",
-    },
-  ].filter(Boolean);
+  //   permissions.includes("gate.dashboard") && {
+  //     title: "Gate Dashboard",
+  //     url: "/gatepass",
+  //     icon: Gauge,
+  //     isActive: pathname === "/gatepass",
+  //   },
+  // ].filter(Boolean);
 
   const data = {
     user: {
