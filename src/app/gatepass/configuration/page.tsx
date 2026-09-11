@@ -1633,7 +1633,6 @@ export default function GatepassConfigurationPage() {
 
                   <div>
                     <p className="text-sm font-semibold">Capacity control</p>
-
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">Fixed slots are used by routine visiting and outing requests. The system tracks bookings against the configured capacity.</p>
                   </div>
                 </div>
@@ -1658,7 +1657,7 @@ export default function GatepassConfigurationPage() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                    <SelectValue />
                     </SelectTrigger>
 
                     <SelectContent>

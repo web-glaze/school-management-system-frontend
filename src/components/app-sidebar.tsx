@@ -32,12 +32,12 @@ import {
   ClipboardList,
   ClipboardClock,
   SwatchBook,
-  Settings2,
-  ArrowLeftRight,
-  BadgeCheck,
-  ContactRound,
-  ScanLine,
-  Gauge,
+  // Settings2,
+  // ArrowLeftRight,
+  // BadgeCheck,
+  // ContactRound,
+  // ScanLine,
+  // Gauge,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
@@ -266,7 +266,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     },
   ].filter(Boolean);
 
-  // const gatepassItems = [
+   const gatepassItems = [
   //   permissions.includes("gatepass.config") && {
   //     title: "Configuration",
   //     url: "/gatepass/configuration",
@@ -308,7 +308,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   //     icon: Gauge,
   //     isActive: pathname === "/gatepass",
   //   },
-  // ].filter(Boolean);
+   ].filter(Boolean);
 
   const data = {
     user: {
