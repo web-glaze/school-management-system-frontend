@@ -40,8 +40,12 @@ import {
   UpdateExamPayload,
   CreateExamSchedulePayload,
   UpdateExamSchedulePayload,
+  CreateExamComponentPayload,
+  UpdateExamComponentPayload,
   CreateExamMarkPayload,
   UpdateExamMarkPayload,
+  CreateReportCardPayload,
+  UpdateReportCardPayload,
 } from "@/services/academic.service";
 
 export interface AcademicSession {
@@ -340,15 +344,27 @@ export interface ExamSchedule {
   startTime?: string;
   endTime?: string;
   shift: "MORNING" | "AFTERNOON";
-  maxMarks?: number;
-  passingMarks?: number;
-  paperName?: string;
   room?: string;
   createdAt: string;
   updatedAt: string;
 
   exam: Exam;
   subjectAllocation: SubjectAllocation;
+  components: ExamComponent[];
+}
+
+export interface ExamComponent {
+  id: string;
+  examId: string;
+  examScheduleId: string;
+  name: string;
+  code?: string;
+  maximumMarks: string;
+  passingMarks?: string;
+  weightage?: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Exam {
@@ -371,6 +387,7 @@ export interface Exam {
 export interface ExamMark {
   id: string;
   examScheduleId: string;
+  examComponentId: string;
   studentId: string;
   marksObtained?: string;
   remarks?: string;
@@ -378,7 +395,31 @@ export interface ExamMark {
   updatedAt: string;
 
   examSchedule: ExamSchedule;
+  examComponent: ExamComponent;
   student: Student;
+}
+
+export interface ReportCard {
+  id: string;
+  schoolId: string;
+  sessionId: string;
+  studentId: string;
+  enrollmentId: string;
+  examId?: string;
+  type: "EXAM" | "ANNUAL";
+  reportKey: string;
+  teacherRemarks?: Record<string, unknown>;
+  reportData?: Record<string, unknown>;
+  pdfUrl?: string;
+  status: "DRAFT" | "GENERATED" | "PUBLISHED";
+  generatedAt?: string;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  student: Student;
+  session: AcademicSession;
+  enrollment: StudentEnrollment;
+  exam?: Exam;
 }
 
 interface AcademicStore {
@@ -401,6 +442,8 @@ interface AcademicStore {
   assignments: Assignment[];
   exams: Exam[];
   examMarks: ExamMark[];
+  examComponents: ExamComponent[];
+  reportCards: ReportCard[];
 
   loading: boolean;
 
@@ -464,10 +507,25 @@ interface AcademicStore {
   updateExamSchedule: (scheduleId: string, data: UpdateExamSchedulePayload) => Promise<void>;
   deleteExamSchedule: (scheduleId: string) => Promise<void>;
 
+  fetchExamComponents: (examId: string, scheduleId: string) => Promise<void>;
+  createExamComponent: (examId: string, scheduleId: string, data: CreateExamComponentPayload) => Promise<void>;
+  updateExamComponent: (componentId: string, data: UpdateExamComponentPayload) => Promise<void>;
+  deleteExamComponent: (componentId: string) => Promise<void>;
+
   fetchExamMarks: () => Promise<void>;
   createExamMark: (data: CreateExamMarkPayload) => Promise<void>;
   updateExamMark: (id: string, data: UpdateExamMarkPayload) => Promise<void>;
   deleteExamMark: (id: string) => Promise<void>;
+
+  fetchReportCards: () => Promise<void>;
+  fetchReportCardsByStudent: (studentId: string) => Promise<void>;
+  fetchReportCardsByExam: (examId: string) => Promise<void>;
+  createReportCard: (data: CreateReportCardPayload) => Promise<void>;
+  updateReportCard: (id: string, data: UpdateReportCardPayload) => Promise<void>;
+  deleteReportCard: (id: string) => Promise<void>;
+  generateExamReportCard: (studentId: string, examId: string, data?: { teacherRemarks?: Record<string, unknown>; reportData?: Record<string, unknown> }) => Promise<void>;
+  generateAnnualReportCard: (studentId: string, sessionId: string, data?: { teacherRemarks?: Record<string, unknown>; reportData?: Record<string, unknown> }) => Promise<void>;
+  publishReportCard: (id: string) => Promise<void>;
 
   fetchSubjectAttendances: () => Promise<void>;
   createSubjectAttendance: (data: CreateSubjectAttendancePayload) => Promise<void>;
@@ -513,7 +571,9 @@ interface AcademicStore {
   clearStudentAttendances: () => void;
   clearAssignments: () => void;
   clearExams: () => void;
+  clearExamComponents: () => void;
   clearExamMarks: () => void;
+  clearReportCards: () => void;
   clearSubjectAttendances: () => void;
   clearSubjectAllocations: () => void;
   clearStudentSubjectAllocations: () => void;
@@ -536,6 +596,8 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   assignments: [],
   exams: [],
   examMarks: [],
+  examComponents: [],
+  reportCards: [],
   subjectAttendances: [],
   subjectAllocations: [],
   studentSubjectAllocations: [],
@@ -757,101 +819,6 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       throw error;
     }
   },
-
-  clearSessions: () =>
-    set({
-      sessions: [],
-    }),
-
-  clearEvents: () =>
-    set({
-      events: [],
-    }),
-
-  clearClasses: () =>
-    set({
-      classes: [],
-    }),
-
-  clearSections: () =>
-    set({
-      sections: [],
-    }),
-
-  clearSubjects: () =>
-    set({
-      subjects: [],
-    }),
-
-  clearTeachers: () =>
-    set({
-      teachers: [],
-    }),
-
-  clearStudents: () =>
-    set({
-      students: [],
-    }),
-
-  clearStudentEnrollments: () =>
-    set({
-      studentEnrollments: [],
-    }),
-
-  clearStudentAttendances: () =>
-    set({
-      studentAttendances: [],
-    }),
-
-  clearAssignments: () =>
-    set({
-      assignments: [],
-    }),
-
-  clearExams: () =>
-    set({
-      exams: [],
-    }),
-
-  clearExamMarks: () =>
-    set({
-      examMarks: [],
-    }),
-
-  clearSubjectAttendances: () =>
-    set({
-      subjectAttendances: [],
-    }),
-
-  clearSubjectAllocations: () =>
-    set({
-      subjectAllocations: [],
-    }),
-
-  clearStudentSubjectAllocations: () =>
-    set({
-      studentSubjectAllocations: [],
-    }),
-
-  clearTeacherAssignments: () =>
-    set({
-      teacherAssignments: [],
-    }),
-
-  clearTeacherTransfers: () =>
-    set({
-      teacherTransfers: [],
-    }),
-
-  clearFacultyAttendances: () =>
-    set({
-      facultyAttendances: [],
-    }),
-
-  clearTimetables: () =>
-    set({
-      timetables: [],
-    }),
 
   // ======================
   // Subjects
@@ -1197,6 +1164,47 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     }
   },
 
+  fetchExamComponents: async (examId, scheduleId) => {
+    try {
+      const response = await academicService.exams.getComponents(examId, scheduleId);
+
+      set({
+        examComponents: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch exam components", error);
+      throw error;
+    }
+  },
+
+  createExamComponent: async (examId, scheduleId, data) => {
+    try {
+      await academicService.exams.createComponent(examId, scheduleId, data);
+      await get().fetchExamComponents(examId, scheduleId);
+      await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateExamComponent: async (componentId, data) => {
+    try {
+      await academicService.exams.updateComponent(componentId, data);
+      await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteExamComponent: async (componentId) => {
+    try {
+      await academicService.exams.deleteComponent(componentId);
+      await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
   createExamSchedule: async (examId, data) => {
     try {
       await academicService.exams.createSchedule(examId, data);
@@ -1267,6 +1275,107 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.examMarks.delete(id);
       await get().fetchExamMarks();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Report Cards
+  // ======================
+
+  fetchReportCards: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.reportCards.getAll();
+
+      set({
+        reportCards: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch report cards", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchReportCardsByStudent: async (studentId) => {
+    try {
+      const response = await academicService.reportCards.getByStudent(studentId);
+
+      set({
+        reportCards: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch student report cards", error);
+      throw error;
+    }
+  },
+
+  fetchReportCardsByExam: async (examId) => {
+    try {
+      const response = await academicService.reportCards.getByExam(examId);
+
+      set({
+        reportCards: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch exam report cards", error);
+      throw error;
+    }
+  },
+
+  createReportCard: async (data) => {
+    try {
+      await academicService.reportCards.create(data);
+      await get().fetchReportCards();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateReportCard: async (id, data) => {
+    try {
+      await academicService.reportCards.update(id, data);
+      await get().fetchReportCards();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteReportCard: async (id) => {
+    try {
+      await academicService.reportCards.delete(id);
+      await get().fetchReportCards();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  generateExamReportCard: async (studentId, examId, data) => {
+    try {
+      await academicService.reportCards.generateExam(studentId, examId, data);
+      await get().fetchReportCards();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  generateAnnualReportCard: async (studentId, sessionId, data) => {
+    try {
+      await academicService.reportCards.generateAnnual(studentId, sessionId, data);
+      await get().fetchReportCards();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  publishReportCard: async (id) => {
+    try {
+      await academicService.reportCards.publish(id);
+      await get().fetchReportCards();
     } catch (error) {
       throw error;
     }
@@ -1589,4 +1698,109 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       throw error;
     }
   },
+
+  clearSessions: () =>
+    set({
+      sessions: [],
+    }),
+
+  clearEvents: () =>
+    set({
+      events: [],
+    }),
+
+  clearClasses: () =>
+    set({
+      classes: [],
+    }),
+
+  clearSections: () =>
+    set({
+      sections: [],
+    }),
+
+  clearSubjects: () =>
+    set({
+      subjects: [],
+    }),
+
+  clearTeachers: () =>
+    set({
+      teachers: [],
+    }),
+
+  clearStudents: () =>
+    set({
+      students: [],
+    }),
+
+  clearStudentEnrollments: () =>
+    set({
+      studentEnrollments: [],
+    }),
+
+  clearStudentAttendances: () =>
+    set({
+      studentAttendances: [],
+    }),
+
+  clearAssignments: () =>
+    set({
+      assignments: [],
+    }),
+
+  clearExams: () =>
+    set({
+      exams: [],
+    }),
+
+  clearExamComponents: () =>
+    set({
+      examComponents: [],
+    }),
+
+  clearExamMarks: () =>
+    set({
+      examMarks: [],
+    }),
+
+  clearReportCards: () =>
+    set({
+      reportCards: [],
+    }),
+
+  clearSubjectAttendances: () =>
+    set({
+      subjectAttendances: [],
+    }),
+
+  clearSubjectAllocations: () =>
+    set({
+      subjectAllocations: [],
+    }),
+
+  clearStudentSubjectAllocations: () =>
+    set({
+      studentSubjectAllocations: [],
+    }),
+
+  clearTeacherAssignments: () =>
+    set({
+      teacherAssignments: [],
+    }),
+
+  clearTeacherTransfers: () =>
+    set({
+      teacherTransfers: [],
+    }),
+
+  clearFacultyAttendances: () =>
+    set({
+      facultyAttendances: [],
+    }),
+
+  clearTimetables: () =>
+    set({
+      timetables: [],
+    }),
 }));

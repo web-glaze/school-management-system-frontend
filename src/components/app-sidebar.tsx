@@ -26,12 +26,18 @@ import {
   CalendarCheck2,
   Briefcase,
   BookCheck,
-  Cog,
   CalendarFold,
   Summary,
   NotebookTabs,
   ClipboardList,
   ClipboardClock,
+  SwatchBook,
+  Settings2,
+  ArrowLeftRight,
+  BadgeCheck,
+  ContactRound,
+  ScanLine,
+  Gauge,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
@@ -217,19 +223,26 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       isActive: pathname.startsWith("/academic/assignments"),
     },
 
-    // permissions.includes("exam.read") && {
-    //   title: "Exams",
-    //   url: "/academic/exams",
-    //   icon: ClipboardList,
-    //   isActive: pathname.startsWith("/academic/exams"),
-    // },
+    permissions.includes("exam.read") && {
+      title: "Exams",
+      url: "/academic/exams",
+      icon: ClipboardList,
+      isActive: pathname.startsWith("/academic/exams"),
+    },
 
-    // permissions.includes("marks.read") && {
-    //   title: "Exam Marks",
-    //   url: "/academic/exam-mark",
-    //   icon: ClipboardCheck,
-    //   isActive: pathname.startsWith("/academic/exam-mark"),
-    // },
+    permissions.includes("marks.read") && {
+      title: "Exam Marks",
+      url: "/academic/exam-mark",
+      icon: ClipboardCheck,
+      isActive: pathname.startsWith("/academic/exam-mark"),
+    },
+
+    permissions.includes("reportcard.read") && {
+      title: "Report Cards",
+      url: "/academic/report-card",
+      icon: SwatchBook,
+      isActive: pathname.startsWith("/academic/report-card"),
+    },
 
     permissions.includes("teacher-assignment.read") && {
       title: "Teacher Assisgnment",
@@ -250,6 +263,50 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       url: "/academic/timetables",
       icon: CalendarDays,
       isActive: pathname.startsWith("/academic/timetables"),
+    },
+  ].filter(Boolean);
+
+  const gatepassItems = [
+    permissions.includes("gatepass.config") && {
+      title: "Configuration",
+      url: "/gatepass/configuration",
+      icon: Settings2,
+      isActive: pathname.startsWith("/gatepass/configuration"),
+    },
+
+    permissions.includes("movement.request") && {
+      title: "Movement",
+      url: "/gatepass/movement",
+      icon: ArrowLeftRight,
+      isActive: pathname.startsWith("/gatepass/movement"),
+    },
+
+    permissions.includes("gatepass.issue") && {
+      title: "Gate Passes",
+      url: "/gatepass/movement/passes",
+      icon: BadgeCheck,
+      isActive: pathname.startsWith("/gatepass/movement/passes"),
+    },
+
+    permissions.includes("movement.request") && {
+      title: "Visitors",
+      url: "/gatepass/visitor",
+      icon: ContactRound,
+      isActive: pathname.startsWith("/gatepass/visitor"),
+    },
+
+    permissions.includes("gate.scan") && {
+      title: "Gate Scan",
+      url: "/gatepass/gate-scan",
+      icon: ScanLine,
+      isActive: pathname.startsWith("/gatepass/gate-scan"),
+    },
+
+    permissions.includes("gate.dashboard") && {
+      title: "Gate Dashboard",
+      url: "/gatepass",
+      icon: Gauge,
+      isActive: pathname === "/gatepass",
     },
   ].filter(Boolean);
 
@@ -293,7 +350,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
       {/* Content */}
       <SidebarContent ref={sidebarContentRef} onScroll={handleScroll}>
-        <NavMain maintenanceItems={maintenanceItems} academicItems={academicItems} settingItems={settingItems} />
+        <NavMain maintenanceItems={maintenanceItems} academicItems={academicItems} gatepassItems={gatepassItems} settingItems={settingItems} />
       </SidebarContent>
     </Sidebar>
   );

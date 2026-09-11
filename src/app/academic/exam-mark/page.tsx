@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ClipboardCheck, Search, Save, RotateCcw, ShieldAlert } from "lucide-react";
-import { useAcademicStore, Exam, ExamSchedule } from "@/store/academicStore";
+import { useAcademicStore, Exam, ExamSchedule, ExamComponent } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ export default function ExamMarksPage() {
 
   const [examId, setExamId] = useState("");
   const [scheduleId, setScheduleId] = useState("");
+  const [componentId, setComponentId] = useState("");
   const [search, setSearch] = useState("");
   const [marks, setMarks] = useState<Record<string, { marksObtained: string; remarks: string }>>({});
   const [saving, setSaving] = useState(false);
@@ -66,6 +67,16 @@ export default function ExamMarksPage() {
   const selectedSchedule = useMemo<ExamSchedule | null>(() => {
     return schedules.find((schedule) => schedule.id === scheduleId) ?? null;
   }, [schedules, scheduleId]);
+
+  const components = useMemo<ExamComponent[]>(() => {
+    if (!selectedSchedule) return [];
+
+    return [...(selectedSchedule.components ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
+  }, [selectedSchedule]);
+
+  const selectedComponent = useMemo<ExamComponent | null>(() => {
+    return components.find((component) => component.id === componentId) ?? null;
+  }, [components, componentId]);
 
   const eligibleStudents = useMemo(() => {
     if (!selectedSchedule) return [];
@@ -101,13 +112,13 @@ export default function ExamMarksPage() {
   }, [eligibleStudents, search]);
 
   const scheduleMarks = useMemo(() => {
-    if (!selectedSchedule) return [];
+    if (!selectedSchedule || !selectedComponent) return [];
 
-    return examMarks.filter((mark) => mark.examScheduleId === selectedSchedule.id);
-  }, [examMarks, selectedSchedule]);
+    return examMarks.filter((mark) => mark.examScheduleId === selectedSchedule.id && mark.examComponentId === selectedComponent.id);
+  }, [examMarks, selectedSchedule, selectedComponent]);
 
   useEffect(() => {
-    if (!selectedSchedule) {
+    if (!selectedSchedule || !selectedComponent) {
       setMarks({});
       return;
     }
@@ -124,17 +135,28 @@ export default function ExamMarksPage() {
     });
 
     setMarks(nextMarks);
-  }, [selectedSchedule, eligibleStudents, scheduleMarks]);
+  }, [selectedSchedule, selectedComponent, eligibleStudents, scheduleMarks]);
 
   const handleExamChange = (value: string) => {
     setExamId(value);
     setScheduleId("");
+    setComponentId("");
     setSearch("");
     setMarks({});
   };
 
   const handleScheduleChange = (value: string) => {
     setScheduleId(value);
+
+    const nextSchedule = schedules.find((schedule) => schedule.id === value);
+    const nextComponents = nextSchedule?.components ?? [];
+
+    setComponentId(nextComponents[0]?.id ?? "");
+    setSearch("");
+  };
+
+  const handleComponentChange = (value: string) => {
+    setComponentId(value);
     setSearch("");
   };
 
@@ -152,7 +174,7 @@ export default function ExamMarksPage() {
   };
 
   const validateMarks = () => {
-    if (!selectedSchedule) return false;
+    if (!selectedSchedule || !selectedComponent) return false;
 
     for (const student of eligibleStudents) {
       const value = marks[student.id]?.marksObtained ?? "";
@@ -166,8 +188,8 @@ export default function ExamMarksPage() {
         return false;
       }
 
-      if (selectedSchedule.maxMarks !== undefined && numericValue > selectedSchedule.maxMarks) {
-        toast.error(`Marks for ${student.firstName} ${student.lastName} cannot exceed ${selectedSchedule.maxMarks}`);
+      if (numericValue > Number(selectedComponent.maximumMarks)) {
+        toast.error(`Marks for ${student.firstName} ${student.lastName} cannot exceed ${selectedComponent.maximumMarks}`);
         return false;
       }
     }
@@ -178,6 +200,11 @@ export default function ExamMarksPage() {
   const handleSave = async () => {
     if (!selectedSchedule) {
       toast.error("Select an exam schedule first");
+      return;
+    }
+
+    if (!selectedComponent) {
+      toast.error("Select an exam component first");
       return;
     }
 
@@ -202,6 +229,8 @@ export default function ExamMarksPage() {
         if (canUpdate) {
           tasks.push(
             updateExamMark(existing.id, {
+              examScheduleId: selectedSchedule.id,
+              examComponentId: selectedComponent.id,
               marksObtained: Number(value),
               remarks,
             })
@@ -213,6 +242,7 @@ export default function ExamMarksPage() {
         tasks.push(
           createExamMark({
             examScheduleId: selectedSchedule.id,
+            examComponentId: selectedComponent.id,
             studentId: student.id,
             marksObtained: Number(value),
             remarks,
@@ -273,14 +303,14 @@ export default function ExamMarksPage() {
     );
   }
 
-  const passedCount = selectedSchedule
+  const passedCount = selectedComponent
     ? eligibleStudents.filter((student) => {
         const raw = marks[student.id]?.marksObtained ?? "";
         if (!raw.trim()) return false;
 
         const value = Number(raw);
 
-        return !Number.isNaN(value) && selectedSchedule.passingMarks !== undefined && value >= selectedSchedule.passingMarks;
+        return !Number.isNaN(value) && selectedComponent.passingMarks !== undefined && Number(selectedComponent.passingMarks) <= value;
       }).length
     : 0;
 
@@ -305,7 +335,7 @@ export default function ExamMarksPage() {
           <div className="mb-5 flex items-center gap-1.5">
             <ClipboardCheck className="size-3.5 text-muted-foreground" />
 
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Examination Selection</span> 
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Examination Selection</span>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -352,6 +382,33 @@ export default function ExamMarksPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {selectedSchedule && (
+              <div className="mt-4">
+                <label htmlFor="component-select" className="mb-2 block text-sm font-medium">
+                  Exam Component / Paper
+                </label>
+
+                <Select value={componentId} onValueChange={handleComponentChange} disabled={components.length === 0}>
+                  <SelectTrigger id="component-select" className="h-11 w-full">
+                    <SelectValue placeholder={components.length === 0 ? "No components configured" : "Select Component / Paper"} />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {components.map((component) => (
+                      <SelectItem key={component.id} value={component.id}>
+                        {component.name}
+                        {component.code ? ` (${component.code})` : ""}
+                        {" — "}
+                        {component.maximumMarks} marks
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {components.length === 0 && <p className="mt-2 text-xs text-muted-foreground">No exam components have been configured for this schedule yet.</p>}
+              </div>
+            )}
           </div>
         </div>
 
@@ -382,15 +439,21 @@ export default function ExamMarksPage() {
               </div>
 
               <div className="rounded-lg border bg-muted/20 p-3.5">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Component</p>
+
+                <p className="mt-2 truncate text-sm font-semibold">{selectedComponent?.name ?? "—"}</p>
+              </div>
+
+              <div className="rounded-lg border bg-muted/20 p-3.5">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Maximum Marks</p>
 
-                <p className="mt-2 text-sm font-semibold">{selectedSchedule.maxMarks ?? "—"}</p>
+                <p className="mt-2 text-sm font-semibold">{selectedComponent?.maximumMarks ?? "—"}</p>
               </div>
 
               <div className="rounded-lg border bg-muted/20 p-3.5">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Passing Marks</p>
 
-                <p className="mt-2 text-sm font-semibold">{selectedSchedule.passingMarks ?? "—"}</p>
+                <p className="mt-2 text-sm font-semibold">{selectedComponent?.passingMarks ?? "—"}</p>
               </div>
             </div>
           </div>
@@ -409,7 +472,7 @@ export default function ExamMarksPage() {
                 {selectedSchedule && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     {enteredCount} entered
-                    {selectedSchedule.passingMarks !== undefined && ` • ${passedCount} passed`}
+                    {selectedComponent?.passingMarks !== undefined && ` • ${passedCount} passed`}
                   </p>
                 )}
               </div>
@@ -444,7 +507,15 @@ export default function ExamMarksPage() {
 
               <h3 className="mt-3 font-semibold">Select an exam schedule</h3>
 
-              <p className="mt-1 text-sm text-muted-foreground">Select an examination and subject paper to enter student marks.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Select an examination and subject schedule to enter student marks.</p>
+            </div>
+          ) : !selectedComponent ? (
+            <div className="p-12 text-center">
+              <ClipboardCheck className="mx-auto size-8 text-muted-foreground" />
+
+              <h3 className="mt-3 font-semibold">Select an exam component</h3>
+
+              <p className="mt-1 text-sm text-muted-foreground">Select a paper or component for this schedule before entering marks.</p>
             </div>
           ) : filteredStudents.length === 0 && eligibleStudents.length === 0 ? (
             <div className="p-12 text-center">
@@ -492,7 +563,7 @@ export default function ExamMarksPage() {
 
                       const numericMarks = current.marksObtained.trim() ? Number(current.marksObtained) : null;
                       const hasMarks = numericMarks !== null && !Number.isNaN(numericMarks);
-                      const isPassed = hasMarks && selectedSchedule.passingMarks !== undefined && numericMarks >= selectedSchedule.passingMarks;
+                      const isPassed = hasMarks && selectedComponent?.passingMarks !== undefined && numericMarks >= Number(selectedComponent.passingMarks);
 
                       return (
                         <tr key={student.id} className="border-b last:border-0 hover:bg-muted/10">
@@ -510,7 +581,7 @@ export default function ExamMarksPage() {
                             <Input
                               type="number"
                               min={0}
-                              max={selectedSchedule.maxMarks ?? undefined}
+                              max={Number(selectedComponent.maximumMarks)}
                               step="1"
                               value={current.marksObtained}
                               disabled={!canEdit}
@@ -519,18 +590,18 @@ export default function ExamMarksPage() {
                                 if (value !== "" && Number(value) < 0) {
                                   return;
                                 }
-                                if (selectedSchedule.maxMarks !== undefined && value !== "" && Number(value) > selectedSchedule.maxMarks) {
+                                if (value !== "" && Number(value) > Number(selectedComponent.maximumMarks)) {
                                   return;
                                 }
                                 updateStudentMark(student.id, "marksObtained", value);
                               }}
-                              placeholder={selectedSchedule.maxMarks !== undefined ? `0 - ${selectedSchedule.maxMarks}` : "Enter marks"}
+                              placeholder={`0 - ${selectedComponent.maximumMarks}`}
                               className="h-10 w-32"
                             />
                           </td>
 
                           <td className="px-4 py-3">
-                            {hasMarks && selectedSchedule.passingMarks !== undefined ? (
+                            {hasMarks && selectedComponent.passingMarks !== undefined ? (
                               <span
                                 className={cn(
                                   "rounded-full px-2.5 py-1 text-xs font-semibold",

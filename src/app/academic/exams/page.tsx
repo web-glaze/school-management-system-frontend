@@ -8,11 +8,11 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { ArrowLeft, Calendar as CalendarIcon, Clock, ClipboardList, Loader2, MoreVertical, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Clock, ClipboardList, ListChecks, Loader2, MoreVertical, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useAcademicStore, Exam, ExamSchedule } from "@/store/academicStore";
+import { useAcademicStore, Exam, ExamComponent, ExamSchedule } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -185,7 +185,7 @@ function statusBadgeClass(status: ExamStatusT) {
 }
 
 interface TimePickerProps {
-  value: string; // "HH:mm" in 24-hour time, "" when unset
+  value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
@@ -278,6 +278,9 @@ export default function ExamsPage() {
     createExamSchedule,
     updateExamSchedule,
     deleteExamSchedule,
+    createExamComponent,
+    updateExamComponent,
+    deleteExamComponent,
   } = useAcademicStore();
 
   const authorized = usePermission("exam.read");
@@ -337,7 +340,9 @@ export default function ExamsPage() {
 
         const matchesSession = sessionFilter === "ALL" || exam.sessionId === sessionFilter;
 
-        const matchesTeacher = !isTeacherView || exam.schedules.length === 0 || exam.schedules.some((schedule) => teacherAllocationIds.has(schedule.subjectAllocationId));
+        const examSchedules = exam.schedules ?? [];
+
+        const matchesTeacher = !isTeacherView || examSchedules.length === 0 || examSchedules.some((schedule) => teacherAllocationIds.has(schedule.subjectAllocationId));
 
         return matchesSearch && matchesStatus && matchesSession && matchesTeacher;
       })
@@ -384,7 +389,7 @@ export default function ExamsPage() {
 
     const map = new Map<string, { id: string; name: string }>();
 
-    detailExam.schedules.forEach((schedule) => {
+    (detailExam.schedules ?? []).forEach((schedule) => {
       if (isTeacherView && !teacherAllocationIds.has(schedule.subjectAllocationId)) {
         return;
       }
@@ -403,7 +408,7 @@ export default function ExamsPage() {
 
     const map = new Map<string, { id: string; name: string }>();
 
-    detailExam.schedules.forEach((schedule) => {
+    (detailExam.schedules ?? []).forEach((schedule) => {
       if (isTeacherView && !teacherAllocationIds.has(schedule.subjectAllocationId)) {
         return;
       }
@@ -428,14 +433,23 @@ export default function ExamsPage() {
   const [scheduleShift, setScheduleShift] = useState<ExamShiftT>("MORNING");
   const [scheduleStartTime, setScheduleStartTime] = useState("");
   const [scheduleEndTime, setScheduleEndTime] = useState("");
-  const [schedulePaperName, setSchedulePaperName] = useState("");
-  const [scheduleMaxMarks, setScheduleMaxMarks] = useState("");
-  const [schedulePassingMarks, setSchedulePassingMarks] = useState("");
   const [scheduleRoom, setScheduleRoom] = useState("");
   const [scheduleAllocationOpen, setScheduleAllocationOpen] = useState(false);
   const [scheduleDateOpen, setScheduleDateOpen] = useState(false);
   const [detailScheduleDeleteOpen, setDetailScheduleDeleteOpen] = useState(false);
   const [deletingSchedule, setDeletingSchedule] = useState<ExamSchedule | null>(null);
+
+  const [componentOpen, setComponentOpen] = useState(false);
+  const [componentSchedule, setComponentSchedule] = useState<ExamSchedule | null>(null);
+  const [editingComponent, setEditingComponent] = useState<ExamComponent | null>(null);
+  const [componentName, setComponentName] = useState("");
+  const [componentCode, setComponentCode] = useState("");
+  const [componentMaximumMarks, setComponentMaximumMarks] = useState("");
+  const [componentPassingMarks, setComponentPassingMarks] = useState("");
+  const [componentWeightage, setComponentWeightage] = useState("");
+  const [componentDisplayOrder, setComponentDisplayOrder] = useState("1");
+  const [componentDeleteOpen, setComponentDeleteOpen] = useState(false);
+  const [deletingComponent, setDeletingComponent] = useState<ExamComponent | null>(null);
   const availableAllocations = useMemo(() => {
     if (!detailExam) return [];
 
@@ -473,9 +487,6 @@ export default function ExamsPage() {
     setScheduleShift("MORNING");
     setScheduleStartTime("");
     setScheduleEndTime("");
-    setSchedulePaperName("");
-    setScheduleMaxMarks("");
-    setSchedulePassingMarks("");
     setScheduleRoom("");
   };
 
@@ -489,7 +500,7 @@ export default function ExamsPage() {
     resetDetailFilters();
   };
 
-  const handleCreateExam = async (e: React.FormEvent) => {
+  const handleCreateExam = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!addSessionId) {
@@ -554,7 +565,7 @@ export default function ExamsPage() {
     setEditOpen(true);
   };
 
-  const handleUpdateExam = async (e: React.FormEvent) => {
+  const handleUpdateExam = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!editingExam) return;
@@ -630,14 +641,11 @@ export default function ExamsPage() {
     setScheduleShift(schedule.shift);
     setScheduleStartTime(toTimeInputValue(schedule.startTime));
     setScheduleEndTime(toTimeInputValue(schedule.endTime));
-    setSchedulePaperName(schedule.paperName ?? "");
-    setScheduleMaxMarks(schedule.maxMarks !== undefined ? String(schedule.maxMarks) : "");
-    setSchedulePassingMarks(schedule.passingMarks !== undefined ? String(schedule.passingMarks) : "");
     setScheduleRoom(schedule.room ?? "");
     setScheduleOpen(true);
   };
 
-  const handleSaveSchedule = async (e: React.FormEvent) => {
+  const handleSaveSchedule = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!detailExam) return;
@@ -660,25 +668,6 @@ export default function ExamsPage() {
       return;
     }
 
-    const maxMarks = scheduleMaxMarks ? Number(scheduleMaxMarks) : undefined;
-
-    const passingMarks = schedulePassingMarks ? Number(schedulePassingMarks) : undefined;
-
-    if (maxMarks !== undefined && (Number.isNaN(maxMarks) || maxMarks < 0)) {
-      toast.error("Maximum marks must be valid");
-      return;
-    }
-
-    if (passingMarks !== undefined && (Number.isNaN(passingMarks) || passingMarks < 0)) {
-      toast.error("Passing marks must be valid");
-      return;
-    }
-
-    if (maxMarks !== undefined && passingMarks !== undefined && passingMarks > maxMarks) {
-      toast.error("Passing marks cannot exceed maximum marks");
-      return;
-    }
-
     try {
       const payload = {
         subjectAllocationId: scheduleAllocationId,
@@ -686,9 +675,6 @@ export default function ExamsPage() {
         startTime: startTimeIso,
         endTime: endTimeIso,
         shift: scheduleShift,
-        maxMarks,
-        passingMarks,
-        paperName: schedulePaperName.trim() || undefined,
         room: scheduleRoom.trim() || undefined,
       };
 
@@ -733,17 +719,148 @@ export default function ExamsPage() {
     }
   };
 
+  const resetComponentForm = () => {
+    setEditingComponent(null);
+    setComponentName("");
+    setComponentCode("");
+    setComponentMaximumMarks("");
+    setComponentPassingMarks("");
+    setComponentWeightage("");
+    setComponentDisplayOrder("1");
+  };
+
+  const openComponentManager = async (schedule: ExamSchedule) => {
+    setComponentSchedule(schedule);
+    resetComponentForm();
+    try {
+      await useAcademicStore.getState().fetchExamComponents(schedule.examId, schedule.id);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+      toast.error(err.response?.data?.message || "Failed to load exam components");
+      return;
+    }
+    setComponentOpen(true);
+  };
+
+  const openEditComponent = (component: ExamComponent) => {
+    setEditingComponent(component);
+    setComponentName(component.name);
+    setComponentCode(component.code ?? "");
+    setComponentMaximumMarks(String(component.maximumMarks ?? ""));
+    setComponentPassingMarks(component.passingMarks != null ? String(component.passingMarks) : "");
+    setComponentWeightage(component.weightage != null ? String(component.weightage) : "");
+    setComponentDisplayOrder(String(component.displayOrder ?? 1));
+  };
+
+  const handleSaveComponent = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!componentSchedule) return;
+
+    if (!componentName.trim()) {
+      toast.error("Component name is required");
+      return;
+    }
+
+    const maximumMarks = Number(componentMaximumMarks);
+    const passingMarks = componentPassingMarks.trim() ? Number(componentPassingMarks) : undefined;
+    const weightage = componentWeightage.trim() ? Number(componentWeightage) : undefined;
+    const displayOrder = Number(componentDisplayOrder);
+
+    if (Number.isNaN(maximumMarks) || maximumMarks < 0) {
+      toast.error("Maximum marks must be valid");
+      return;
+    }
+
+    if (passingMarks !== undefined && (Number.isNaN(passingMarks) || passingMarks < 0 || passingMarks > maximumMarks)) {
+      toast.error("Passing marks must be between 0 and maximum marks");
+      return;
+    }
+
+    if (weightage !== undefined && (Number.isNaN(weightage) || weightage < 0 || weightage > 100)) {
+      toast.error("Weightage must be between 0 and 100");
+      return;
+    }
+
+    if (Number.isNaN(displayOrder) || displayOrder < 1) {
+      toast.error("Display order must be a positive number");
+      return;
+    }
+
+    const payload = {
+      examScheduleId: componentSchedule.id,
+      name: componentName.trim(),
+      code: componentCode.trim() || undefined,
+      maximumMarks,
+      passingMarks,
+      weightage,
+      displayOrder,
+    };
+
+    try {
+      if (editingComponent) {
+        await updateExamComponent(editingComponent.id, payload);
+        toast.success("Exam component updated");
+      } else {
+        await createExamComponent(componentSchedule.examId, componentSchedule.id, payload);
+        toast.success("Exam component added");
+      }
+
+      await useAcademicStore.getState().fetchExamComponents(componentSchedule.examId, componentSchedule.id);
+      await fetchExams();
+      resetComponentForm();
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+      toast.error(err.response?.data?.message || "Failed to save exam component");
+    }
+  };
+
+  const openDeleteComponent = (component: ExamComponent) => {
+    setDeletingComponent(component);
+    setComponentDeleteOpen(true);
+  };
+
+  const handleDeleteComponent = async () => {
+    if (!deletingComponent || !componentSchedule) return;
+
+    try {
+      await deleteExamComponent(deletingComponent.id);
+      toast.success("Exam component deleted");
+      setComponentDeleteOpen(false);
+      setDeletingComponent(null);
+
+      await useAcademicStore.getState().fetchExamComponents(componentSchedule.examId, componentSchedule.id);
+      await fetchExams();
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+      toast.error(err.response?.data?.message || "Failed to delete exam component");
+    }
+  };
+
+  const activeComponentSchedule = useMemo(() => {
+    if (!componentSchedule || !detailExam) return componentSchedule;
+    return (detailExam.schedules ?? []).find((schedule) => schedule.id === componentSchedule.id) ?? componentSchedule;
+  }, [componentSchedule, detailExam]);
+
+  const componentList = activeComponentSchedule?.components ? [...activeComponentSchedule.components].sort((a, b) => a.displayOrder - b.displayOrder) : [];
+
+  const examSchedules = useMemo(() => {
+    if (!detailExam) return [];
+
+    return (detailExam.schedules ?? []).filter((schedule) => !isTeacherView || teacherAllocationIds.has(schedule.subjectAllocationId));
+  }, [detailExam, isTeacherView, teacherAllocationIds]);
+
   const filteredSchedules = useMemo(() => {
     if (!detailExam) return [];
 
-    return detailExam.schedules
+    return (detailExam.schedules ?? [])
       .filter((schedule) => {
         if (isTeacherView && !teacherAllocationIds.has(schedule.subjectAllocationId)) {
           return false;
         }
 
         const allocation = schedule.subjectAllocation;
-        const searchable = [allocation.subject.name, allocation.teacher.name, allocation.class.name, allocation.section.name, schedule.paperName ?? "", schedule.room ?? ""].join(" ").toLowerCase();
+        const searchable = [allocation.subject.name, allocation.teacher.name, allocation.class.name, allocation.section.name, schedule.room ?? ""].join(" ").toLowerCase();
         const matchesSearch = searchable.includes(scheduleSearch.toLowerCase());
         const matchesClass = scheduleClassFilter === "ALL" || allocation.class.id === scheduleClassFilter;
         const matchesSection = scheduleSectionFilter === "ALL" || allocation.section.id === scheduleSectionFilter;
@@ -785,9 +902,9 @@ export default function ExamsPage() {
     return null;
   }
 
-  const detailUniqueClasses = new Set(filteredSchedules.map((schedule) => schedule.subjectAllocation.class.id)).size;
-  const detailUniqueSections = new Set(filteredSchedules.map((schedule) => schedule.subjectAllocation.section.id)).size;
-  const detailUniqueSubjects = new Set(filteredSchedules.map((schedule) => schedule.subjectAllocation.subject.id)).size;
+  const detailUniqueClasses = new Set(examSchedules.map((schedule) => schedule.subjectAllocation.class.id)).size;
+  const detailUniqueSections = new Set(examSchedules.map((schedule) => schedule.subjectAllocation.section.id)).size;
+  const detailUniqueSubjects = new Set(examSchedules.map((schedule) => schedule.subjectAllocation.subject.id)).size;
   const hasEditChanges =
     editingExam &&
     (editName !== editingExam.name ||
@@ -923,7 +1040,7 @@ export default function ExamsPage() {
               </div>
 
               <p className="mt-1 text-sm text-muted-foreground">
-                {filteredSchedules.length} scheduled paper
+                {filteredSchedules.length} scheduled subject
                 {filteredSchedules.length === 1 ? "" : "s"}
               </p>
             </div>
@@ -1016,24 +1133,34 @@ export default function ExamsPage() {
                   </div>
 
                   <span className="text-xs font-medium text-muted-foreground">
-                    {schedules.length} paper
+                    {schedules.length} schedule
                     {schedules.length === 1 ? "" : "s"}
                   </span>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-245 text-sm">
+                  <table className="w-full min-w-245 table-fixed text-sm">
+                    <colgroup>
+                      <col className="w-[13%]" />
+                      <col className="w-[11%]" />
+                      <col className="w-[20%]" />
+                      <col className="w-[10%]" />
+                      <col className="w-[16%]" />
+                      <col className="w-[10%]" />
+                      <col className="w-[12%]" />
+                      {(canUpdate || canDelete || canCreate) && <col className="w-[8%]" />}
+                    </colgroup>
+
                     <thead>
                       <tr className="border-b bg-muted/10 text-left">
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Class</th>
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Section</th>
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Subject</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Paper</th>
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Shift</th>
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Time</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Marks</th>
                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Room</th>
-                        {(canUpdate || canDelete) && <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Actions</th>}
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Components</th>
+                        {(canUpdate || canDelete || canCreate) && <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:relative md:-left-7">Actions</th>}
                       </tr>
                     </thead>
 
@@ -1043,30 +1170,44 @@ export default function ExamsPage() {
 
                         return (
                           <tr key={schedule.id} className="border-b last:border-0 hover:bg-muted/10">
-                            <td className="px-4 py-3 font-medium">{allocation.class.name}</td>
-                            <td className="px-4 py-3 text-muted-foreground">{allocation.section.name}</td>
+                            <td className="truncate px-4 py-3 font-medium">{allocation.class.name}</td>
+                            <td className="truncate px-4 py-3 text-muted-foreground">{allocation.section.name}</td>
                             <td className="px-4 py-3">
-                              <div className="font-medium">{allocation.subject.name}</div>
-                              <div className="text-xs text-muted-foreground">{allocation.teacher.name}</div>
+                              <div className="truncate font-medium">{allocation.subject.name}</div>
+                              <div className="truncate text-xs text-muted-foreground">{allocation.teacher.name}</div>
                             </td>
-                            <td className="max-w-48 truncate px-4 py-3 text-muted-foreground">{schedule.paperName || "—"}</td>
                             <td className="px-4 py-3">
                               <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{shiftLabel(schedule.shift)}</span>
                             </td>
-                            <td className="px-4 py-3 text-muted-foreground">
-                              {schedule.startTime && schedule.endTime ? `${format(new Date(schedule.startTime), "hh:mm a")} - ${format(new Date(schedule.endTime), "hh:mm a")}` : "—"}
+                            <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                              {schedule.startTime && schedule.endTime ? `${formatTimeDisplay(toTimeInputValue(schedule.startTime))} - ${formatTimeDisplay(toTimeInputValue(schedule.endTime))}` : "—"}
                             </td>
-                            <td className="px-4 py-3 text-muted-foreground">{schedule.maxMarks !== undefined ? `${schedule.passingMarks !== undefined ? `${schedule.passingMarks} / ` : ""}${schedule.maxMarks}` : "—"}</td>
-                            <td className="px-4 py-3 text-muted-foreground">{schedule.room || "—"}</td>
-                            {(canUpdate || canDelete) && (
+                            <td className="truncate px-4 py-3 text-muted-foreground">{schedule.room || "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">
+                              {(schedule.components ?? []).length} {(schedule.components ?? []).length === 1 ? "component" : "components"}
+                            </td>
+                            {(canUpdate || canDelete || canCreate) && (
                               <td className="px-4 py-3">
                                 <div className="flex items-center justify-end gap-1">
                                   {/* Desktop */}
                                   <div className="hidden items-center gap-1 md:flex">
+                                    {canCreate && (
+                                      <button
+                                        type="button"
+                                        aria-label="Manage components"
+                                        title="Manage components"
+                                        onClick={() => openComponentManager(schedule)}
+                                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                      >
+                                        <ListChecks className="size-4" />
+                                      </button>
+                                    )}
+
                                     {canUpdate && (
                                       <button
                                         type="button"
                                         aria-label="Edit schedule"
+                                        title="Edit schedule"
                                         onClick={() => openEditSchedule(schedule)}
                                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
                                       >
@@ -1078,6 +1219,7 @@ export default function ExamsPage() {
                                       <button
                                         type="button"
                                         aria-label="Delete schedule"
+                                        title="Delete schedule"
                                         onClick={() => openDeleteSchedule(schedule)}
                                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
                                       >
@@ -1096,6 +1238,13 @@ export default function ExamsPage() {
                                       </DropdownMenuTrigger>
 
                                       <DropdownMenuContent align="end">
+                                        {canCreate && (
+                                          <DropdownMenuItem onClick={() => openComponentManager(schedule)}>
+                                            <ListChecks className="mr-2 size-4" />
+                                            Manage components
+                                          </DropdownMenuItem>
+                                        )}
+
                                         {canUpdate && (
                                           <DropdownMenuItem onClick={() => openEditSchedule(schedule)}>
                                             <Pencil className="mr-2 size-4" />
@@ -1130,9 +1279,9 @@ export default function ExamsPage() {
 
                 <h3 className="mt-3 font-semibold">No schedules found</h3>
 
-                <p className="mt-1 text-sm text-muted-foreground">{detailExam.schedules.length === 0 ? "This exam does not have any date-sheet entries yet." : "No schedules match the selected filters."}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{(detailExam.schedules ?? []).length === 0 ? "This exam does not have any date-sheet entries yet." : "No schedules match the selected filters."}</p>
 
-                {hasActiveScheduleFilters && detailExam.schedules.length > 0 && (
+                {hasActiveScheduleFilters && (detailExam.schedules ?? []).length > 0 && (
                   <Button type="button" variant="outline" size="sm" onClick={resetDetailFilters} className="mt-4 gap-1.5">
                     <RotateCcw className="size-3.5" />
                     Reset filters
@@ -1253,7 +1402,7 @@ export default function ExamsPage() {
                       <span className="mx-1.5">•</span>
                       {exam.session.name}
                       <span className="mx-1.5">•</span>
-                      {exam.schedules.length} {exam.schedules.length === 1 ? "schedule" : "schedules"}
+                      {(exam.schedules ?? []).length} {(exam.schedules ?? []).length === 1 ? "schedule" : "schedules"}
                     </p>
                   </div>
 
@@ -1840,12 +1989,6 @@ export default function ExamsPage() {
                   </Select>
                 </Field>
 
-                <Field>
-                  <Label>Paper Name</Label>
-
-                  <Input value={schedulePaperName} onChange={(e) => setSchedulePaperName(e.target.value)} placeholder="e.g. Physics Paper 1" className="h-11" />
-                </Field>
-
                 <div className="grid grid-cols-2 gap-4">
                   <Field>
                     <Label>Start Time</Label>
@@ -1857,20 +2000,6 @@ export default function ExamsPage() {
                     <Label>End Time</Label>
 
                     <TimePicker value={scheduleEndTime} onChange={setScheduleEndTime} placeholder="End time" />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field>
-                    <Label>Maximum Marks</Label>
-
-                    <Input type="number" min="0" value={scheduleMaxMarks} onChange={(e) => setScheduleMaxMarks(e.target.value)} placeholder="Optional" className="h-11" />
-                  </Field>
-
-                  <Field>
-                    <Label>Passing Marks</Label>
-
-                    <Input type="number" min="0" value={schedulePassingMarks} onChange={(e) => setSchedulePassingMarks(e.target.value)} placeholder="Optional" className="h-11" />
                   </Field>
                 </div>
 
@@ -1909,6 +2038,220 @@ export default function ExamsPage() {
       </Dialog>
 
       {/* =====================================================
+          Manage Exam Components
+      ===================================================== */}
+
+      <Dialog
+        open={componentOpen}
+        onOpenChange={(open) => {
+          setComponentOpen(open);
+
+          if (!open) {
+            setComponentSchedule(null);
+            resetComponentForm();
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden p-0 sm:max-w-160">
+          <div className="shrink-0 border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                <ClipboardList className="size-5 text-primary" />
+              </div>
+
+              <div>
+                <DialogTitle className="text-lg">Exam Components</DialogTitle>
+                <DialogDescription>
+                  {componentSchedule
+                    ? `${componentSchedule.subjectAllocation.subject.name} • ${componentSchedule.subjectAllocation.class.name} ${componentSchedule.subjectAllocation.section.name}`
+                    : "Manage papers and components for this schedule."}
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="space-y-4">
+              <div className="rounded-md border">
+                <div className="border-b bg-muted/20 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Configured Components</p>
+                </div>
+
+                <div className="divide-y">
+                  {componentList.map((component) => (
+                    <div key={component.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium">{component.name}</p>
+                          {component.code && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{component.code}</span>}
+                        </div>
+
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {component.maximumMarks} marks
+                          {component.passingMarks != null ? ` • Pass ${component.passingMarks}` : ""}
+                          {component.weightage != null ? ` • ${component.weightage}% weightage` : ""}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-1">
+                        {canUpdate && (
+                          <button
+                            type="button"
+                            aria-label="Edit component"
+                            onClick={() => openEditComponent(component)}
+                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+                        )}
+
+                        {canDelete && (
+                          <button
+                            type="button"
+                            aria-label="Delete component"
+                            onClick={() => openDeleteComponent(component)}
+                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {componentList.length === 0 && (
+                    <div className="p-8 text-center">
+                      <ClipboardList className="mx-auto size-7 text-muted-foreground" />
+                      <p className="mt-2 text-sm font-medium">No components added</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Add papers or assessment components for this subject.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {canCreate || canUpdate ? (
+                <form onSubmit={handleSaveComponent} className="rounded-md border p-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">{editingComponent ? "Edit Component" : "Add Component"}</p>
+                      <p className="text-xs text-muted-foreground">Define the paper or assessment structure and marks.</p>
+                    </div>
+
+                    {editingComponent && (
+                      <Button type="button" variant="ghost" size="sm" onClick={resetComponentForm}>
+                        Cancel edit
+                      </Button>
+                    )}
+                  </div>
+
+                  <FieldGroup>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field>
+                        <Label>Name</Label>
+                        <Input value={componentName} onChange={(e) => setComponentName(e.target.value)} placeholder="e.g. Paper 1" className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
+                      </Field>
+
+                      <Field>
+                        <Label>Code</Label>
+                        <Input value={componentCode} onChange={(e) => setComponentCode(e.target.value)} placeholder="Optional" className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field>
+                        <Label>Maximum Marks</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={componentMaximumMarks}
+                          onChange={(e) => setComponentMaximumMarks(e.target.value)}
+                          placeholder="e.g. 100"
+                          className="h-11"
+                          disabled={editingComponent ? !canUpdate : !canCreate}
+                        />
+                      </Field>
+
+                      <Field>
+                        <Label>Passing Marks</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={componentPassingMarks}
+                          onChange={(e) => setComponentPassingMarks(e.target.value)}
+                          placeholder="Optional"
+                          className="h-11"
+                          disabled={editingComponent ? !canUpdate : !canCreate}
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field>
+                        <Label>Weightage (%)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={componentWeightage}
+                          onChange={(e) => setComponentWeightage(e.target.value)}
+                          placeholder="Optional"
+                          className="h-11"
+                          disabled={editingComponent ? !canUpdate : !canCreate}
+                        />
+                      </Field>
+
+                      <Field>
+                        <Label>Display Order</Label>
+                        <Input type="number" min="1" value={componentDisplayOrder} onChange={(e) => setComponentDisplayOrder(e.target.value)} className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
+                      </Field>
+                    </div>
+                  </FieldGroup>
+
+                  <div className="mt-4 flex justify-end">
+                    <Button type="submit" disabled={loading || !componentName.trim() || !componentMaximumMarks || (editingComponent ? !canUpdate : !canCreate)} className="min-w-32.5">
+                      {editingComponent ? (
+                        <>
+                          <Pencil className="mr-2 size-4" />
+                          Update
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="mr-2 size-4" />
+                          Add Component
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              ) : null}
+            </div>
+          </div>
+
+          <DialogFooter className="shrink-0 border-t px-6 py-4">
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={componentDeleteOpen} onOpenChange={setComponentDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this component?</AlertDialogTitle>
+            <AlertDialogDescription>This will permanently remove the component and its recorded marks.</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteComponent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* =====================================================
           Delete Exam
       ===================================================== */}
 
@@ -1929,10 +2272,6 @@ export default function ExamsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* =====================================================
-          Delete Schedule
-      ===================================================== */}
 
       <AlertDialog open={detailScheduleDeleteOpen} onOpenChange={setDetailScheduleDeleteOpen}>
         <AlertDialogContent>

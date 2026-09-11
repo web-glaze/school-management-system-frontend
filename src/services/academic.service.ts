@@ -318,9 +318,6 @@ export interface CreateExamSchedulePayload {
   startTime?: string;
   endTime?: string;
   shift: "MORNING" | "AFTERNOON";
-  maxMarks?: number;
-  passingMarks?: number;
-  paperName?: string;
   room?: string;
 }
 
@@ -330,14 +327,12 @@ export interface UpdateExamSchedulePayload {
   startTime?: string;
   endTime?: string;
   shift?: "MORNING" | "AFTERNOON";
-  maxMarks?: number;
-  passingMarks?: number;
-  paperName?: string;
   room?: string;
 }
 
 export interface CreateExamMarkPayload {
   examScheduleId: string;
+  examComponentId: string;
   studentId: string;
   marksObtained: number;
   remarks?: string;
@@ -345,9 +340,53 @@ export interface CreateExamMarkPayload {
 
 export interface UpdateExamMarkPayload {
   examScheduleId?: string;
+  examComponentId?: string;
   studentId?: string;
   marksObtained?: number;
   remarks?: string;
+}
+
+export interface CreateExamComponentPayload {
+  examScheduleId: string;
+  name: string;
+  code?: string;
+  maximumMarks: number;
+  passingMarks?: number;
+  weightage?: number;
+  displayOrder?: number;
+}
+
+export interface UpdateExamComponentPayload {
+  name?: string;
+  code?: string;
+  maximumMarks?: number;
+  passingMarks?: number;
+  weightage?: number;
+  displayOrder?: number;
+}
+
+export interface CreateReportCardPayload {
+  sessionId: string;
+  studentId: string;
+  enrollmentId: string;
+  examId?: string;
+  type: "EXAM" | "ANNUAL";
+  teacherRemarks?: Record<string, unknown>;
+  reportData?: Record<string, unknown>;
+  pdfUrl?: string;
+  status?: "DRAFT" | "GENERATED" | "PUBLISHED";
+}
+
+export interface UpdateReportCardPayload {
+  sessionId?: string;
+  studentId?: string;
+  enrollmentId?: string;
+  examId?: string;
+  type?: "EXAM" | "ANNUAL";
+  teacherRemarks?: Record<string, unknown>;
+  reportData?: Record<string, unknown>;
+  pdfUrl?: string;
+  status?: "DRAFT" | "GENERATED" | "PUBLISHED";
 }
 
 export const academicService = {
@@ -536,6 +575,14 @@ export const academicService = {
     updateSchedule: (scheduleId: string, data: UpdateExamSchedulePayload) => apiClient.patch(`/academic/exams/schedules/${scheduleId}`, data),
 
     deleteSchedule: (scheduleId: string) => apiClient.delete(`/academic/exams/schedules/${scheduleId}`),
+
+    getComponents: (examId: string, scheduleId: string) => apiClient.get(`/academic/exams/${examId}/schedules/${scheduleId}/components`),
+
+    createComponent: (examId: string, scheduleId: string, data: CreateExamComponentPayload) => apiClient.post(`/academic/exams/${examId}/schedules/${scheduleId}/components`, data),
+
+    updateComponent: (componentId: string, data: UpdateExamComponentPayload) => apiClient.patch(`/academic/exams/components/${componentId}`, data),
+
+    deleteComponent: (componentId: string) => apiClient.delete(`/academic/exams/components/${componentId}`),
   },
 
   examMarks: {
@@ -550,6 +597,28 @@ export const academicService = {
     update: (id: string, data: UpdateExamMarkPayload) => apiClient.patch(`/academic/exam-marks/${id}`, data),
 
     delete: (id: string) => apiClient.delete(`/academic/exam-marks/${id}`),
+  },
+
+  reportCards: {
+    getAll: () => apiClient.get("/academic/report-cards"),
+
+    getById: (id: string) => apiClient.get(`/academic/report-cards/${id}`),
+
+    getByStudent: (studentId: string) => apiClient.get(`/academic/report-cards/student/${studentId}`),
+
+    getByExam: (examId: string) => apiClient.get(`/academic/report-cards/exam/${examId}`),
+
+    create: (data: CreateReportCardPayload) => apiClient.post("/academic/report-cards", data),
+
+    update: (id: string, data: UpdateReportCardPayload) => apiClient.patch(`/academic/report-cards/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/report-cards/${id}`),
+
+    generateExam: (studentId: string, examId: string, data?: { teacherRemarks?: Record<string, unknown>; reportData?: Record<string, unknown>;}) => apiClient.post(`/academic/report-cards/student/${studentId}/exam/${examId}/generate`, data),
+
+    generateAnnual: (studentId: string, sessionId: string, data?: { teacherRemarks?: Record<string, unknown>; reportData?: Record<string, unknown>;}) => apiClient.post(`/academic/report-cards/student/${studentId}/session/${sessionId}/generate-annual`, data),
+
+    publish: (id: string) => apiClient.patch(`/academic/report-cards/${id}/publish`),
   },
 
   subjectAttendances: {

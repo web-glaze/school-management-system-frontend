@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "../ui/breadcrumb";
@@ -11,7 +10,7 @@ import { NavUser } from "../nav-user";
 interface User {
   name?: string;
   email: string;
-  role: "superadmin" | "admin" | "manager" | "user";
+  role: string;
 }
 
 function getBreadcrumb(pathname: string): { parent: string | null; parentHref: string; current: string } {
@@ -20,32 +19,48 @@ function getBreadcrumb(pathname: string): { parent: string | null; parentHref: s
   if (pathname === "/maintenance/tickets") return { parent: "Maintenance", parentHref: "/maintenance", current: "Tickets" };
   if (pathname === "/maintenance/tickets/create") return { parent: "Tickets", parentHref: "/maintenance/tickets", current: "Create Ticket" };
   if (pathname.startsWith("/maintenance/tickets/")) return { parent: "Tickets", parentHref: "/maintenance/tickets", current: "Ticket Detail" };
-  if (pathname === "/maintenance/generator") return { parent: "Maintenance", parentHref: "/maintenance", current: "Generator Management" }; 
+  if (pathname === "/maintenance/generator") return { parent: "Maintenance", parentHref: "/maintenance", current: "Generator Management" };
   if (pathname === "/maintenance/departments") return { parent: "Maintenance", parentHref: "/maintenance", current: "Departments" };
   if (pathname === "/maintenance/technician") return { parent: "Maintenance", parentHref: "/maintenance", current: "Technicians" };
   if (pathname === "/maintenance/location") return { parent: "Maintenance", parentHref: "/maintenance", current: "Locations" };
-  if (pathname === "/maintenance/reports") return { parent: "Maintenance", parentHref: "/maintenance", current:"Reports" };
+  if (pathname === "/maintenance/reports") return { parent: "Maintenance", parentHref: "/maintenance", current: "Reports" };
   if (pathname === "/academic") return { parent: "Dashboard", parentHref: "/dashboard", current: "Academic" };
-  if (pathname === "/academic/sessions") return { parent: "Academic", parentHref: "/academic", current:"Sessions" };
-  if (pathname === "/academic/schedule") return { parent: "Academic", parentHref: "/academic", current:"Schedule" };
-  if (pathname === "/academic/classes") return { parent: "Academic", parentHref: "/academic", current:"Classes" };
-  if (pathname === "/academic/sections") return { parent: "Academic", parentHref: "/academic", current:"Sections" };
-  if (pathname === "/academic/subjects") return { parent: "Academic", parentHref: "/academic", current:"Subjects" };
-  if (pathname === "/academic/teachers") return { parent: "Academic", parentHref: "/academic", current:"Teachers" };
-  if (pathname === "/academic/teacher-transfer") return { parent: "Academic", parentHref: "/academic", current:"Teacher Transfer" };
-  if (pathname === "/academic/students") return { parent: "Academic", parentHref: "/academic", current:"Students" };
-  if (pathname === "/academic/enrollment") return { parent: "Academic", parentHref: "/academic", current:"Student Enrollment" };
-  if (pathname === "/academic/subject-allocation") return { parent: "Academic", parentHref: "/academic", current:"Subject Allocation" };
-  if (pathname === "/academic/student-subject-allocation") return { parent: "Academic", parentHref: "/academic", current:"Student Subject Allocation" };
-  if (pathname === "/academic/assignments") return { parent: "Academic", parentHref: "/academic", current:"Assignments" };
-  if (pathname === "/academic/exams") return { parent: "Academic", parentHref: "/academic", current:"Exams" };
-  if (pathname === "/academic/teacher-assignment") return { parent: "Academic", parentHref: "/academic", current:"Teacher Assignment" };
-  if (pathname === "/academic/timetables") return { parent: "Academic", parentHref: "/academic", current:"Timetables" };
-  if (pathname === "/academic/student-attendance") return { parent: "Academic", parentHref: "/academic", current:"Student Attendance" };
-  if (pathname === "/academic/faculty-attendance") return { parent: "Academic", parentHref: "/academic", current:"Faculty Attendance" };
+  if (pathname === "/academic/sessions") return { parent: "Academic", parentHref: "/academic", current: "Sessions" };
+  if (pathname === "/academic/schedule") return { parent: "Academic", parentHref: "/academic", current: "Schedule" };
+  if (pathname === "/academic/classes") return { parent: "Academic", parentHref: "/academic", current: "Classes" };
+  if (pathname === "/academic/sections") return { parent: "Academic", parentHref: "/academic", current: "Sections" };
+  if (pathname === "/academic/subjects") return { parent: "Academic", parentHref: "/academic", current: "Subjects" };
+  if (pathname === "/academic/teachers") return { parent: "Academic", parentHref: "/academic", current: "Teachers" };
+  if (pathname === "/academic/teacher-transfer") return { parent: "Academic", parentHref: "/academic", current: "Teacher Transfer" };
+  if (pathname === "/academic/students") return { parent: "Academic", parentHref: "/academic", current: "Students" };
+  if (pathname === "/academic/enrollment") return { parent: "Academic", parentHref: "/academic", current: "Student Enrollment" };
+  if (pathname === "/academic/subject-allocation") return { parent: "Academic", parentHref: "/academic", current: "Subject Allocation" };
+  if (pathname === "/academic/student-subject-allocation") return { parent: "Academic", parentHref: "/academic", current: "Student Subject Allocation" };
+  if (pathname === "/academic/assignments") return { parent: "Academic", parentHref: "/academic", current: "Assignments" };
+  if (pathname === "/academic/exams") return { parent: "Academic", parentHref: "/academic", current: "Exams" };
+  if (pathname === "/academic/exam-mark") return { parent: "Academic", parentHref: "/academic", current: "Exam Marks" };
+  if (pathname === "/academic/report-card") return { parent: "Academic", parentHref: "/academic", current: "Report Card" };
+  if (pathname === "/academic/teacher-assignment") return { parent: "Academic", parentHref: "/academic", current: "Teacher Assignment" };
+  if (pathname === "/academic/timetables") return { parent: "Academic", parentHref: "/academic", current: "Timetables" };
+  if (pathname === "/academic/student-attendance") return { parent: "Academic", parentHref: "/academic", current: "Student Attendance" };
+  if (pathname === "/academic/faculty-attendance") return { parent: "Academic", parentHref: "/academic", current: "Faculty Attendance" };
   if (pathname === "/my-profile") return { parent: "Settings", parentHref: "/settings", current: "My Profile" };
   if (pathname === "/user") return { parent: "Settings", parentHref: "/settings", current: "Users" };
   if (pathname === "/roles") return { parent: "Settings", parentHref: "/settings", current: "Roles & Permissions" };
+  if (pathname === "/gatepass") return { parent: "Dashboard", parentHref: "/dashboard", current: "Gatepass" };
+  if (pathname === "/gatepass/configuration") return { parent: "Gatepass", parentHref: "/gatepass", current: "Configuration" };
+  if (pathname === "/gatepass/configuration/request-types") return { parent: "Configuration", parentHref: "/gatepass/configuration", current: "Request Types" };
+  if (pathname === "/gatepass/configuration/gates") return { parent: "Configuration", parentHref: "/gatepass/configuration", current: "Gates" };
+  if (pathname === "/gatepass/configuration/devices") return { parent: "Configuration", parentHref: "/gatepass/configuration", current: "Devices" }
+  if (pathname === "/gatepass/configuration/visiting-slots") return { parent: "Configuration", parentHref: "/gatepass/configuration", current: "Visiting Slots" };
+  if (pathname === "/gatepass/configuration/blacklist") return { parent: "Configuration", parentHref: "/gatepass/configuration", current: "Blacklist" };
+  if (pathname === "/gatepass/movement") return { parent: "Gatepass", parentHref: "/gatepass", current: "Movement" };
+  if (pathname === "/gatepass/movement/requests") return { parent: "Movement", parentHref: "/gatepass/movement", current: "Movement Requests" };
+  if (pathname === "/gatepass/movement/approvals") return { parent: "Movement", parentHref: "/gatepass/movement", current: "Approvals" };
+  if (pathname === "/gatepass/movement/passes") return { parent: "Movement", parentHref: "/gatepass/movement", current: "Gate Passes" };
+  if (pathname === "/gatepass/visitor") return { parent: "Gatepass", parentHref: "/gatepass", current: "Visitors" };
+  if (pathname === "/gatepass/gate-scan") return { parent: "Gatepass", parentHref: "/gatepass", current: "Gate Scan" };
+  if (pathname === "/gatepass/pickup") return { parent: "Gatepass", parentHref: "/gatepass", current: "Pickup" };
   return { parent: null, parentHref: "/dashboard", current: "Dashboard" };
 }
 
