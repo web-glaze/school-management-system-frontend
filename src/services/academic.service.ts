@@ -48,13 +48,17 @@ export interface UpdateEventPayload {
   isActive?: boolean;
 }
 
+export type Board = "GENERAL" | "CBSE" | "CIE";
+
 export interface CreateClassPayload {
   name: string;
+  board?: Board;
   isActive?: boolean;
 }
 
 export interface UpdateClassPayload {
   name?: string;
+  board?: Board;
   sortOrder?: number;
   isActive?: boolean;
 }
@@ -144,7 +148,7 @@ export interface UpdateStudentEnrollmentPayload {
 export interface CreateSubjectAllocationPayload {
   sessionId: string;
   classId: string;
-  sectionId: string;
+  sectionIds: string[];
   subjectId: string;
   teacherId: string;
 }
@@ -293,10 +297,135 @@ export interface UpdateStudentSubjectAllocationPayload {
   subjectAllocationId: string;
 }
 
+export interface CreateExamGroupPayload {
+  name: string;
+  code?: string;
+  sequence?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateExamGroupPayload {
+  name?: string;
+  code?: string;
+  sequence?: number;
+  isActive?: boolean;
+}
+
+export interface ReorderExamGroupPayload {
+  id: string;
+  sequence: number;
+}
+
+export interface CreateGradingSchemePayload {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateGradingSchemePayload {
+  name?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface CreateGradeBandPayload {
+  grade: string;
+  minPercentage: number;
+  maxPercentage: number;
+  remark?: string;
+  displayOrder?: number;
+}
+
+export interface UpdateGradeBandPayload {
+  grade?: string;
+  minPercentage?: number;
+  maxPercentage?: number;
+  remark?: string;
+  displayOrder?: number;
+}
+
+export interface CreateClassExamStructurePayload {
+  classId: string;
+  gradingSchemeId?: string;
+  hasOptionalSubject?: boolean;
+  combineExamGroups?: boolean;
+  showPerformanceGraph?: boolean;
+  notes?: string;
+}
+
+export interface UpdateClassExamStructurePayload {
+  gradingSchemeId?: string;
+  hasOptionalSubject?: boolean;
+  combineExamGroups?: boolean;
+  showPerformanceGraph?: boolean;
+  notes?: string;
+  isActive?: boolean;
+}
+
+export interface ClassExamGroupWeightItem {
+  examGroupId: string;
+  weightagePercent?: number;
+  includeInFinalResult?: boolean;
+  displayOrder?: number;
+}
+
+export interface CreateReportCardTemplatePayload {
+  classId: string;
+  examGroupId?: string;
+  gradingSchemeId?: string;
+  name: string;
+  reportScope: "INDIVIDUAL" | "COMBINED";
+  showPerformanceGraph?: boolean;
+  showFinalResultWeightage?: boolean;
+  isActive?: boolean;
+}
+
+export interface UpdateReportCardTemplatePayload {
+  name?: string;
+  gradingSchemeId?: string;
+  showPerformanceGraph?: boolean;
+  showFinalResultWeightage?: boolean;
+  isActive?: boolean;
+}
+
+export interface ReportCardSectionItem {
+  key: string;
+  label: string;
+  isEnabled?: boolean;
+  displayOrder?: number;
+  config?: Record<string, unknown>;
+}
+
+export interface ReportRemarkFieldItem {
+  key: string;
+  label: string;
+  displayOrder?: number;
+}
+
+export interface ReportCoScholasticRowItem {
+  label: string;
+  displayOrder?: number;
+}
+
+export type ComponentSource = "FETCHED" | "MANUAL";
+
+export interface CreateClassSubjectComponentTemplatePayload {
+  classId: string;
+  examGroupId: string;
+}
+
+export interface ComponentTemplateDefinitionItem {
+  name: string;
+  source: ComponentSource;
+  maximumMarks: number;
+  passingMarks?: number;
+  displayOrder?: number;
+}
+
 export interface CreateExamPayload {
   sessionId: string;
   name: string;
-  type: "UNIT_TEST" | "MID_TERM" | "ANNUAL" | "PRACTICAL";
+  examGroupId: string;
   startDate: string;
   endDate: string;
   description?: string;
@@ -305,7 +434,7 @@ export interface CreateExamPayload {
 
 export interface UpdateExamPayload {
   name?: string;
-  type?: "UNIT_TEST" | "MID_TERM" | "ANNUAL" | "PRACTICAL";
+  examGroupId?: string;
   startDate?: string;
   endDate?: string;
   description?: string;
@@ -330,63 +459,68 @@ export interface UpdateExamSchedulePayload {
   room?: string;
 }
 
-export interface CreateExamMarkPayload {
-  examScheduleId: string;
-  examComponentId: string;
-  studentId: string;
-  marksObtained: number;
-  remarks?: string;
-}
-
-export interface UpdateExamMarkPayload {
-  examScheduleId?: string;
-  examComponentId?: string;
-  studentId?: string;
-  marksObtained?: number;
-  remarks?: string;
-}
-
-export interface CreateExamComponentPayload {
-  examScheduleId: string;
+export interface CreateExamSubjectComponentPayload {
+  subjectId: string;
   name: string;
   code?: string;
   maximumMarks: number;
   passingMarks?: number;
   weightage?: number;
   displayOrder?: number;
+  isOptionalSubject?: boolean;
 }
 
-export interface UpdateExamComponentPayload {
+export interface UpdateExamSubjectComponentPayload {
   name?: string;
   code?: string;
   maximumMarks?: number;
   passingMarks?: number;
   weightage?: number;
   displayOrder?: number;
+  isOptionalSubject?: boolean;
+}
+
+export interface CreateExamMarkPayload {
+  examScheduleId: string;
+  examSubjectComponentId: string;
+  studentId: string;
+  marksObtained?: number;
+  isAbsent?: boolean;
+  remarks?: string;
+}
+
+export interface UpdateExamMarkPayload {
+  examScheduleId?: string;
+  examSubjectComponentId?: string;
+  studentId?: string;
+  marksObtained?: number;
+  isAbsent?: boolean;
+  remarks?: string;
 }
 
 export interface CreateReportCardPayload {
   sessionId: string;
   studentId: string;
   enrollmentId: string;
-  examId?: string;
-  type: "EXAM" | "ANNUAL";
+  examGroupId?: string;
+  scope: "INDIVIDUAL" | "COMBINED";
   teacherRemarks?: Record<string, unknown>;
-  reportData?: Record<string, unknown>;
   pdfUrl?: string;
   status?: "DRAFT" | "GENERATED" | "PUBLISHED";
 }
 
 export interface UpdateReportCardPayload {
-  sessionId?: string;
-  studentId?: string;
-  enrollmentId?: string;
-  examId?: string;
-  type?: "EXAM" | "ANNUAL";
   teacherRemarks?: Record<string, unknown>;
-  reportData?: Record<string, unknown>;
   pdfUrl?: string;
   status?: "DRAFT" | "GENERATED" | "PUBLISHED";
+}
+
+export interface UpdateManualMarksPayload {
+  [subjectId: string]: Record<string, number>;
+}
+
+export interface UpdateCoScholasticMarksPayload {
+  [rowLabel: string]: string;
 }
 
 export const academicService = {
@@ -557,6 +691,72 @@ export const academicService = {
     delete: (id: string) => apiClient.delete(`/academic/assignments/${id}`),
   },
 
+  examGroups: {
+    getAll: () => apiClient.get("/academic/exam-groups"),
+
+    getById: (id: string) => apiClient.get(`/academic/exam-groups/${id}`),
+
+    create: (data: CreateExamGroupPayload) => apiClient.post("/academic/exam-groups", data),
+
+    update: (id: string, data: UpdateExamGroupPayload) => apiClient.patch(`/academic/exam-groups/${id}`, data),
+
+    reorder: (data: ReorderExamGroupPayload[]) => apiClient.patch("/academic/exam-groups/reorder", data),
+
+    delete: (id: string) => apiClient.delete(`/academic/exam-groups/${id}`),
+  },
+
+  gradingSchemes: {
+    getAll: () => apiClient.get("/academic/grading-schemes"),
+
+    getById: (id: string) => apiClient.get(`/academic/grading-schemes/${id}`),
+
+    create: (data: CreateGradingSchemePayload) => apiClient.post("/academic/grading-schemes", data),
+
+    update: (id: string, data: UpdateGradingSchemePayload) => apiClient.patch(`/academic/grading-schemes/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/grading-schemes/${id}`),
+
+    addBand: (schemeId: string, data: CreateGradeBandPayload) => apiClient.post(`/academic/grading-schemes/${schemeId}/bands`, data),
+
+    updateBand: (bandId: string, data: UpdateGradeBandPayload) => apiClient.patch(`/academic/grading-schemes/bands/${bandId}`, data),
+
+    deleteBand: (bandId: string) => apiClient.delete(`/academic/grading-schemes/bands/${bandId}`),
+  },
+
+  classExamStructures: {
+    getAll: () => apiClient.get("/academic/class-exam-structures"),
+
+    getById: (id: string) => apiClient.get(`/academic/class-exam-structures/${id}`),
+
+    getByClass: (classId: string) => apiClient.get(`/academic/class-exam-structures/class/${classId}`),
+
+    create: (data: CreateClassExamStructurePayload) => apiClient.post("/academic/class-exam-structures", data),
+
+    update: (id: string, data: UpdateClassExamStructurePayload) => apiClient.patch(`/academic/class-exam-structures/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/class-exam-structures/${id}`),
+
+    replaceExamGroupWeights: (id: string, items: ClassExamGroupWeightItem[]) => apiClient.put(`/academic/class-exam-structures/${id}/exam-group-weights`, { items }),
+  },
+
+  reportCardTemplates: {
+    getAll: (classId?: string) => apiClient.get("/academic/report-card-templates", { params: classId ? { classId } : undefined }),
+
+    getById: (id: string) => apiClient.get(`/academic/report-card-templates/${id}`),
+
+    create: (data: CreateReportCardTemplatePayload) => apiClient.post("/academic/report-card-templates", data),
+
+    update: (id: string, data: UpdateReportCardTemplatePayload) => apiClient.patch(`/academic/report-card-templates/${id}`, data),
+
+    delete: (id: string) => apiClient.delete(`/academic/report-card-templates/${id}`),
+
+    replaceSections: (id: string, items: ReportCardSectionItem[]) => apiClient.put(`/academic/report-card-templates/${id}/sections`, { items }),
+
+    replaceRemarkFields: (id: string, items: ReportRemarkFieldItem[]) => apiClient.put(`/academic/report-card-templates/${id}/remark-fields`, { items }),
+
+    replaceCoScholasticRows: (id: string, items: ReportCoScholasticRowItem[]) => apiClient.put(`/academic/report-card-templates/${id}/co-scholastic-rows`, { items }),
+  },
+
   exams: {
     getAll: () => apiClient.get("/academic/exams"),
 
@@ -576,13 +776,13 @@ export const academicService = {
 
     deleteSchedule: (scheduleId: string) => apiClient.delete(`/academic/exams/schedules/${scheduleId}`),
 
-    getComponents: (examId: string, scheduleId: string) => apiClient.get(`/academic/exams/${examId}/schedules/${scheduleId}/components`),
+    getSubjectComponents: (examId: string, subjectId?: string) => apiClient.get(`/academic/exams/${examId}/subject-components`, { params: subjectId ? { subjectId } : undefined }),
 
-    createComponent: (examId: string, scheduleId: string, data: CreateExamComponentPayload) => apiClient.post(`/academic/exams/${examId}/schedules/${scheduleId}/components`, data),
+    createSubjectComponent: (examId: string, data: CreateExamSubjectComponentPayload) => apiClient.post(`/academic/exams/${examId}/subject-components`, data),
 
-    updateComponent: (componentId: string, data: UpdateExamComponentPayload) => apiClient.patch(`/academic/exams/components/${componentId}`, data),
+    updateSubjectComponent: (componentId: string, data: UpdateExamSubjectComponentPayload) => apiClient.patch(`/academic/exams/subject-components/${componentId}`, data),
 
-    deleteComponent: (componentId: string) => apiClient.delete(`/academic/exams/components/${componentId}`),
+    deleteSubjectComponent: (componentId: string) => apiClient.delete(`/academic/exams/subject-components/${componentId}`),
   },
 
   examMarks: {
@@ -599,6 +799,20 @@ export const academicService = {
     delete: (id: string) => apiClient.delete(`/academic/exam-marks/${id}`),
   },
 
+  classComponentTemplates: {
+    getAll: (classId?: string) => apiClient.get("/academic/class-component-templates", { params: classId ? { classId } : undefined }),
+
+    getById: (id: string) => apiClient.get(`/academic/class-component-templates/${id}`),
+
+    getByClassAndExamGroup: (classId: string, examGroupId: string) => apiClient.get(`/academic/class-component-templates/class/${classId}/exam-group/${examGroupId}`),
+
+    create: (data: CreateClassSubjectComponentTemplatePayload) => apiClient.post("/academic/class-component-templates", data),
+
+    delete: (id: string) => apiClient.delete(`/academic/class-component-templates/${id}`),
+
+    replaceDefinitions: (id: string, items: ComponentTemplateDefinitionItem[]) => apiClient.put(`/academic/class-component-templates/${id}/definitions`, { items }),
+  },
+
   reportCards: {
     getAll: () => apiClient.get("/academic/report-cards"),
 
@@ -606,7 +820,7 @@ export const academicService = {
 
     getByStudent: (studentId: string) => apiClient.get(`/academic/report-cards/student/${studentId}`),
 
-    getByExam: (examId: string) => apiClient.get(`/academic/report-cards/exam/${examId}`),
+    getByExamGroup: (examGroupId: string) => apiClient.get(`/academic/report-cards/exam-group/${examGroupId}`),
 
     create: (data: CreateReportCardPayload) => apiClient.post("/academic/report-cards", data),
 
@@ -614,11 +828,18 @@ export const academicService = {
 
     delete: (id: string) => apiClient.delete(`/academic/report-cards/${id}`),
 
-    generateExam: (studentId: string, examId: string, data?: { teacherRemarks?: Record<string, unknown>; reportData?: Record<string, unknown>;}) => apiClient.post(`/academic/report-cards/student/${studentId}/exam/${examId}/generate`, data),
+    generateIndividual: (studentId: string, examGroupId: string, sessionId: string, data?: { teacherRemarks?: Record<string, unknown> }) =>
+      apiClient.post(`/academic/report-cards/student/${studentId}/exam-group/${examGroupId}/session/${sessionId}/generate`, data),
 
-    generateAnnual: (studentId: string, sessionId: string, data?: { teacherRemarks?: Record<string, unknown>; reportData?: Record<string, unknown>;}) => apiClient.post(`/academic/report-cards/student/${studentId}/session/${sessionId}/generate-annual`, data),
+    generateFinal: (studentId: string, sessionId: string, data?: { teacherRemarks?: Record<string, unknown> }) => apiClient.post(`/academic/report-cards/student/${studentId}/session/${sessionId}/generate-final`, data),
 
     publish: (id: string) => apiClient.patch(`/academic/report-cards/${id}/publish`),
+
+    unpublish: (id: string) => apiClient.patch(`/academic/report-cards/${id}/unpublish`),
+
+    updateManualMarks: (id: string, manualMarks: UpdateManualMarksPayload) => apiClient.patch(`/academic/report-cards/${id}/manual-marks`, manualMarks),
+
+    updateCoScholasticMarks: (id: string, coScholasticMarks: UpdateCoScholasticMarksPayload) => apiClient.patch(`/academic/report-cards/${id}/co-scholastic-marks`, coScholasticMarks),
   },
 
   subjectAttendances: {

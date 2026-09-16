@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, GraduationCap, Inbox, Loader2, MoreVertical, Pencil, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
@@ -90,7 +91,7 @@ export default function SubjectAllocationPage() {
   });
   const [sessionId, setSessionId] = useState("");
   const [classId, setClassId] = useState("");
-  const [sectionId, setSectionId] = useState("");
+  const [sectionIds, setSectionIds] = useState<string[]>([]);
   const [subjectId, setSubjectId] = useState("");
   const [teacherId, setTeacherId] = useState("");
   const [editSessionId, setEditSessionId] = useState("");
@@ -107,10 +108,18 @@ export default function SubjectAllocationPage() {
   const resetForm = () => {
     setSessionId("");
     setClassId("");
-    setSectionId("");
+    setSectionIds([]);
     setSubjectId("");
     setTeacherId("");
     setFormErrors({});
+  };
+  const toggleSectionId = (id: string) => {
+    setSectionIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+    setFormErrors((p) => ({
+      ...p,
+      sectionIds: "",
+      subject: "",
+    }));
   };
   const filteredSections = useMemo(() => {
     if (classFilter === "all") return sections;
@@ -168,16 +177,24 @@ export default function SubjectAllocationPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (sectionIds.length === 0) {
+      setFormErrors((p) => ({
+        ...p,
+        sectionIds: "Select at least one section",
+      }));
+      return;
+    }
+
     try {
       await createSubjectAllocation({
         sessionId,
         classId,
-        sectionId,
+        sectionIds,
         subjectId,
         teacherId,
       });
 
-      toast.success("Subject allocation created successfully");
+      toast.success(sectionIds.length > 1 ? `Subject allocation created for ${sectionIds.length} sections` : "Subject allocation created successfully");
 
       resetForm();
       setAddOpen(false);
@@ -302,7 +319,7 @@ export default function SubjectAllocationPage() {
                 <div>
                   <DialogTitle>Create Subject Allocation</DialogTitle>
 
-                  <DialogDescription>Assign a teacher to a subject.</DialogDescription>
+                  <DialogDescription>Assign a teacher to a subject across one or more sections.</DialogDescription>
                 </div>
               </div>
             </div>
@@ -370,33 +387,43 @@ export default function SubjectAllocationPage() {
                 </Field>
 
                 <Field>
-                  <Label>Section</Label>
+                  <Label>Sections</Label>
 
-                  <Select
-                    value={sectionId}
-                    onValueChange={(value) => {
-                      setSectionId(value);
+                  <p className="text-xs text-muted-foreground mb-2">Pick every section this subject and teacher should be assigned to — no need to repeat this form per section.</p>
 
-                      setFormErrors((p) => ({
-                        ...p,
-                        sectionId: "",
-                      }));
-                    }}
-                  >
-                    <SelectTrigger className=" h-11 w-full">
-                      <SelectValue placeholder="Select Section" />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {sections.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
+                  <div className="max-h-44 overflow-y-auto rounded-md border border-input p-3 space-y-2.5">
+                    {sections.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No sections available.</p>
+                    ) : (
+                      sections.map((item) => (
+                        <label key={item.id} className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                          <Checkbox checked={sectionIds.includes(item.id)} onCheckedChange={() => toggleSectionId(item.id)} />
                           {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </label>
+                      ))
+                    )}
+                  </div>
 
-                  {formErrors.sectionId && <p className="mt-1 text-sm text-red-500">{formErrors.sectionId}</p>}
+                  {sectionIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      {sectionIds.map((id) => {
+                        const section = sections.find((s) => s.id === id);
+                        if (!section) return null;
+
+                        return (
+                          <span key={id} className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                            {section.name}
+                            <button type="button" onClick={() => toggleSectionId(id)}>
+                              <X className="size-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {formErrors.sectionIds && <p className="mt-1 text-sm text-red-500">{formErrors.sectionIds}</p>}
+                  {formErrors.subject && <p className="mt-1 text-sm text-red-500">{formErrors.subject}</p>}
                 </Field>
 
                 <Field>
@@ -469,7 +496,7 @@ export default function SubjectAllocationPage() {
                   </Button>
                 </DialogClose>
 
-                <Button type="submit" disabled={loading} className="min-w-32">
+                <Button type="submit" disabled={loading || sectionIds.length === 0} className="min-w-32">
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 size-4 animate-spin" />
@@ -478,7 +505,7 @@ export default function SubjectAllocationPage() {
                   ) : (
                     <>
                       <Plus className="mr-2 size-4" />
-                      Create
+                      Create{sectionIds.length > 1 ? ` (${sectionIds.length})` : ""}
                     </>
                   )}
                 </Button>

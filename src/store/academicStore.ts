@@ -3,6 +3,7 @@ import {
   academicService,
   CreateAcademicSessionPayload,
   UpdateAcademicSessionPayload,
+  Board,
   CreateClassPayload,
   UpdateClassPayload,
   ReorderClassPayload,
@@ -36,17 +37,38 @@ import {
   CreateAssignmentPayload,
   UpdateAssignmentPayload,
   UpdateAssignmentStudentPayload,
+  CreateExamGroupPayload,
+  UpdateExamGroupPayload,
+  ReorderExamGroupPayload,
+  CreateGradingSchemePayload,
+  UpdateGradingSchemePayload,
+  CreateGradeBandPayload,
+  UpdateGradeBandPayload,
+  CreateClassExamStructurePayload,
+  UpdateClassExamStructurePayload,
+  ClassExamGroupWeightItem,
+  CreateReportCardTemplatePayload,
+  UpdateReportCardTemplatePayload,
+  ReportCardSectionItem,
   CreateExamPayload,
   UpdateExamPayload,
   CreateExamSchedulePayload,
   UpdateExamSchedulePayload,
-  CreateExamComponentPayload,
-  UpdateExamComponentPayload,
+  CreateExamSubjectComponentPayload,
+  UpdateExamSubjectComponentPayload,
   CreateExamMarkPayload,
   UpdateExamMarkPayload,
   CreateReportCardPayload,
   UpdateReportCardPayload,
+  ComponentSource,
+  CreateClassSubjectComponentTemplatePayload,
+  ComponentTemplateDefinitionItem,
+  UpdateManualMarksPayload,
+  UpdateCoScholasticMarksPayload,
+  ReportRemarkFieldItem,
+  ReportCoScholasticRowItem,
 } from "@/services/academic.service";
+import { AxiosError } from "axios";
 
 export interface AcademicSession {
   id: string;
@@ -97,6 +119,7 @@ export interface AcademicClass {
   id: string;
   classCode: string;
   name: string;
+  board: Board;
   sortOrder: number;
   isActive: boolean;
   createdAt: string;
@@ -335,6 +358,120 @@ export interface Assignment {
   teacher: Teacher;
   students: AssignmentStudent[];
 }
+export interface ExamGroup {
+  id: string;
+  schoolId: string;
+  name: string;
+  code?: string;
+  sequence: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GradeBand {
+  id: string;
+  gradingSchemeId: string;
+  grade: string;
+  minPercentage: string;
+  maxPercentage: string;
+  remark?: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GradingScheme {
+  id: string;
+  schoolId: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  bands: GradeBand[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClassExamGroupWeight {
+  id: string;
+  classExamStructureId: string;
+  examGroupId: string;
+  weightagePercent?: string;
+  includeInFinalResult: boolean;
+  displayOrder: number;
+  examGroup: ExamGroup;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClassExamStructure {
+  id: string;
+  schoolId: string;
+  classId: string;
+  gradingSchemeId?: string;
+  hasOptionalSubject: boolean;
+  combineExamGroups: boolean;
+  showPerformanceGraph: boolean;
+  isActive: boolean;
+  notes?: string;
+  class: AcademicClass;
+  gradingScheme?: GradingScheme;
+  examGroupWeights: ClassExamGroupWeight[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportCardSection {
+  id: string;
+  templateId: string;
+  key: string;
+  label: string;
+  isEnabled: boolean;
+  displayOrder: number;
+  config?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportRemarkFieldDefinition {
+  id: string;
+  templateId: string;
+  key: string;
+  label: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportCoScholasticRowDefinition {
+  id: string;
+  templateId: string;
+  label: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportCardTemplate {
+  id: string;
+  schoolId: string;
+  classId: string;
+  examGroupId?: string;
+  gradingSchemeId?: string;
+  name: string;
+  reportScope: "INDIVIDUAL" | "COMBINED";
+  showPerformanceGraph: boolean;
+  showFinalResultWeightage: boolean;
+  isActive: boolean;
+  class: AcademicClass;
+  examGroup?: ExamGroup;
+  gradingScheme?: GradingScheme;
+  sections: ReportCardSection[];
+  remarkFields: ReportRemarkFieldDefinition[];
+  coScholasticRows: ReportCoScholasticRowDefinition[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface ExamSchedule {
   id: string;
@@ -350,19 +487,21 @@ export interface ExamSchedule {
 
   exam: Exam;
   subjectAllocation: SubjectAllocation;
-  components: ExamComponent[];
+  components: ExamSubjectComponent[];
 }
 
-export interface ExamComponent {
+export interface ExamSubjectComponent {
   id: string;
   examId: string;
-  examScheduleId: string;
+  subjectId: string;
+  subject?: Subject;
   name: string;
   code?: string;
   maximumMarks: string;
   passingMarks?: string;
   weightage?: string;
   displayOrder: number;
+  isOptionalSubject: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -371,8 +510,9 @@ export interface Exam {
   id: string;
   schoolId: string;
   sessionId: string;
+  examGroupId: string;
+  examGroup: ExamGroup;
   name: string;
-  type: "UNIT_TEST" | "MID_TERM" | "ANNUAL" | "PRACTICAL";
   startDate: string;
   endDate: string;
   description?: string;
@@ -382,21 +522,70 @@ export interface Exam {
 
   session: AcademicSession;
   schedules: ExamSchedule[];
+  subjectComponents: ExamSubjectComponent[];
 }
 
 export interface ExamMark {
   id: string;
   examScheduleId: string;
-  examComponentId: string;
+  examSubjectComponentId: string;
   studentId: string;
   marksObtained?: string;
+  isAbsent: boolean;
   remarks?: string;
   createdAt: string;
   updatedAt: string;
 
   examSchedule: ExamSchedule;
-  examComponent: ExamComponent;
+  examSubjectComponent: ExamSubjectComponent;
   student: Student;
+}
+
+export interface ReportCardComponentResult {
+  id: string;
+  name: string;
+  maximumMarks: number;
+  marksObtained: number | null;
+  isAbsent: boolean;
+  source: ComponentSource;
+}
+
+export interface ReportCardSubjectResult {
+  subjectId: string;
+  subjectName: string;
+  components: ReportCardComponentResult[];
+  obtainedTotal: number;
+  maxTotal: number;
+  percentage: number;
+  incomplete: boolean;
+}
+
+export interface ReportCardOverallResult {
+  obtainedTotal: number;
+  maxTotal: number;
+  percentage: number;
+  grade: string | null;
+  remark: string | null;
+}
+
+export interface IndividualReportCardResult {
+  examGroupId: string;
+  examGroupName: string;
+  examId: string;
+  examName: string;
+  subjects: ReportCardSubjectResult[];
+  overall: ReportCardOverallResult;
+}
+
+export interface CombinedReportCardResult {
+  groups: {
+    examGroupId: string;
+    examGroupName: string;
+    weightagePercent: number;
+    percentage: number;
+  }[];
+  subjects: { subjectName: string; weightedPercentage: number }[];
+  overall: ReportCardOverallResult;
 }
 
 export interface ReportCard {
@@ -405,11 +594,14 @@ export interface ReportCard {
   sessionId: string;
   studentId: string;
   enrollmentId: string;
-  examId?: string;
-  type: "EXAM" | "ANNUAL";
+  examGroupId?: string;
+  templateId?: string;
+  scope: "INDIVIDUAL" | "COMBINED";
   reportKey: string;
   teacherRemarks?: Record<string, unknown>;
-  reportData?: Record<string, unknown>;
+  reportData?: IndividualReportCardResult | CombinedReportCardResult | Record<string, unknown>;
+  manualMarks?: Record<string, Record<string, number>>;
+  coScholasticMarks?: Record<string, string>;
   pdfUrl?: string;
   status: "DRAFT" | "GENERATED" | "PUBLISHED";
   generatedAt?: string;
@@ -419,7 +611,32 @@ export interface ReportCard {
   student: Student;
   session: AcademicSession;
   enrollment: StudentEnrollment;
-  exam?: Exam;
+  examGroup?: ExamGroup;
+  template?: ReportCardTemplate;
+}
+
+export interface ComponentTemplateDefinition {
+  id: string;
+  templateId: string;
+  name: string;
+  source: ComponentSource;
+  maximumMarks: string;
+  passingMarks?: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClassSubjectComponentTemplate {
+  id: string;
+  schoolId: string;
+  classId: string;
+  examGroupId: string;
+  class: AcademicClass;
+  examGroup: ExamGroup;
+  definitions: ComponentTemplateDefinition[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AcademicStore {
@@ -440,10 +657,15 @@ interface AcademicStore {
   timetables: Timetable[];
   studentSubjectAllocations: StudentSubjectAllocation[];
   assignments: Assignment[];
+  examGroups: ExamGroup[];
+  gradingSchemes: GradingScheme[];
+  classExamStructures: ClassExamStructure[];
+  reportCardTemplates: ReportCardTemplate[];
   exams: Exam[];
   examMarks: ExamMark[];
-  examComponents: ExamComponent[];
+  examSubjectComponents: ExamSubjectComponent[];
   reportCards: ReportCard[];
+  classComponentTemplates: ClassSubjectComponentTemplate[];
 
   loading: boolean;
 
@@ -499,6 +721,41 @@ interface AcademicStore {
   updateAssignmentStudentStatus: (assignmentId: string, studentId: string, data: UpdateAssignmentStudentPayload) => Promise<void>;
   deleteAssignment: (id: string) => Promise<void>;
 
+  fetchExamGroups: () => Promise<void>;
+  createExamGroup: (data: CreateExamGroupPayload) => Promise<void>;
+  updateExamGroup: (id: string, data: UpdateExamGroupPayload) => Promise<void>;
+  reorderExamGroups: (data: ReorderExamGroupPayload[]) => Promise<void>;
+  deleteExamGroup: (id: string) => Promise<void>;
+
+  fetchGradingSchemes: () => Promise<void>;
+  createGradingScheme: (data: CreateGradingSchemePayload) => Promise<void>;
+  updateGradingScheme: (id: string, data: UpdateGradingSchemePayload) => Promise<void>;
+  deleteGradingScheme: (id: string) => Promise<void>;
+  addGradeBand: (schemeId: string, data: CreateGradeBandPayload) => Promise<void>;
+  updateGradeBand: (bandId: string, data: UpdateGradeBandPayload) => Promise<void>;
+  deleteGradeBand: (bandId: string) => Promise<void>;
+
+  fetchClassExamStructures: () => Promise<void>;
+  fetchClassExamStructureByClass: (classId: string) => Promise<void>;
+  createClassExamStructure: (data: CreateClassExamStructurePayload) => Promise<void>;
+  updateClassExamStructure: (id: string, data: UpdateClassExamStructurePayload) => Promise<void>;
+  deleteClassExamStructure: (id: string) => Promise<void>;
+  replaceClassExamGroupWeights: (id: string, items: ClassExamGroupWeightItem[]) => Promise<void>;
+
+  fetchReportCardTemplates: (classId?: string) => Promise<void>;
+  createReportCardTemplate: (data: CreateReportCardTemplatePayload) => Promise<void>;
+  updateReportCardTemplate: (id: string, data: UpdateReportCardTemplatePayload) => Promise<void>;
+  deleteReportCardTemplate: (id: string) => Promise<void>;
+  replaceReportCardTemplateSections: (id: string, items: ReportCardSectionItem[]) => Promise<void>;
+  replaceReportCardTemplateRemarkFields: (id: string, items: ReportRemarkFieldItem[]) => Promise<void>;
+  replaceReportCardTemplateCoScholasticRows: (id: string, items: ReportCoScholasticRowItem[]) => Promise<void>;
+
+  fetchClassComponentTemplates: (classId?: string) => Promise<void>;
+  fetchClassComponentTemplateByClassAndExamGroup: (classId: string, examGroupId: string) => Promise<void>;
+  createClassComponentTemplate: (data: CreateClassSubjectComponentTemplatePayload) => Promise<void>;
+  deleteClassComponentTemplate: (id: string) => Promise<void>;
+  replaceClassComponentTemplateDefinitions: (id: string, items: ComponentTemplateDefinitionItem[]) => Promise<void>;
+
   fetchExams: () => Promise<void>;
   createExam: (data: CreateExamPayload) => Promise<void>;
   updateExam: (id: string, data: UpdateExamPayload) => Promise<void>;
@@ -507,10 +764,10 @@ interface AcademicStore {
   updateExamSchedule: (scheduleId: string, data: UpdateExamSchedulePayload) => Promise<void>;
   deleteExamSchedule: (scheduleId: string) => Promise<void>;
 
-  fetchExamComponents: (examId: string, scheduleId: string) => Promise<void>;
-  createExamComponent: (examId: string, scheduleId: string, data: CreateExamComponentPayload) => Promise<void>;
-  updateExamComponent: (componentId: string, data: UpdateExamComponentPayload) => Promise<void>;
-  deleteExamComponent: (componentId: string) => Promise<void>;
+  fetchExamSubjectComponents: (examId: string, subjectId?: string) => Promise<void>;
+  createExamSubjectComponent: (examId: string, data: CreateExamSubjectComponentPayload) => Promise<void>;
+  updateExamSubjectComponent: (componentId: string, data: UpdateExamSubjectComponentPayload) => Promise<void>;
+  deleteExamSubjectComponent: (componentId: string) => Promise<void>;
 
   fetchExamMarks: () => Promise<void>;
   createExamMark: (data: CreateExamMarkPayload) => Promise<void>;
@@ -519,13 +776,16 @@ interface AcademicStore {
 
   fetchReportCards: () => Promise<void>;
   fetchReportCardsByStudent: (studentId: string) => Promise<void>;
-  fetchReportCardsByExam: (examId: string) => Promise<void>;
+  fetchReportCardsByExamGroup: (examGroupId: string) => Promise<void>;
   createReportCard: (data: CreateReportCardPayload) => Promise<void>;
   updateReportCard: (id: string, data: UpdateReportCardPayload) => Promise<void>;
   deleteReportCard: (id: string) => Promise<void>;
-  generateExamReportCard: (studentId: string, examId: string, data?: { teacherRemarks?: Record<string, unknown>; reportData?: Record<string, unknown> }) => Promise<void>;
-  generateAnnualReportCard: (studentId: string, sessionId: string, data?: { teacherRemarks?: Record<string, unknown>; reportData?: Record<string, unknown> }) => Promise<void>;
+  generateIndividualReportCard: (studentId: string, examGroupId: string, sessionId: string, data?: { teacherRemarks?: Record<string, unknown> }) => Promise<void>;
+  generateFinalReportCard: (studentId: string, sessionId: string, data?: { teacherRemarks?: Record<string, unknown> }) => Promise<void>;
   publishReportCard: (id: string) => Promise<void>;
+  unpublishReportCard: (id: string) => Promise<void>;
+  updateReportCardManualMarks: (id: string, manualMarks: UpdateManualMarksPayload) => Promise<void>;
+  updateReportCardCoScholasticMarks: (id: string, coScholasticMarks: UpdateCoScholasticMarksPayload) => Promise<void>;
 
   fetchSubjectAttendances: () => Promise<void>;
   createSubjectAttendance: (data: CreateSubjectAttendancePayload) => Promise<void>;
@@ -570,8 +830,13 @@ interface AcademicStore {
   clearStudentEnrollments: () => void;
   clearStudentAttendances: () => void;
   clearAssignments: () => void;
+  clearExamGroups: () => void;
+  clearGradingSchemes: () => void;
+  clearClassExamStructures: () => void;
+  clearReportCardTemplates: () => void;
+  clearClassComponentTemplates: () => void;
   clearExams: () => void;
-  clearExamComponents: () => void;
+  clearExamSubjectComponents: () => void;
   clearExamMarks: () => void;
   clearReportCards: () => void;
   clearSubjectAttendances: () => void;
@@ -594,10 +859,15 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   studentEnrollments: [],
   studentAttendances: [],
   assignments: [],
+  examGroups: [],
+  gradingSchemes: [],
+  classExamStructures: [],
+  reportCardTemplates: [],
   exams: [],
   examMarks: [],
-  examComponents: [],
+  examSubjectComponents: [],
   reportCards: [],
+  classComponentTemplates: [],
   subjectAttendances: [],
   subjectAllocations: [],
   studentSubjectAllocations: [],
@@ -1117,6 +1387,364 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   },
 
   // ======================
+  // Exam Groups
+  // ======================
+
+  fetchExamGroups: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.examGroups.getAll();
+
+      set({
+        examGroups: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch exam groups", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createExamGroup: async (data) => {
+    try {
+      await academicService.examGroups.create(data);
+      await get().fetchExamGroups();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateExamGroup: async (id, data) => {
+    try {
+      await academicService.examGroups.update(id, data);
+      await get().fetchExamGroups();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  reorderExamGroups: async (data) => {
+    const previous = get().examGroups;
+
+    const optimistic = previous.map((g) => {
+      const match = data.find((d) => d.id === g.id);
+      return match ? { ...g, sequence: match.sequence } : g;
+    });
+
+    optimistic.sort((a, b) => (a.isActive === b.isActive ? a.sequence - b.sequence : a.isActive ? -1 : 1));
+
+    set({ examGroups: optimistic });
+
+    try {
+      await academicService.examGroups.reorder(data);
+      await get().fetchExamGroups();
+    } catch (error) {
+      set({ examGroups: previous });
+      throw error;
+    }
+  },
+
+  deleteExamGroup: async (id) => {
+    try {
+      await academicService.examGroups.delete(id);
+      await get().fetchExamGroups();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Grading Schemes
+  // ======================
+
+  fetchGradingSchemes: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.gradingSchemes.getAll();
+
+      set({
+        gradingSchemes: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch grading schemes", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createGradingScheme: async (data) => {
+    try {
+      await academicService.gradingSchemes.create(data);
+      await get().fetchGradingSchemes();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateGradingScheme: async (id, data) => {
+    try {
+      await academicService.gradingSchemes.update(id, data);
+      await get().fetchGradingSchemes();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteGradingScheme: async (id) => {
+    try {
+      await academicService.gradingSchemes.delete(id);
+      await get().fetchGradingSchemes();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  addGradeBand: async (schemeId, data) => {
+    try {
+      await academicService.gradingSchemes.addBand(schemeId, data);
+      await get().fetchGradingSchemes();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateGradeBand: async (bandId, data) => {
+    try {
+      await academicService.gradingSchemes.updateBand(bandId, data);
+      await get().fetchGradingSchemes();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteGradeBand: async (bandId) => {
+    try {
+      await academicService.gradingSchemes.deleteBand(bandId);
+      await get().fetchGradingSchemes();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Class Exam Structures
+  // ======================
+
+  fetchClassExamStructures: async () => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.classExamStructures.getAll();
+
+      set({
+        classExamStructures: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch class exam structures", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchClassExamStructureByClass: async (classId) => {
+    try {
+      const response = await academicService.classExamStructures.getByClass(classId);
+
+      const structure = response.data.data;
+      const others = get().classExamStructures.filter((s) => s.classId !== classId);
+
+      set({
+        classExamStructures: structure ? [...others, structure] : others,
+      });
+    } catch (error) {
+      console.error("Failed to fetch class exam structure", error);
+      throw error;
+    }
+  },
+
+  createClassExamStructure: async (data) => {
+    try {
+      await academicService.classExamStructures.create(data);
+      await get().fetchClassExamStructures();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateClassExamStructure: async (id, data) => {
+    try {
+      await academicService.classExamStructures.update(id, data);
+      await get().fetchClassExamStructures();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteClassExamStructure: async (id) => {
+    try {
+      await academicService.classExamStructures.delete(id);
+      await get().fetchClassExamStructures();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  replaceClassExamGroupWeights: async (id, items) => {
+    try {
+      await academicService.classExamStructures.replaceExamGroupWeights(id, items);
+      await get().fetchClassExamStructures();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Report Card Templates
+  // ======================
+
+  fetchReportCardTemplates: async (classId) => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.reportCardTemplates.getAll(classId);
+
+      set({
+        reportCardTemplates: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch report card templates", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createReportCardTemplate: async (data) => {
+    try {
+      await academicService.reportCardTemplates.create(data);
+      await get().fetchReportCardTemplates(data.classId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateReportCardTemplate: async (id, data) => {
+    try {
+      await academicService.reportCardTemplates.update(id, data);
+      await get().fetchReportCardTemplates();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteReportCardTemplate: async (id) => {
+    try {
+      await academicService.reportCardTemplates.delete(id);
+      await get().fetchReportCardTemplates();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  replaceReportCardTemplateSections: async (id, items) => {
+    try {
+      await academicService.reportCardTemplates.replaceSections(id, items);
+      await get().fetchReportCardTemplates();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  replaceReportCardTemplateRemarkFields: async (id, items) => {
+    try {
+      await academicService.reportCardTemplates.replaceRemarkFields(id, items);
+      await get().fetchReportCardTemplates();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  replaceReportCardTemplateCoScholasticRows: async (id, items) => {
+    try {
+      await academicService.reportCardTemplates.replaceCoScholasticRows(id, items);
+      await get().fetchReportCardTemplates();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
+  // Class Component Templates (CBSE grade-level marks structure)
+  // ======================
+
+  fetchClassComponentTemplates: async (classId) => {
+    try {
+      set({ loading: true });
+
+      const response = await academicService.classComponentTemplates.getAll(classId);
+
+      set({
+        classComponentTemplates: response.data.data ?? [],
+      });
+    } catch (error) {
+      console.error("Failed to fetch class component templates", error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchClassComponentTemplateByClassAndExamGroup: async (classId, examGroupId) => {
+    try {
+      const response = await academicService.classComponentTemplates.getByClassAndExamGroup(classId, examGroupId);
+
+      const template = response.data.data;
+      const others = get().classComponentTemplates.filter((t) => !(t.classId === classId && t.examGroupId === examGroupId));
+
+      set({
+        classComponentTemplates: template ? [...others, template] : others,
+      });
+    } catch (error) {
+      if ((error as AxiosError)?.response?.status !== 404) {
+        console.error("Failed to fetch class component template", error);
+      }
+      throw error;
+    }
+  },
+
+  createClassComponentTemplate: async (data) => {
+    try {
+      await academicService.classComponentTemplates.create(data);
+      await get().fetchClassComponentTemplates(data.classId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteClassComponentTemplate: async (id) => {
+    try {
+      await academicService.classComponentTemplates.delete(id);
+      await get().fetchClassComponentTemplates();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  replaceClassComponentTemplateDefinitions: async (id, items) => {
+    try {
+      await academicService.classComponentTemplates.replaceDefinitions(id, items);
+      await get().fetchClassComponentTemplates();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ======================
   // Exams
   // ======================
 
@@ -1164,41 +1792,41 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     }
   },
 
-  fetchExamComponents: async (examId, scheduleId) => {
+  fetchExamSubjectComponents: async (examId, subjectId) => {
     try {
-      const response = await academicService.exams.getComponents(examId, scheduleId);
+      const response = await academicService.exams.getSubjectComponents(examId, subjectId);
 
       set({
-        examComponents: response.data.data ?? [],
+        examSubjectComponents: response.data.data ?? [],
       });
     } catch (error) {
-      console.error("Failed to fetch exam components", error);
+      console.error("Failed to fetch exam subject components", error);
       throw error;
     }
   },
 
-  createExamComponent: async (examId, scheduleId, data) => {
+  createExamSubjectComponent: async (examId, data) => {
     try {
-      await academicService.exams.createComponent(examId, scheduleId, data);
-      await get().fetchExamComponents(examId, scheduleId);
+      await academicService.exams.createSubjectComponent(examId, data);
+      await get().fetchExamSubjectComponents(examId);
       await get().fetchExams();
     } catch (error) {
       throw error;
     }
   },
 
-  updateExamComponent: async (componentId, data) => {
+  updateExamSubjectComponent: async (componentId, data) => {
     try {
-      await academicService.exams.updateComponent(componentId, data);
+      await academicService.exams.updateSubjectComponent(componentId, data);
       await get().fetchExams();
     } catch (error) {
       throw error;
     }
   },
 
-  deleteExamComponent: async (componentId) => {
+  deleteExamSubjectComponent: async (componentId) => {
     try {
-      await academicService.exams.deleteComponent(componentId);
+      await academicService.exams.deleteSubjectComponent(componentId);
       await get().fetchExams();
     } catch (error) {
       throw error;
@@ -1314,15 +1942,15 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     }
   },
 
-  fetchReportCardsByExam: async (examId) => {
+  fetchReportCardsByExamGroup: async (examGroupId) => {
     try {
-      const response = await academicService.reportCards.getByExam(examId);
+      const response = await academicService.reportCards.getByExamGroup(examGroupId);
 
       set({
         reportCards: response.data.data ?? [],
       });
     } catch (error) {
-      console.error("Failed to fetch exam report cards", error);
+      console.error("Failed to fetch exam group report cards", error);
       throw error;
     }
   },
@@ -1354,18 +1982,18 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     }
   },
 
-  generateExamReportCard: async (studentId, examId, data) => {
+  generateIndividualReportCard: async (studentId, examGroupId, sessionId, data) => {
     try {
-      await academicService.reportCards.generateExam(studentId, examId, data);
+      await academicService.reportCards.generateIndividual(studentId, examGroupId, sessionId, data);
       await get().fetchReportCards();
     } catch (error) {
       throw error;
     }
   },
 
-  generateAnnualReportCard: async (studentId, sessionId, data) => {
+  generateFinalReportCard: async (studentId, sessionId, data) => {
     try {
-      await academicService.reportCards.generateAnnual(studentId, sessionId, data);
+      await academicService.reportCards.generateFinal(studentId, sessionId, data);
       await get().fetchReportCards();
     } catch (error) {
       throw error;
@@ -1375,6 +2003,33 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   publishReportCard: async (id) => {
     try {
       await academicService.reportCards.publish(id);
+      await get().fetchReportCards();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  unpublishReportCard: async (id) => {
+    try {
+      await academicService.reportCards.unpublish(id);
+      await get().fetchReportCards();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateReportCardManualMarks: async (id, manualMarks) => {
+    try {
+      await academicService.reportCards.updateManualMarks(id, manualMarks);
+      await get().fetchReportCards();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateReportCardCoScholasticMarks: async (id, coScholasticMarks) => {
+    try {
+      await academicService.reportCards.updateCoScholasticMarks(id, coScholasticMarks);
       await get().fetchReportCards();
     } catch (error) {
       throw error;
@@ -1749,14 +2404,39 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
       assignments: [],
     }),
 
+  clearExamGroups: () =>
+    set({
+      examGroups: [],
+    }),
+
+  clearGradingSchemes: () =>
+    set({
+      gradingSchemes: [],
+    }),
+
+  clearClassExamStructures: () =>
+    set({
+      classExamStructures: [],
+    }),
+
+  clearReportCardTemplates: () =>
+    set({
+      reportCardTemplates: [],
+    }),
+
+  clearClassComponentTemplates: () =>
+    set({
+      classComponentTemplates: [],
+    }),
+
   clearExams: () =>
     set({
       exams: [],
     }),
 
-  clearExamComponents: () =>
+  clearExamSubjectComponents: () =>
     set({
-      examComponents: [],
+      examSubjectComponents: [],
     }),
 
   clearExamMarks: () =>

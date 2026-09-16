@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ClipboardCheck, Search, Save, RotateCcw, ShieldAlert } from "lucide-react";
-import { useAcademicStore, Exam, ExamSchedule, ExamComponent } from "@/store/academicStore";
+import { useAcademicStore, Exam, ExamSchedule, ExamSubjectComponent } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +19,12 @@ type ApiErrorResponse = {
   message?: string;
   errors?: Record<string, string>;
 };
+
+interface MarkEntry {
+  marksObtained: string;
+  remarks: string;
+  isAbsent: boolean;
+}
 
 export default function ExamMarksPage() {
   const {
@@ -43,7 +50,7 @@ export default function ExamMarksPage() {
   const [scheduleId, setScheduleId] = useState("");
   const [componentId, setComponentId] = useState("");
   const [search, setSearch] = useState("");
-  const [marks, setMarks] = useState<Record<string, { marksObtained: string; remarks: string }>>({});
+  const [marks, setMarks] = useState<Record<string, MarkEntry>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -51,7 +58,6 @@ export default function ExamMarksPage() {
     fetchStudents();
     fetchStudentEnrollments();
     fetchExamMarks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selectedExam = useMemo<Exam | null>(() => {
@@ -67,14 +73,13 @@ export default function ExamMarksPage() {
   const selectedSchedule = useMemo<ExamSchedule | null>(() => {
     return schedules.find((schedule) => schedule.id === scheduleId) ?? null;
   }, [schedules, scheduleId]);
-
-  const components = useMemo<ExamComponent[]>(() => {
+  const components = useMemo<ExamSubjectComponent[]>(() => {
     if (!selectedSchedule) return [];
 
     return [...(selectedSchedule.components ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
   }, [selectedSchedule]);
 
-  const selectedComponent = useMemo<ExamComponent | null>(() => {
+  const selectedComponent = useMemo<ExamSubjectComponent | null>(() => {
     return components.find((component) => component.id === componentId) ?? null;
   }, [components, componentId]);
 
@@ -114,7 +119,7 @@ export default function ExamMarksPage() {
   const scheduleMarks = useMemo(() => {
     if (!selectedSchedule || !selectedComponent) return [];
 
-    return examMarks.filter((mark) => mark.examScheduleId === selectedSchedule.id && mark.examComponentId === selectedComponent.id);
+    return examMarks.filter((mark) => mark.examScheduleId === selectedSchedule.id && mark.examSubjectComponentId === selectedComponent.id);
   }, [examMarks, selectedSchedule, selectedComponent]);
 
   useEffect(() => {
@@ -123,7 +128,7 @@ export default function ExamMarksPage() {
       return;
     }
 
-    const nextMarks: Record<string, { marksObtained: string; remarks: string }> = {};
+    const nextMarks: Record<string, MarkEntry> = {};
 
     eligibleStudents.forEach((student) => {
       const existing = scheduleMarks.find((mark) => mark.studentId === student.id);
@@ -131,6 +136,7 @@ export default function ExamMarksPage() {
       nextMarks[student.id] = {
         marksObtained: existing?.marksObtained !== undefined && existing?.marksObtained !== null ? String(existing.marksObtained) : "",
         remarks: existing?.remarks ?? "",
+        isAbsent: existing?.isAbsent ?? false,
       };
     });
 
@@ -160,24 +166,35 @@ export default function ExamMarksPage() {
     setSearch("");
   };
 
-  const updateStudentMark = (studentId: string, field: "marksObtained" | "remarks", value: string) => {
-    setMarks((previous) => ({
-      ...previous,
-      [studentId]: {
-        ...(previous[studentId] ?? {
-          marksObtained: "",
-          remarks: "",
-        }),
-        [field]: value,
-      },
-    }));
+  const updateStudentMark = (studentId: string, field: keyof MarkEntry, value: string | boolean) => {
+    setMarks((previous) => {
+      const current = previous[studentId] ?? {
+        marksObtained: "",
+        remarks: "",
+        isAbsent: false,
+      };
+
+      const next: MarkEntry = { ...current, [field]: value };
+      if (field === "isAbsent" && value === true) {
+        next.marksObtained = "";
+      }
+
+      return {
+        ...previous,
+        [studentId]: next,
+      };
+    });
   };
 
   const validateMarks = () => {
     if (!selectedSchedule || !selectedComponent) return false;
 
     for (const student of eligibleStudents) {
-      const value = marks[student.id]?.marksObtained ?? "";
+      const entry = marks[student.id];
+
+      if (!entry || entry.isAbsent) continue;
+
+      const value = entry.marksObtained ?? "";
 
       if (!value.trim()) continue;
 
@@ -218,34 +235,39 @@ export default function ExamMarksPage() {
     let skippedForPermission = 0;
 
     for (const student of eligibleStudents) {
-      const value = marks[student.id]?.marksObtained ?? "";
-      const remarks = marks[student.id]?.remarks?.trim() || undefined;
+      const entry = marks[student.id] ?? {
+        marksObtained: "",
+        remarks: "",
+        isAbsent: false,
+      };
 
-      if (!value.trim()) continue;
+      const value = entry.marksObtained ?? "";
+      const remarks = entry.remarks?.trim() || undefined;
+      const isAbsent = entry.isAbsent;
+
+      if (!value.trim() && !isAbsent) continue;
 
       const existing = existingMarks.get(student.id);
 
+      const payload = {
+        examScheduleId: selectedSchedule.id,
+        examSubjectComponentId: selectedComponent.id,
+        marksObtained: isAbsent ? undefined : Number(value),
+        isAbsent,
+        remarks,
+      };
+
       if (existing) {
         if (canUpdate) {
-          tasks.push(
-            updateExamMark(existing.id, {
-              examScheduleId: selectedSchedule.id,
-              examComponentId: selectedComponent.id,
-              marksObtained: Number(value),
-              remarks,
-            })
-          );
+          tasks.push(updateExamMark(existing.id, payload));
         } else {
           skippedForPermission += 1;
         }
       } else if (canEnter) {
         tasks.push(
           createExamMark({
-            examScheduleId: selectedSchedule.id,
-            examComponentId: selectedComponent.id,
+            ...payload,
             studentId: student.id,
-            marksObtained: Number(value),
-            remarks,
           })
         );
       } else {
@@ -305,7 +327,10 @@ export default function ExamMarksPage() {
 
   const passedCount = selectedComponent
     ? eligibleStudents.filter((student) => {
-        const raw = marks[student.id]?.marksObtained ?? "";
+        const entry = marks[student.id];
+        if (!entry || entry.isAbsent) return false;
+
+        const raw = entry.marksObtained ?? "";
         if (!raw.trim()) return false;
 
         const value = Number(raw);
@@ -314,7 +339,14 @@ export default function ExamMarksPage() {
       }).length
     : 0;
 
-  const enteredCount = selectedSchedule ? eligibleStudents.filter((student) => marks[student.id]?.marksObtained?.trim() !== "").length : 0;
+  const absentCount = selectedSchedule ? eligibleStudents.filter((student) => marks[student.id]?.isAbsent).length : 0;
+
+  const enteredCount = selectedSchedule
+    ? eligibleStudents.filter((student) => {
+        const entry = marks[student.id];
+        return entry?.isAbsent || entry?.marksObtained?.trim() !== "";
+      }).length
+    : 0;
 
   const canEdit = canEnter || canUpdate;
 
@@ -406,7 +438,11 @@ export default function ExamMarksPage() {
                   </SelectContent>
                 </Select>
 
-                {components.length === 0 && <p className="mt-2 text-xs text-muted-foreground">No exam components have been configured for this schedule yet.</p>}
+                {components.length === 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    No exam components have been configured for this subject yet — set them up once from the Exams page (they&apos;ll apply to every section automatically).
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -472,6 +508,7 @@ export default function ExamMarksPage() {
                 {selectedSchedule && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     {enteredCount} entered
+                    {absentCount > 0 && ` • ${absentCount} absent`}
                     {selectedComponent?.passingMarks !== undefined && ` • ${passedCount} passed`}
                   </p>
                 )}
@@ -542,13 +579,14 @@ export default function ExamMarksPage() {
               )}
 
               <div className="overflow-x-auto">
-                <table className="w-full min-w-190 text-sm">
+                <table className="w-full min-w-215 text-sm">
                   <thead className="sticky top-0 z-10 bg-card">
                     <tr className="border-b bg-muted/10 text-left">
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">S no.</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Student</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Admission No.</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Marks</th>
+                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Absent</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Result</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Remarks</th>
                     </tr>
@@ -559,10 +597,11 @@ export default function ExamMarksPage() {
                       const current = marks[student.id] ?? {
                         marksObtained: "",
                         remarks: "",
+                        isAbsent: false,
                       };
 
                       const numericMarks = current.marksObtained.trim() ? Number(current.marksObtained) : null;
-                      const hasMarks = numericMarks !== null && !Number.isNaN(numericMarks);
+                      const hasMarks = !current.isAbsent && numericMarks !== null && !Number.isNaN(numericMarks);
                       const isPassed = hasMarks && selectedComponent?.passingMarks !== undefined && numericMarks >= Number(selectedComponent.passingMarks);
 
                       return (
@@ -584,7 +623,7 @@ export default function ExamMarksPage() {
                               max={Number(selectedComponent.maximumMarks)}
                               step="1"
                               value={current.marksObtained}
-                              disabled={!canEdit}
+                              disabled={!canEdit || current.isAbsent}
                               onChange={(e) => {
                                 const value = e.target.value;
                                 if (value !== "" && Number(value) < 0) {
@@ -595,13 +634,24 @@ export default function ExamMarksPage() {
                                 }
                                 updateStudentMark(student.id, "marksObtained", value);
                               }}
-                              placeholder={`0 - ${selectedComponent.maximumMarks}`}
+                              placeholder={current.isAbsent ? "Absent" : `0 - ${selectedComponent.maximumMarks}`}
                               className="h-10 w-32"
                             />
                           </td>
 
                           <td className="px-4 py-3">
-                            {hasMarks && selectedComponent.passingMarks !== undefined ? (
+                            <Checkbox
+                              checked={current.isAbsent}
+                              disabled={!canEdit}
+                              onCheckedChange={(value) => updateStudentMark(student.id, "isAbsent", Boolean(value))}
+                              aria-label={`Mark ${student.firstName} ${student.lastName} absent`}
+                            />
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {current.isAbsent ? (
+                              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Absent</span>
+                            ) : hasMarks && selectedComponent.passingMarks !== undefined ? (
                               <span
                                 className={cn(
                                   "rounded-full px-2.5 py-1 text-xs font-semibold",
@@ -634,7 +684,7 @@ export default function ExamMarksPage() {
 
               {canEdit && (
                 <div className="flex items-center justify-end gap-3 border-t px-4 py-4 sm:px-6">
-                  <p className="mr-auto hidden text-xs text-muted-foreground sm:block">Empty marks will not create a mark record.</p>
+                  <p className="mr-auto hidden text-xs text-muted-foreground sm:block">Rows left blank and not marked absent will not create a mark record.</p>
 
                   <Button type="button" onClick={handleSave} disabled={saving || loading} className="min-w-32">
                     {saving ? (

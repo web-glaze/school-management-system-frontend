@@ -8,9 +8,11 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Calendar as CalendarIcon, Clock, ClipboardList, ListChecks, Loader2, MoreVertical, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useAcademicStore, Exam, ExamComponent, ExamSchedule } from "@/store/academicStore";
+import { useAcademicStore, Exam, ExamGroup, ExamSchedule } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -27,23 +29,12 @@ type ApiErrorResponse = {
   errors?: Record<string, string>;
 };
 
-type ExamTypeT = "UNIT_TEST" | "MID_TERM" | "ANNUAL" | "PRACTICAL";
 type ExamStatusT = "DRAFT" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
 type ExamShiftT = "MORNING" | "AFTERNOON";
 
 interface StoredUser {
   teacherId?: string | null;
 }
-
-const EXAM_TYPE_OPTIONS: {
-  value: ExamTypeT;
-  label: string;
-}[] = [
-  { value: "UNIT_TEST", label: "Unit Test" },
-  { value: "MID_TERM", label: "Mid Term" },
-  { value: "ANNUAL", label: "Annual" },
-  { value: "PRACTICAL", label: "Practical" },
-];
 
 const EXAM_STATUS_OPTIONS: {
   value: ExamStatusT;
@@ -140,10 +131,6 @@ function buildTimeValue(hour: number, minute: number, period: "AM" | "PM") {
   if (period === "PM") hour24 += 12;
 
   return `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
-function typeLabel(type: ExamTypeT) {
-  return EXAM_TYPE_OPTIONS.find((item) => item.value === type)?.label ?? type;
 }
 
 function statusLabel(status: ExamStatusT) {
@@ -264,23 +251,38 @@ export default function ExamsPage() {
   const {
     loading,
     sessions,
+    subjects,
     subjectAllocations,
+    examGroups,
     exams,
 
     fetchSessions,
+    fetchSubjects,
     fetchSubjectAllocations,
+    fetchExamGroups,
     fetchExams,
 
     createExam,
     updateExam,
     deleteExam,
 
+    createExamGroup,
+    updateExamGroup,
+    deleteExamGroup,
+
     createExamSchedule,
     updateExamSchedule,
     deleteExamSchedule,
-    createExamComponent,
-    updateExamComponent,
-    deleteExamComponent,
+
+    createExamSubjectComponent,
+    updateExamSubjectComponent,
+    deleteExamSubjectComponent,
+
+    classComponentTemplates,
+    fetchClassComponentTemplateByClassAndExamGroup,
+    createClassComponentTemplate,
+    deleteClassComponentTemplate,
+    replaceClassComponentTemplateDefinitions,
   } = useAcademicStore();
 
   const authorized = usePermission("exam.read");
@@ -309,6 +311,8 @@ export default function ExamsPage() {
     if (!userChecked) return;
 
     fetchSessions();
+    fetchSubjects();
+    fetchExamGroups();
     fetchExams();
     fetchSubjectAllocations();
   }, [userChecked]);
@@ -318,6 +322,16 @@ export default function ExamsPage() {
 
     return active?.id ?? sessions[0]?.id ?? "";
   }, [sessions]);
+
+  const sortedExamGroups = useMemo(() => [...examGroups].sort((a, b) => a.sequence - b.sequence), [examGroups]);
+
+  const activeExamGroupId = useMemo(() => {
+    const active = sortedExamGroups.find((group) => group.isActive);
+
+    return active?.id ?? sortedExamGroups[0]?.id ?? "";
+  }, [sortedExamGroups]);
+
+  const examGroupLabel = (id: string) => examGroups.find((group) => group.id === id)?.name ?? "—";
 
   const teacherAllocations = useMemo(() => {
     if (!myTeacherId) return [];
@@ -334,7 +348,7 @@ export default function ExamsPage() {
   const visibleExams = useMemo(() => {
     return exams
       .filter((exam) => {
-        const matchesSearch = exam.name.toLowerCase().includes(search.toLowerCase()) || typeLabel(exam.type).toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = exam.name.toLowerCase().includes(search.toLowerCase()) || examGroupLabel(exam.examGroupId).toLowerCase().includes(search.toLowerCase());
 
         const matchesStatus = statusFilter === "ALL" || exam.status === statusFilter;
 
@@ -352,12 +366,12 @@ export default function ExamsPage() {
 
         return second - first;
       });
-  }, [exams, search, statusFilter, sessionFilter, isTeacherView, teacherAllocationIds]);
+  }, [exams, search, statusFilter, sessionFilter, isTeacherView, teacherAllocationIds, examGroups]);
 
   const [addOpen, setAddOpen] = useState(false);
   const [addSessionId, setAddSessionId] = useState("");
   const [addName, setAddName] = useState("");
-  const [addType, setAddType] = useState<ExamTypeT>("UNIT_TEST");
+  const [addExamGroupId, setAddExamGroupId] = useState("");
   const [addStartDate, setAddStartDate] = useState(todayStr());
   const [addEndDate, setAddEndDate] = useState(todayStr());
   const [addDescription, setAddDescription] = useState("");
@@ -367,7 +381,7 @@ export default function ExamsPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
   const [editName, setEditName] = useState("");
-  const [editType, setEditType] = useState<ExamTypeT>("UNIT_TEST");
+  const [editExamGroupId, setEditExamGroupId] = useState("");
   const [editStartDate, setEditStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -439,17 +453,61 @@ export default function ExamsPage() {
   const [detailScheduleDeleteOpen, setDetailScheduleDeleteOpen] = useState(false);
   const [deletingSchedule, setDeletingSchedule] = useState<ExamSchedule | null>(null);
 
+  // Exam Groups manager (Unit Test, Mid-Term, End-Term, Pre-Board I, ...).
+  // Lives inside this page instead of as a separate settings page.
+  const [examGroupManagerOpen, setExamGroupManagerOpen] = useState(false);
+  const [editingExamGroup, setEditingExamGroup] = useState<ExamGroup | null>(null);
+  const [egName, setEgName] = useState("");
+  const [egCode, setEgCode] = useState("");
+  const [egSequence, setEgSequence] = useState("1");
+  const [egIsActive, setEgIsActive] = useState(true);
+  const [egDeleteOpen, setEgDeleteOpen] = useState(false);
+  const [deletingExamGroup, setDeletingExamGroup] = useState<ExamGroup | null>(null);
+
+  // Exam-subject component setup (Theory / Practical / Enrichment / ...)
+  // for CIE / General classes. Scoped to (examId, subjectId) — defined
+  // once, applies automatically to every section that has a schedule for
+  // that subject in this exam. CBSE classes never use this — see the
+  // Class Component Template manager below instead.
   const [componentOpen, setComponentOpen] = useState(false);
-  const [componentSchedule, setComponentSchedule] = useState<ExamSchedule | null>(null);
-  const [editingComponent, setEditingComponent] = useState<ExamComponent | null>(null);
+  const [componentContext, setComponentContext] = useState<{
+    examId: string;
+    subjectId: string;
+    subjectName: string;
+  } | null>(null);
+  const [editingComponent, setEditingComponent] = useState<{ id: string } | null>(null);
   const [componentName, setComponentName] = useState("");
   const [componentCode, setComponentCode] = useState("");
   const [componentMaximumMarks, setComponentMaximumMarks] = useState("");
   const [componentPassingMarks, setComponentPassingMarks] = useState("");
   const [componentWeightage, setComponentWeightage] = useState("");
   const [componentDisplayOrder, setComponentDisplayOrder] = useState("1");
+  const [componentIsOptionalSubject, setComponentIsOptionalSubject] = useState(false);
   const [componentDeleteOpen, setComponentDeleteOpen] = useState(false);
-  const [deletingComponent, setDeletingComponent] = useState<ExamComponent | null>(null);
+  const [deletingComponent, setDeletingComponent] = useState<{ id: string } | null>(null);
+
+  // CBSE grade-level marks structure (Theory/Practical/etc.) — set up once
+  // per class + exam group, applies to every subject/section/session
+  // automatically. This replaces per-subject component setup for CBSE.
+  const [componentTemplateOpen, setComponentTemplateOpen] = useState(false);
+  const [componentTemplateContext, setComponentTemplateContext] = useState<{
+    classId: string;
+    className: string;
+    examGroupId: string;
+    examGroupName: string;
+  } | null>(null);
+  const [componentTemplateDefRows, setComponentTemplateDefRows] = useState<
+    { name: string; source: "FETCHED" | "MANUAL"; maximumMarks: string; passingMarks: string; displayOrder: number }[]
+  >([]);
+  const [savingComponentTemplate, setSavingComponentTemplate] = useState(false);
+  const [componentTemplateDeleteOpen, setComponentTemplateDeleteOpen] = useState(false);
+
+  const existingComponentTemplate = useMemo(() => {
+    if (!componentTemplateContext) return null;
+
+    return classComponentTemplates.find((t) => t.classId === componentTemplateContext.classId && t.examGroupId === componentTemplateContext.examGroupId) ?? null;
+  }, [classComponentTemplates, componentTemplateContext]);
+
   const availableAllocations = useMemo(() => {
     if (!detailExam) return [];
 
@@ -465,7 +523,7 @@ export default function ExamsPage() {
   const resetAddForm = () => {
     setAddSessionId(activeSessionId);
     setAddName("");
-    setAddType("UNIT_TEST");
+    setAddExamGroupId(activeExamGroupId);
     setAddStartDate(todayStr());
     setAddEndDate(todayStr());
     setAddDescription("");
@@ -488,6 +546,25 @@ export default function ExamsPage() {
     setScheduleStartTime("");
     setScheduleEndTime("");
     setScheduleRoom("");
+  };
+
+  const resetExamGroupForm = () => {
+    setEditingExamGroup(null);
+    setEgName("");
+    setEgCode("");
+    setEgSequence(String(examGroups.length + 1));
+    setEgIsActive(true);
+  };
+
+  const resetComponentForm = () => {
+    setEditingComponent(null);
+    setComponentName("");
+    setComponentCode("");
+    setComponentMaximumMarks("");
+    setComponentPassingMarks("");
+    setComponentWeightage("");
+    setComponentDisplayOrder("1");
+    setComponentIsOptionalSubject(false);
   };
 
   const openDetail = (exam: Exam) => {
@@ -519,6 +596,14 @@ export default function ExamsPage() {
       return;
     }
 
+    if (!addExamGroupId) {
+      setFormErrors((prev) => ({
+        ...prev,
+        examGroupId: "Exam group is required",
+      }));
+      return;
+    }
+
     if (addEndDate < addStartDate) {
       setFormErrors((prev) => ({
         ...prev,
@@ -531,7 +616,7 @@ export default function ExamsPage() {
       await createExam({
         sessionId: addSessionId,
         name: addName.trim(),
-        type: addType,
+        examGroupId: addExamGroupId,
         startDate: addStartDate,
         endDate: addEndDate,
         description: addDescription.trim() || undefined,
@@ -557,7 +642,7 @@ export default function ExamsPage() {
   const openEditExam = (exam: Exam) => {
     setEditingExam(exam);
     setEditName(exam.name);
-    setEditType(exam.type);
+    setEditExamGroupId(exam.examGroupId);
     setEditStartDate(toDateInputValue(exam.startDate));
     setEditEndDate(toDateInputValue(exam.endDate));
     setEditDescription(exam.description ?? "");
@@ -575,6 +660,11 @@ export default function ExamsPage() {
       return;
     }
 
+    if (!editExamGroupId) {
+      toast.error("Exam group is required");
+      return;
+    }
+
     if (editEndDate < editStartDate) {
       toast.error("End date cannot be before start date");
       return;
@@ -583,7 +673,7 @@ export default function ExamsPage() {
     try {
       await updateExam(editingExam.id, {
         name: editName.trim(),
-        type: editType,
+        examGroupId: editExamGroupId,
         startDate: editStartDate,
         endDate: editEndDate,
         description: editDescription.trim() || undefined,
@@ -693,7 +783,7 @@ export default function ExamsPage() {
     } catch (error) {
       const err = error as AxiosError<ApiErrorResponse>;
 
-      toast.error(err.response?.data?.message || "Failed to save exam schedule");
+      toast.error(err.response?.data?.message || "Failed to save exam schedule. If this is a CBSE class, make sure its marks structure is set up first.");
     }
   };
 
@@ -719,30 +809,119 @@ export default function ExamsPage() {
     }
   };
 
-  const resetComponentForm = () => {
-    setEditingComponent(null);
-    setComponentName("");
-    setComponentCode("");
-    setComponentMaximumMarks("");
-    setComponentPassingMarks("");
-    setComponentWeightage("");
-    setComponentDisplayOrder("1");
+  // ---------------------------------------------------------
+  // Exam Groups manager
+  // ---------------------------------------------------------
+
+  const openEditExamGroup = (group: ExamGroup) => {
+    setEditingExamGroup(group);
+    setEgName(group.name);
+    setEgCode(group.code ?? "");
+    setEgSequence(String(group.sequence));
+    setEgIsActive(group.isActive);
   };
 
-  const openComponentManager = async (schedule: ExamSchedule) => {
-    setComponentSchedule(schedule);
-    resetComponentForm();
-    try {
-      await useAcademicStore.getState().fetchExamComponents(schedule.examId, schedule.id);
-    } catch (error) {
-      const err = error as AxiosError<ApiErrorResponse>;
-      toast.error(err.response?.data?.message || "Failed to load exam components");
+  const handleSaveExamGroup = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!egName.trim()) {
+      toast.error("Exam group name is required");
       return;
     }
+
+    const sequence = Number(egSequence);
+
+    if (Number.isNaN(sequence) || sequence < 1) {
+      toast.error("Sequence must be a positive number");
+      return;
+    }
+
+    try {
+      if (editingExamGroup) {
+        await updateExamGroup(editingExamGroup.id, {
+          name: egName.trim(),
+          code: egCode.trim() || undefined,
+          sequence,
+          isActive: egIsActive,
+        });
+
+        toast.success("Exam group updated");
+      } else {
+        await createExamGroup({
+          name: egName.trim(),
+          code: egCode.trim() || undefined,
+          sequence,
+          isActive: egIsActive,
+        });
+
+        toast.success("Exam group created");
+      }
+
+      resetExamGroupForm();
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+
+      toast.error(err.response?.data?.message || "Failed to save exam group");
+    }
+  };
+
+  const openDeleteExamGroup = (group: ExamGroup) => {
+    setDeletingExamGroup(group);
+    setEgDeleteOpen(true);
+  };
+
+  const handleDeleteExamGroup = async () => {
+    if (!deletingExamGroup) return;
+
+    try {
+      await deleteExamGroup(deletingExamGroup.id);
+
+      toast.success("Exam group deleted");
+
+      setEgDeleteOpen(false);
+      setDeletingExamGroup(null);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+
+      toast.error(err.response?.data?.message || "Failed to delete exam group");
+    }
+  };
+
+  // ---------------------------------------------------------
+  // Exam subject component manager (CIE / General classes only)
+  // ---------------------------------------------------------
+
+  const openComponentManager = (schedule: ExamSchedule) => {
+    setComponentContext({
+      examId: schedule.examId,
+      subjectId: schedule.subjectAllocation.subjectId,
+      subjectName: schedule.subjectAllocation.subject.name,
+    });
+    resetComponentForm();
     setComponentOpen(true);
   };
 
-  const openEditComponent = (component: ExamComponent) => {
+  const componentList = useMemo(() => {
+    if (!detailExam || !componentContext) return [];
+
+    return [...(detailExam.subjectComponents ?? [])].filter((c) => c.subjectId === componentContext.subjectId).sort((a, b) => a.displayOrder - b.displayOrder);
+  }, [detailExam, componentContext]);
+
+  // How many sections currently have a schedule for this subject in this
+  // exam — i.e. how many sections instantly inherit whatever is set up here.
+  const componentSubjectScheduleCount = useMemo(() => {
+    if (!detailExam || !componentContext) return 0;
+
+    return (detailExam.schedules ?? []).filter((schedule) => schedule.subjectAllocation.subjectId === componentContext.subjectId).length;
+  }, [detailExam, componentContext]);
+
+  const componentSubjectIsOptional = useMemo(() => {
+    if (!componentContext) return false;
+
+    return subjects.find((subject) => subject.id === componentContext.subjectId)?.isOptional ?? false;
+  }, [subjects, componentContext]);
+
+  const openEditComponent = (component: { id: string; name: string; code?: string; maximumMarks: string; passingMarks?: string; weightage?: string; displayOrder: number; isOptionalSubject: boolean }) => {
     setEditingComponent(component);
     setComponentName(component.name);
     setComponentCode(component.code ?? "");
@@ -750,12 +929,13 @@ export default function ExamsPage() {
     setComponentPassingMarks(component.passingMarks != null ? String(component.passingMarks) : "");
     setComponentWeightage(component.weightage != null ? String(component.weightage) : "");
     setComponentDisplayOrder(String(component.displayOrder ?? 1));
+    setComponentIsOptionalSubject(component.isOptionalSubject);
   };
 
   const handleSaveComponent = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!componentSchedule) return;
+    if (!componentContext) return;
 
     if (!componentName.trim()) {
       toast.error("Component name is required");
@@ -787,26 +967,34 @@ export default function ExamsPage() {
       return;
     }
 
-    const payload = {
-      examScheduleId: componentSchedule.id,
-      name: componentName.trim(),
-      code: componentCode.trim() || undefined,
-      maximumMarks,
-      passingMarks,
-      weightage,
-      displayOrder,
-    };
-
     try {
       if (editingComponent) {
-        await updateExamComponent(editingComponent.id, payload);
+        await updateExamSubjectComponent(editingComponent.id, {
+          name: componentName.trim(),
+          code: componentCode.trim() || undefined,
+          maximumMarks,
+          passingMarks,
+          weightage,
+          displayOrder,
+          isOptionalSubject: componentIsOptionalSubject,
+        });
+
         toast.success("Exam component updated");
       } else {
-        await createExamComponent(componentSchedule.examId, componentSchedule.id, payload);
-        toast.success("Exam component added");
+        await createExamSubjectComponent(componentContext.examId, {
+          subjectId: componentContext.subjectId,
+          name: componentName.trim(),
+          code: componentCode.trim() || undefined,
+          maximumMarks,
+          passingMarks,
+          weightage,
+          displayOrder,
+          isOptionalSubject: componentIsOptionalSubject,
+        });
+
+        toast.success("Exam component added — it now applies to every section taking this subject");
       }
 
-      await useAcademicStore.getState().fetchExamComponents(componentSchedule.examId, componentSchedule.id);
       await fetchExams();
       resetComponentForm();
     } catch (error) {
@@ -815,21 +1003,20 @@ export default function ExamsPage() {
     }
   };
 
-  const openDeleteComponent = (component: ExamComponent) => {
+  const openDeleteComponent = (component: { id: string }) => {
     setDeletingComponent(component);
     setComponentDeleteOpen(true);
   };
 
   const handleDeleteComponent = async () => {
-    if (!deletingComponent || !componentSchedule) return;
+    if (!deletingComponent) return;
 
     try {
-      await deleteExamComponent(deletingComponent.id);
+      await deleteExamSubjectComponent(deletingComponent.id);
       toast.success("Exam component deleted");
       setComponentDeleteOpen(false);
       setDeletingComponent(null);
 
-      await useAcademicStore.getState().fetchExamComponents(componentSchedule.examId, componentSchedule.id);
       await fetchExams();
     } catch (error) {
       const err = error as AxiosError<ApiErrorResponse>;
@@ -837,12 +1024,138 @@ export default function ExamsPage() {
     }
   };
 
-  const activeComponentSchedule = useMemo(() => {
-    if (!componentSchedule || !detailExam) return componentSchedule;
-    return (detailExam.schedules ?? []).find((schedule) => schedule.id === componentSchedule.id) ?? componentSchedule;
-  }, [componentSchedule, detailExam]);
+  // ---------------------------------------------------------
+  // CBSE grade-level component template manager
+  // ---------------------------------------------------------
 
-  const componentList = activeComponentSchedule?.components ? [...activeComponentSchedule.components].sort((a, b) => a.displayOrder - b.displayOrder) : [];
+  const openComponentTemplateManager = async (schedule: ExamSchedule) => {
+    if (!detailExam) return;
+
+    const classId = schedule.subjectAllocation.classId;
+    const className = schedule.subjectAllocation.class.name;
+    const examGroupId = detailExam.examGroupId;
+    const examGroupName = detailExam.examGroup?.name ?? examGroupLabel(examGroupId);
+
+    setComponentTemplateContext({ classId, className, examGroupId, examGroupName });
+    setComponentTemplateOpen(true);
+
+    try {
+      await fetchClassComponentTemplateByClassAndExamGroup(classId, examGroupId);
+
+      const found = useAcademicStore.getState().classComponentTemplates.find((t) => t.classId === classId && t.examGroupId === examGroupId);
+
+      if (found) {
+        setComponentTemplateDefRows(
+          [...found.definitions]
+            .sort((a, b) => a.displayOrder - b.displayOrder)
+            .map((d) => ({
+              name: d.name,
+              source: d.source,
+              maximumMarks: String(d.maximumMarks),
+              passingMarks: d.passingMarks != null ? String(d.passingMarks) : "",
+              displayOrder: d.displayOrder,
+            })),
+        );
+      } else {
+        setComponentTemplateDefRows([{ name: "Theory", source: "FETCHED", maximumMarks: "", passingMarks: "", displayOrder: 1 }]);
+      }
+    } catch {
+      // Not configured yet — start with a sensible default row.
+      setComponentTemplateDefRows([{ name: "Theory", source: "FETCHED", maximumMarks: "", passingMarks: "", displayOrder: 1 }]);
+    }
+  };
+
+  const addComponentTemplateRow = () => {
+    setComponentTemplateDefRows((previous) => [...previous, { name: "", source: "MANUAL", maximumMarks: "", passingMarks: "", displayOrder: previous.length + 1 }]);
+  };
+
+  const updateComponentTemplateRow = (index: number, field: "name" | "source" | "maximumMarks" | "passingMarks", value: string) => {
+    setComponentTemplateDefRows((previous) => previous.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+  };
+
+  const removeComponentTemplateRow = (index: number) => {
+    setComponentTemplateDefRows((previous) => previous.filter((_, i) => i !== index));
+  };
+
+  const handleSaveComponentTemplate = async () => {
+    if (!componentTemplateContext) return;
+
+    if (componentTemplateDefRows.length === 0) {
+      toast.error("Add at least one component");
+      return;
+    }
+
+    for (const row of componentTemplateDefRows) {
+      if (!row.name.trim()) {
+        toast.error("Every component needs a name");
+        return;
+      }
+
+      if (!row.maximumMarks.trim() || Number.isNaN(Number(row.maximumMarks))) {
+        toast.error(`Enter valid maximum marks for "${row.name}"`);
+        return;
+      }
+    }
+
+    if (!componentTemplateDefRows.some((row) => row.source === "FETCHED")) {
+      toast.error("At least one component must be Fetched (e.g. Theory) so it links to real exam marks");
+      return;
+    }
+
+    setSavingComponentTemplate(true);
+
+    try {
+      let template = existingComponentTemplate;
+
+      if (!template) {
+        await createClassComponentTemplate({ classId: componentTemplateContext.classId, examGroupId: componentTemplateContext.examGroupId });
+
+        template =
+          useAcademicStore.getState().classComponentTemplates.find((t) => t.classId === componentTemplateContext.classId && t.examGroupId === componentTemplateContext.examGroupId) ?? null;
+      }
+
+      if (!template) {
+        throw new Error("Failed to create component template");
+      }
+
+      await replaceClassComponentTemplateDefinitions(
+        template.id,
+        componentTemplateDefRows.map((row, index) => ({
+          name: row.name.trim(),
+          source: row.source,
+          maximumMarks: Number(row.maximumMarks),
+          passingMarks: row.passingMarks.trim() ? Number(row.passingMarks) : undefined,
+          displayOrder: index + 1,
+        })),
+      );
+
+      toast.success("Marks structure saved — it now applies to every subject in this class for this exam group");
+
+      await fetchExams();
+      setComponentTemplateOpen(false);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+      toast.error(err.response?.data?.message || "Failed to save marks structure");
+    } finally {
+      setSavingComponentTemplate(false);
+    }
+  };
+
+  const handleDeleteComponentTemplate = async () => {
+    if (!existingComponentTemplate) return;
+
+    try {
+      await deleteClassComponentTemplate(existingComponentTemplate.id);
+
+      toast.success("Marks structure deleted");
+
+      setComponentTemplateDeleteOpen(false);
+      setComponentTemplateOpen(false);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+      toast.error(err.response?.data?.message || "Failed to delete marks structure");
+    }
+  };
 
   const examSchedules = useMemo(() => {
     if (!detailExam) return [];
@@ -908,7 +1221,7 @@ export default function ExamsPage() {
   const hasEditChanges =
     editingExam &&
     (editName !== editingExam.name ||
-      editType !== editingExam.type ||
+      editExamGroupId !== editingExam.examGroupId ||
       editStartDate !== toDateInputValue(editingExam.startDate) ||
       editEndDate !== toDateInputValue(editingExam.endDate) ||
       editDescription !== (editingExam.description ?? "") ||
@@ -943,7 +1256,7 @@ export default function ExamsPage() {
                 </div>
 
                 <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:text-sm">
-                  {typeLabel(detailExam.type)}
+                  {examGroupLabel(detailExam.examGroupId)}
                   <span className="mx-1.5 text-muted-foreground/50">•</span>
                   {format(new Date(detailExam.startDate), "dd MMM yyyy")}
                   <span className="mx-1.5 text-muted-foreground/50">-</span>
@@ -987,9 +1300,9 @@ export default function ExamsPage() {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <div className="rounded-lg border bg-muted/20 p-3.5">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Type</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Exam Group</p>
 
-              <p className="mt-2 text-sm font-semibold">{typeLabel(detailExam.type)}</p>
+              <p className="mt-2 text-sm font-semibold">{examGroupLabel(detailExam.examGroupId)}</p>
             </div>
 
             <div className="rounded-lg border bg-muted/20 p-3.5">
@@ -1167,6 +1480,7 @@ export default function ExamsPage() {
                     <tbody>
                       {schedules.map((schedule) => {
                         const allocation = schedule.subjectAllocation;
+                        const isCbse = allocation.class.board === "CBSE";
 
                         return (
                           <tr key={schedule.id} className="border-b last:border-0 hover:bg-muted/10">
@@ -1191,12 +1505,24 @@ export default function ExamsPage() {
                                 <div className="flex items-center justify-end gap-1">
                                   {/* Desktop */}
                                   <div className="hidden items-center gap-1 md:flex">
-                                    {canCreate && (
+                                    {canCreate && !isCbse && (
                                       <button
                                         type="button"
                                         aria-label="Manage components"
-                                        title="Manage components"
+                                        title="Manage components for this subject (applies to every section)"
                                         onClick={() => openComponentManager(schedule)}
+                                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                      >
+                                        <ListChecks className="size-4" />
+                                      </button>
+                                    )}
+
+                                    {canCreate && isCbse && (
+                                      <button
+                                        type="button"
+                                        aria-label="Marks structure"
+                                        title="Set the Theory/Practical marks structure for this class (applies to every subject, every session)"
+                                        onClick={() => openComponentTemplateManager(schedule)}
                                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
                                       >
                                         <ListChecks className="size-4" />
@@ -1238,10 +1564,17 @@ export default function ExamsPage() {
                                       </DropdownMenuTrigger>
 
                                       <DropdownMenuContent align="end">
-                                        {canCreate && (
+                                        {canCreate && !isCbse && (
                                           <DropdownMenuItem onClick={() => openComponentManager(schedule)}>
                                             <ListChecks className="mr-2 size-4" />
                                             Manage components
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {canCreate && isCbse && (
+                                          <DropdownMenuItem onClick={() => openComponentTemplateManager(schedule)}>
+                                            <ListChecks className="mr-2 size-4" />
+                                            Marks structure
                                           </DropdownMenuItem>
                                         )}
 
@@ -1294,8 +1627,6 @@ export default function ExamsPage() {
       </div>
     );
   }
-
-  // =========================================================
   // Main page
   // =========================================================
 
@@ -1313,18 +1644,34 @@ export default function ExamsPage() {
                 <p className="text-sm sm:text-base text-muted-foreground">Manage examinations and complete date sheets</p>
               </div>
 
-              {canCreate && (
-                <Button
-                  className="gap-2 px-5"
-                  onClick={() => {
-                    resetAddForm();
-                    setAddOpen(true);
-                  }}
-                >
-                  <Plus className="size-4" />
-                  Add Exam
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {(canCreate || canUpdate || canDelete) && (
+                  <Button
+                    variant="outline"
+                    className="gap-2 px-5"
+                    onClick={() => {
+                      resetExamGroupForm();
+                      setExamGroupManagerOpen(true);
+                    }}
+                  >
+                    <ListChecks className="size-4" />
+                    Exam Groups
+                  </Button>
+                )}
+
+                {canCreate && (
+                  <Button
+                    className="gap-2 px-5"
+                    onClick={() => {
+                      resetAddForm();
+                      setAddOpen(true);
+                    }}
+                  >
+                    <Plus className="size-4" />
+                    Add Exam
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1394,7 +1741,7 @@ export default function ExamsPage() {
                     </div>
 
                     <p className="mt-1 truncate text-xs text-muted-foreground">
-                      {typeLabel(exam.type)}
+                      {examGroupLabel(exam.examGroupId)}
                       <span className="mx-1.5">•</span>
                       {format(new Date(exam.startDate), "dd MMM yyyy")}
                       <span className="mx-1.5">-</span>
@@ -1531,21 +1878,52 @@ export default function ExamsPage() {
                 </Field>
 
                 <Field>
-                  <Label>Exam Type</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Exam Group</Label>
 
-                  <Select value={addType} onValueChange={(value) => setAddType(value as ExamTypeT)}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetExamGroupForm();
+                        setExamGroupManagerOpen(true);
+                      }}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Manage exam groups
+                    </button>
+                  </div>
+
+                  <Select
+                    value={addExamGroupId}
+                    onValueChange={(value) => {
+                      setAddExamGroupId(value);
+
+                      setFormErrors((prev) => ({
+                        ...prev,
+                        examGroupId: "",
+                      }));
+                    }}
+                  >
                     <SelectTrigger className="h-11 w-full">
-                      <SelectValue />
+                      <SelectValue placeholder={sortedExamGroups.length === 0 ? "No exam groups yet" : "Select Exam Group"} />
                     </SelectTrigger>
 
                     <SelectContent>
-                      {EXAM_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      {sortedExamGroups
+                        .filter((group) => group.isActive)
+                        .map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
+
+                  {formErrors.examGroupId && <p className="mt-1 text-sm text-red-500">{formErrors.examGroupId}</p>}
+
+                  {sortedExamGroups.length === 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">No exam groups yet — click &quot;manage exam groups&quot; to create one (e.g. Unit Test, Mid-Term, End-Term).</p>
+                  )}
                 </Field>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1652,7 +2030,7 @@ export default function ExamsPage() {
                 </Button>
               </DialogClose>
 
-              <Button type="submit" disabled={loading || !addSessionId || !addName.trim()} className="min-w-32.5">
+              <Button type="submit" disabled={loading || !addSessionId || !addName.trim() || !addExamGroupId} className="min-w-32.5">
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
@@ -1715,17 +2093,30 @@ export default function ExamsPage() {
                 </Field>
 
                 <Field>
-                  <Label>Exam Type</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Exam Group</Label>
 
-                  <Select value={editType} onValueChange={(value) => setEditType(value as ExamTypeT)}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetExamGroupForm();
+                        setExamGroupManagerOpen(true);
+                      }}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Manage exam groups
+                    </button>
+                  </div>
+
+                  <Select value={editExamGroupId} onValueChange={(value) => setEditExamGroupId(value)}>
                     <SelectTrigger className="h-11 w-full">
                       <SelectValue />
                     </SelectTrigger>
 
                     <SelectContent>
-                      {EXAM_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                      {sortedExamGroups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1836,7 +2227,7 @@ export default function ExamsPage() {
                 </Button>
               </DialogClose>
 
-              <Button type="submit" disabled={loading || !hasEditChanges || !editName.trim()} className="min-w-32.5">
+              <Button type="submit" disabled={loading || !hasEditChanges || !editName.trim() || !editExamGroupId} className="min-w-32.5">
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
@@ -2038,7 +2429,176 @@ export default function ExamsPage() {
       </Dialog>
 
       {/* =====================================================
-          Manage Exam Components
+          Manage Exam Groups
+      ===================================================== */}
+
+      <Dialog
+        open={examGroupManagerOpen}
+        onOpenChange={(open) => {
+          setExamGroupManagerOpen(open);
+
+          if (!open) {
+            resetExamGroupForm();
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-125">
+          <div className="shrink-0 border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                <ListChecks className="size-5 text-primary" />
+              </div>
+
+              <div>
+                <DialogTitle className="text-lg">Exam Groups</DialogTitle>
+                <DialogDescription>The exam terms your school uses — Unit Test, Mid-Term, End-Term, Pre-Board I, etc.</DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="rounded-md border">
+              <div className="border-b bg-muted/20 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Configured Exam Groups</p>
+              </div>
+
+              <div className="divide-y">
+                {sortedExamGroups.map((group) => (
+                  <div key={group.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{group.name}</p>
+                        {group.code && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{group.code}</span>}
+                        {!group.isActive && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Inactive</span>}
+                      </div>
+
+                      <p className="mt-1 text-xs text-muted-foreground">Sequence {group.sequence}</p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1">
+                      {canUpdate && (
+                        <button
+                          type="button"
+                          aria-label="Edit exam group"
+                          onClick={() => openEditExamGroup(group)}
+                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                      )}
+
+                      {canDelete && (
+                        <button
+                          type="button"
+                          aria-label="Delete exam group"
+                          onClick={() => openDeleteExamGroup(group)}
+                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {sortedExamGroups.length === 0 && (
+                  <div className="p-8 text-center">
+                    <ListChecks className="mx-auto size-7 text-muted-foreground" />
+                    <p className="mt-2 text-sm font-medium">No exam groups yet</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Add your school's exam terms below — e.g. Unit Test, Mid-Term, End-Term.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {(canCreate || canUpdate) && (
+              <form onSubmit={handleSaveExamGroup} className="rounded-md border p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{editingExamGroup ? "Edit Exam Group" : "Add Exam Group"}</p>
+                    <p className="text-xs text-muted-foreground">This becomes selectable when creating an exam.</p>
+                  </div>
+
+                  {editingExamGroup && (
+                    <Button type="button" variant="ghost" size="sm" onClick={resetExamGroupForm}>
+                      Cancel edit
+                    </Button>
+                  )}
+                </div>
+
+                <FieldGroup>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field>
+                      <Label>Name</Label>
+                      <Input value={egName} onChange={(e) => setEgName(e.target.value)} placeholder="e.g. Mid-Term" className="h-11" disabled={editingExamGroup ? !canUpdate : !canCreate} />
+                    </Field>
+
+                    <Field>
+                      <Label>Code</Label>
+                      <Input value={egCode} onChange={(e) => setEgCode(e.target.value)} placeholder="Optional" className="h-11" disabled={editingExamGroup ? !canUpdate : !canCreate} />
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field>
+                      <Label>Sequence</Label>
+                      <Input type="number" min="1" value={egSequence} onChange={(e) => setEgSequence(e.target.value)} className="h-11" disabled={editingExamGroup ? !canUpdate : !canCreate} />
+                    </Field>
+
+                    <Field>
+                      <Label>Active</Label>
+                      <div className="mt-3">
+                        <Switch checked={egIsActive} onCheckedChange={setEgIsActive} disabled={editingExamGroup ? !canUpdate : !canCreate} />
+                      </div>
+                    </Field>
+                  </div>
+                </FieldGroup>
+
+                <div className="mt-4 flex justify-end">
+                  <Button type="submit" disabled={loading || !egName.trim() || (editingExamGroup ? !canUpdate : !canCreate)} className="min-w-32.5">
+                    {editingExamGroup ? (
+                      <>
+                        <Pencil className="mr-2 size-4" />
+                        Update
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 size-4" />
+                        Add Exam Group
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          <DialogFooter className="shrink-0 border-t px-6 py-4">
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={egDeleteOpen} onOpenChange={setEgDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this exam group?</AlertDialogTitle>
+            <AlertDialogDescription>Exam groups already used by an exam can&apos;t be deleted — deactivate them instead. This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteExamGroup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* =====================================================
+          Manage Exam Subject Components
       ===================================================== */}
 
       <Dialog
@@ -2047,7 +2607,7 @@ export default function ExamsPage() {
           setComponentOpen(open);
 
           if (!open) {
-            setComponentSchedule(null);
+            setComponentContext(null);
             resetComponentForm();
           }
         }}
@@ -2062,9 +2622,7 @@ export default function ExamsPage() {
               <div>
                 <DialogTitle className="text-lg">Exam Components</DialogTitle>
                 <DialogDescription>
-                  {componentSchedule
-                    ? `${componentSchedule.subjectAllocation.subject.name} • ${componentSchedule.subjectAllocation.class.name} ${componentSchedule.subjectAllocation.section.name}`
-                    : "Manage papers and components for this schedule."}
+                  {componentContext ? `${componentContext.subjectName} — this setup is shared by every section, not just one` : "Manage papers and components for this subject."}
                 </DialogDescription>
               </div>
             </div>
@@ -2072,6 +2630,13 @@ export default function ExamsPage() {
 
           <div className="flex-1 overflow-y-auto p-6">
             <div className="space-y-4">
+              {componentContext && componentSubjectScheduleCount > 0 && (
+                <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-primary">
+                  Applies automatically to {componentSubjectScheduleCount} section{componentSubjectScheduleCount === 1 ? "" : "s"} currently scheduled for {componentContext.subjectName} in this exam — no need to set
+                  this up again per section.
+                </div>
+              )}
+
               <div className="rounded-md border">
                 <div className="border-b bg-muted/20 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Configured Components</p>
@@ -2084,6 +2649,7 @@ export default function ExamsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{component.name}</p>
                           {component.code && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{component.code}</span>}
+                          {component.isOptionalSubject && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">Optional subject only</span>}
                         </div>
 
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -2123,7 +2689,7 @@ export default function ExamsPage() {
                     <div className="p-8 text-center">
                       <ClipboardList className="mx-auto size-7 text-muted-foreground" />
                       <p className="mt-2 text-sm font-medium">No components added</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Add papers or assessment components for this subject.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Add papers or assessment components for this subject — e.g. Theory, Practical, Enrichment.</p>
                     </div>
                   )}
                 </div>
@@ -2148,7 +2714,7 @@ export default function ExamsPage() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <Field>
                         <Label>Name</Label>
-                        <Input value={componentName} onChange={(e) => setComponentName(e.target.value)} placeholder="e.g. Paper 1" className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
+                        <Input value={componentName} onChange={(e) => setComponentName(e.target.value)} placeholder="e.g. Theory" className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
                       </Field>
 
                       <Field>
@@ -2165,7 +2731,7 @@ export default function ExamsPage() {
                           min="0"
                           value={componentMaximumMarks}
                           onChange={(e) => setComponentMaximumMarks(e.target.value)}
-                          placeholder="e.g. 100"
+                          placeholder="e.g. 40"
                           className="h-11"
                           disabled={editingComponent ? !canUpdate : !canCreate}
                         />
@@ -2205,6 +2771,19 @@ export default function ExamsPage() {
                         <Input type="number" min="1" value={componentDisplayOrder} onChange={(e) => setComponentDisplayOrder(e.target.value)} className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
                       </Field>
                     </div>
+
+                    {componentSubjectIsOptional && (
+                      <Field>
+                        <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                          <Checkbox
+                            checked={componentIsOptionalSubject}
+                            onCheckedChange={(value) => setComponentIsOptionalSubject(Boolean(value))}
+                            disabled={editingComponent ? !canUpdate : !canCreate}
+                          />
+                          Only count this component for students who opted into this subject
+                        </label>
+                      </Field>
+                    )}
                   </FieldGroup>
 
                   <div className="mt-4 flex justify-end">
@@ -2239,7 +2818,7 @@ export default function ExamsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this component?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently remove the component and its recorded marks.</AlertDialogDescription>
+            <AlertDialogDescription>This will permanently remove the component and its recorded marks for every section sharing this subject in this exam.</AlertDialogDescription>
           </AlertDialogHeader>
 
           <AlertDialogFooter>
@@ -2285,6 +2864,174 @@ export default function ExamsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
 
             <AlertDialogAction onClick={handleDeleteSchedule} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* =====================================================
+          CBSE Grade Component Template (marks structure)
+      ===================================================== */}
+
+      <Dialog
+        open={componentTemplateOpen}
+        onOpenChange={(open) => {
+          setComponentTemplateOpen(open);
+
+          if (!open) {
+            setComponentTemplateContext(null);
+            setComponentTemplateDefRows([]);
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-165">
+          <div className="shrink-0 border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                <ListChecks className="size-5 text-primary" />
+              </div>
+
+              <div>
+                <DialogTitle className="text-lg">Marks Structure</DialogTitle>
+
+                <DialogDescription>
+                  {componentTemplateContext
+                    ? `${componentTemplateContext.className} — ${componentTemplateContext.examGroupName}. Set up once, applies to every subject, section, and future session automatically.`
+                    : "Define the Theory/Practical structure for this class and exam group."}
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 space-y-4 overflow-y-auto p-6">
+            <div className="rounded-xl border bg-muted/20 p-4">
+              <div className="flex items-start gap-3">
+                <ListChecks className="mt-0.5 size-4 shrink-0 text-primary" />
+
+                <div className="text-xs leading-5 text-muted-foreground">
+                  <span className="font-semibold text-foreground">Fetched</span> components pull their marks automatically from real exams entered on this page (e.g. Theory). <span className="font-semibold text-foreground">Manual</span> components
+                  are typed in directly by a teacher on the report card (e.g. Practical, Assessment, Enrichment) — they never need a schedule or exam marks entry here.
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full min-w-125 text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/10 text-left">
+                    <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Name</th>
+                    <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Source</th>
+                    <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Max Marks</th>
+                    <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Passing Marks</th>
+                    <th className="px-3 py-2.5" />
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {componentTemplateDefRows.map((row, index) => (
+                    <tr key={index} className="border-b last:border-0">
+                      <td className="px-3 py-2.5">
+                        <Input value={row.name} onChange={(e) => updateComponentTemplateRow(index, "name", e.target.value)} placeholder="e.g. Theory" className="h-9" />
+                      </td>
+
+                      <td className="px-3 py-2.5">
+                        <Select value={row.source} onValueChange={(value) => updateComponentTemplateRow(index, "source", value)}>
+                          <SelectTrigger className="h-9 w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            <SelectItem value="FETCHED">Fetched</SelectItem>
+                            <SelectItem value="MANUAL">Manual</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+
+                      <td className="px-3 py-2.5">
+                        <Input type="number" min="0" value={row.maximumMarks} onChange={(e) => updateComponentTemplateRow(index, "maximumMarks", e.target.value)} placeholder="e.g. 40" className="h-9 w-24" />
+                      </td>
+
+                      <td className="px-3 py-2.5">
+                        <Input type="number" min="0" value={row.passingMarks} onChange={(e) => updateComponentTemplateRow(index, "passingMarks", e.target.value)} placeholder="Optional" className="h-9 w-24" />
+                      </td>
+
+                      <td className="px-3 py-2.5 text-right">
+                        <button
+                          type="button"
+                          aria-label="Remove component"
+                          onClick={() => removeComponentTemplateRow(index)}
+                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {componentTemplateDefRows.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-sm text-muted-foreground">
+                        No components added yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={addComponentTemplateRow}>
+              <Plus className="size-3.5" />
+              Add Component
+            </Button>
+          </div>
+
+          <DialogFooter className="shrink-0 flex-row items-center justify-between gap-2 border-t px-6 py-4">
+            <div>
+              {existingComponentTemplate && (
+                <Button type="button" variant="outline" className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setComponentTemplateDeleteOpen(true)}>
+                  <Trash2 className="size-4" />
+                  Delete Structure
+                </Button>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+              </DialogClose>
+
+              <Button type="button" onClick={handleSaveComponentTemplate} disabled={savingComponentTemplate} className="min-w-32.5 gap-2">
+                {savingComponentTemplate ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-4" />
+                    Save Structure
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={componentTemplateDeleteOpen} onOpenChange={setComponentTemplateDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this marks structure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the Theory/Practical structure for {componentTemplateContext?.className ?? "this class"} under {componentTemplateContext?.examGroupName ?? "this exam group"}. Existing exams already using
+              it keep their components — this only affects new schedules going forward. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteComponentTemplate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CalendarDays, Calendar, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical, GripVertical } from "lucide-react";
@@ -26,15 +27,37 @@ type ApiErrorResponse = {
   errors?: Record<string, string>;
 };
 
+type Board = "GENERAL" | "CBSE" | "CIE";
+
 interface AcademicClass {
   id: string;
   classCode: string;
   name: string;
+  board: Board;
   sortOrder: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
+const BOARD_OPTIONS: { value: Board; label: string }[] = [
+  { value: "GENERAL", label: "General" },
+  { value: "CBSE", label: "CBSE" },
+  { value: "CIE", label: "CIE" },
+];
+
+const boardBadgeClass = (board: Board) => {
+  switch (board) {
+    case "CBSE":
+      return "bg-blue-100 text-blue-700 hover:bg-blue-100";
+    case "CIE":
+      return "bg-purple-100 text-purple-700 hover:bg-purple-100";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+};
+
+const boardLabel = (board: Board) => BOARD_OPTIONS.find((option) => option.value === board)?.label ?? board;
 
 const restrictToVerticalAxis: Modifier = ({ transform }) => ({
   ...transform,
@@ -79,6 +102,8 @@ export default function ClassesPage() {
   const { classes, loading, fetchClasses, createClass, updateClass, reorderClasses, deleteClass } = useAcademicStore();
   const [editName, setEditName] = useState("");
   const [name, setName] = useState("");
+  const [board, setBoard] = useState<Board>("GENERAL");
+  const [editBoard, setEditBoard] = useState<Board>("GENERAL");
   const [isActive, setIsActive] = useState(true);
   const [editIsActive, setEditIsActive] = useState(true);
   const [addClassOpen, setAddClassOpen] = useState(false);
@@ -104,7 +129,7 @@ export default function ClassesPage() {
 
   useEffect(() => {
     if (isReorderingRef.current) return;
-    setOrderedClasses(classes);
+    setOrderedClasses(classes as AcademicClass[]);
   }, [classes]);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -113,10 +138,12 @@ export default function ClassesPage() {
     try {
       await createClass({
         name,
+        board,
         isActive,
       });
 
       setName("");
+      setBoard("GENERAL");
       setIsActive(true);
 
       setFormErrors({});
@@ -145,6 +172,7 @@ export default function ClassesPage() {
     try {
       await updateClass(editingClass.id, {
         name: editName,
+        board: editBoard,
         isActive: editIsActive,
       });
 
@@ -197,6 +225,7 @@ export default function ClassesPage() {
   const openEditDialog = (classItem: AcademicClass) => {
     setEditingClass(classItem);
     setEditName(classItem.name);
+    setEditBoard(classItem.board);
     setEditIsActive(classItem.isActive);
     setEditErrors({});
     setEditClassOpen(true);
@@ -227,7 +256,7 @@ export default function ClassesPage() {
     }));
   };
 
-  const isClassChanged = editingClass && (editName.trim() !== editingClass.name || editIsActive !== editingClass.isActive);
+  const isClassChanged = editingClass && (editName.trim() !== editingClass.name || editBoard !== editingClass.board || editIsActive !== editingClass.isActive);
 
   const filteredClasses = orderedClasses.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()) || item.classCode.toLowerCase().includes(search.toLowerCase()));
 
@@ -308,6 +337,27 @@ export default function ClassesPage() {
                       className=""
                     />
                     {formErrors.name && <p className="text-sm text-red-500 mt-1">{formErrors.name}</p>}
+                  </Field>
+
+                  <Field>
+                    <Label>Board</Label>
+
+                    <Select value={board} onValueChange={(value) => setBoard(value as Board)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select board" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BOARD_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Classes with the same name but a different board (e.g. two &quot;Class 9&quot; records) are kept as different class records.
+                    </p>
+                    {formErrors.board && <p className="text-sm text-red-500 mt-1">{formErrors.board}</p>}
                   </Field>
 
                   <Field>
@@ -393,6 +443,7 @@ export default function ClassesPage() {
                       <TableHead className="w-8 py-4 pl-4 sm:pl-6"></TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 md:min-w-45">Class</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Code</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden sm:table-cell">Board</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
                       <TableHead
@@ -422,10 +473,15 @@ export default function ClassesPage() {
                                   </p>
 
                                   <p className="text-sm text-foreground/50 truncate md:hidden">{classItem.classCode}</p>
+                                  <p className="text-sm text-foreground/50 truncate sm:hidden">{boardLabel(classItem.board)}</p>
                                 </div>
                               </TableCell>
 
                               <TableCell className="hidden md:table-cell py-4 align-middle">{classItem.classCode}</TableCell>
+
+                              <TableCell className="hidden sm:table-cell py-4 align-middle">
+                                <Badge className={boardBadgeClass(classItem.board)}>{boardLabel(classItem.board)}</Badge>
+                              </TableCell>
 
                               <TableCell className="py-4 align-middle">
                                 <Badge className={classItem.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{classItem.isActive ? "Active" : "Inactive"}</Badge>
@@ -540,6 +596,24 @@ export default function ClassesPage() {
                   className=""
                 />
                 {editErrors.name && <p className="text-sm text-red-500 mt-1">{editErrors.name}</p>}
+              </Field>
+
+              <Field>
+                <Label>Board</Label>
+
+                <Select value={editBoard} onValueChange={(value) => setEditBoard(value as Board)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BOARD_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editErrors.board && <p className="text-sm text-red-500 mt-1">{editErrors.board}</p>}
               </Field>
 
               <Field>
