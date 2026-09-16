@@ -79,6 +79,8 @@ interface ReportCard {
   reportKey: string;
   teacherRemarks?: Record<string, unknown>;
   reportData?: Record<string, unknown>;
+  manualMarks?: Record<string, Record<string, number>>;
+  coScholasticMarks?: Record<string, string>;
   pdfUrl?: string | null;
   status: ReportCardStatusT;
   generatedAt?: string | null;
@@ -92,6 +94,7 @@ interface ReportCard {
   };
   enrollment: StudentEnrollment;
   examGroup?: ExamGroup | null;
+  template?: ReportCardTemplate;
 }
 
 const REPORT_STATUS_OPTIONS: {
@@ -656,9 +659,7 @@ export default function ReportCardsPage() {
 
   const [manualMarksOpen, setManualMarksOpen] = useState(false);
   const [manualMarksReport, setManualMarksReport] = useState<ReportCard | null>(null);
-  const [manualMarksRows, setManualMarksRows] = useState<
-    { subjectId: string; subjectName: string; components: { name: string; maximumMarks: number; value: string }[] }[]
-  >([]);
+  const [manualMarksRows, setManualMarksRows] = useState<{ subjectId: string; subjectName: string; components: { name: string; maximumMarks: number; value: string }[] }[]>([]);
   const [savingManualMarks, setSavingManualMarks] = useState(false);
 
   const hasManualComponents = (report: ReportCard) => {
@@ -701,9 +702,7 @@ export default function ReportCardsPage() {
   };
 
   const updateManualMarksValue = (subjectIndex: number, componentIndex: number, value: string) => {
-    setManualMarksRows((previous) =>
-      previous.map((row, ri) => (ri === subjectIndex ? { ...row, components: row.components.map((c, ci) => (ci === componentIndex ? { ...c, value } : c)) } : row)),
-    );
+    setManualMarksRows((previous) => previous.map((row, ri) => (ri === subjectIndex ? { ...row, components: row.components.map((c, ci) => (ci === componentIndex ? { ...c, value } : c)) } : row)));
   };
 
   const handleSaveManualMarks = async () => {
@@ -1256,11 +1255,7 @@ export default function ReportCardsPage() {
 
   const openRemarkFieldsManager = (template: ReportCardTemplate) => {
     setRemarkFieldsManagerTemplate(template);
-    setRemarkFieldRows(
-      [...template.remarkFields]
-        .sort((a, b) => a.displayOrder - b.displayOrder)
-        .map((f) => ({ key: f.key, label: f.label, displayOrder: f.displayOrder })),
-    );
+    setRemarkFieldRows([...template.remarkFields].sort((a, b) => a.displayOrder - b.displayOrder).map((f) => ({ key: f.key, label: f.label, displayOrder: f.displayOrder })));
     setNewRemarkFieldKey("");
     setNewRemarkFieldLabel("");
     setRemarkFieldsManagerOpen(true);
@@ -1315,9 +1310,7 @@ export default function ReportCardsPage() {
 
   const openCoScholasticManager = (template: ReportCardTemplate) => {
     setCoScholasticManagerTemplate(template);
-    setCoScholasticRowsDraft(
-      [...template.coScholasticRows].sort((a, b) => a.displayOrder - b.displayOrder).map((row) => ({ label: row.label, displayOrder: row.displayOrder })),
-    );
+    setCoScholasticRowsDraft([...template.coScholasticRows].sort((a, b) => a.displayOrder - b.displayOrder).map((row) => ({ label: row.label, displayOrder: row.displayOrder })));
     setNewCoScholasticRowLabel("");
     setCoScholasticManagerOpen(true);
   };
@@ -2784,9 +2777,7 @@ export default function ReportCardsPage() {
               </div>
             ))}
 
-            {manualMarksRows.length === 0 && (
-              <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">No manual components configured for this class's subjects yet.</div>
-            )}
+            {manualMarksRows.length === 0 && <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">No manual components configured for this class&apos;s subjects yet.</div>}
           </div>
 
           <DialogFooter className="shrink-0 border-t px-6 py-4">
@@ -3355,18 +3346,11 @@ export default function ReportCardsPage() {
               .map((row) => (
                 <Field key={row.id}>
                   <Label>{row.label}</Label>
-                  <Input
-                    value={coScholasticValues[row.label] ?? ""}
-                    onChange={(e) => setCoScholasticValues((previous) => ({ ...previous, [row.label]: e.target.value }))}
-                    placeholder="e.g. A"
-                    className="h-10"
-                  />
+                  <Input value={coScholasticValues[row.label] ?? ""} onChange={(e) => setCoScholasticValues((previous) => ({ ...previous, [row.label]: e.target.value }))} placeholder="e.g. A" className="h-10" />
                 </Field>
               ))}
 
-            {!(coScholasticReport?.template?.coScholasticRows ?? []).length && (
-              <p className="text-sm text-muted-foreground">No co-scholastic rows configured for this class's template.</p>
-            )}
+            {!(coScholasticReport?.template?.coScholasticRows ?? []).length && <p className="text-sm text-muted-foreground">No co-scholastic rows configured for this class&apos;s template.</p>}
           </FieldGroup>
 
           <DialogFooter className="mt-6">
@@ -3440,9 +3424,7 @@ export default function ReportCardsPage() {
                     + {preset.label}
                   </Button>
                 ))}
-                {COMMON_REMARK_FIELD_PRESETS.every((preset) => remarkFieldRows.some((row) => row.key === preset.key)) && (
-                  <p className="text-xs text-muted-foreground">All common remark fields added.</p>
-                )}
+                {COMMON_REMARK_FIELD_PRESETS.every((preset) => remarkFieldRows.some((row) => row.key === preset.key)) && <p className="text-xs text-muted-foreground">All common remark fields added.</p>}
               </div>
 
               <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Custom field</p>
@@ -3542,9 +3524,7 @@ export default function ReportCardsPage() {
                     + {preset}
                   </Button>
                 ))}
-                {COMMON_COSCHOLASTIC_PRESETS.every((preset) => coScholasticRowsDraft.some((row) => row.label === preset)) && (
-                  <p className="text-xs text-muted-foreground">All common rows added.</p>
-                )}
+                {COMMON_COSCHOLASTIC_PRESETS.every((preset) => coScholasticRowsDraft.some((row) => row.label === preset)) && <p className="text-xs text-muted-foreground">All common rows added.</p>}
               </div>
 
               <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Custom row</p>
