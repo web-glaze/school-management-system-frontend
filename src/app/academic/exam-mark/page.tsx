@@ -370,7 +370,7 @@ export default function ExamMarksPage() {
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Examination Selection</span>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <label htmlFor="exam-select" className="mb-2 block text-sm font-medium">
                 Examination
@@ -416,7 +416,7 @@ export default function ExamMarksPage() {
             </div>
 
             {selectedSchedule && (
-              <div className="mt-4">
+              <div>
                 <label htmlFor="component-select" className="mb-2 block text-sm font-medium">
                   Exam Component / Paper
                 </label>
@@ -451,7 +451,7 @@ export default function ExamMarksPage() {
         {/* Selected Schedule Overview */}
         {selectedSchedule && (
           <div className="rounded-md border bg-card p-4 sm:p-6">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <div className="rounded-lg border bg-muted/20 p-3.5">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Subject</p>
 
@@ -578,7 +578,7 @@ export default function ExamMarksPage() {
                 </div>
               )}
 
-              <div className="overflow-x-auto">
+              <div className="max-h-[60vh] overflow-auto">
                 <table className="w-full min-w-215 text-sm">
                   <thead className="sticky top-0 z-10 bg-card">
                     <tr className="border-b bg-muted/10 text-left">

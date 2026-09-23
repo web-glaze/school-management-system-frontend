@@ -264,9 +264,6 @@ export default function ReportCardsPage() {
   const [remarksFields, setRemarksFields] = useState<{ key: string; label: string }[]>([]);
   const [remarksValues, setRemarksValues] = useState<Record<string, string>>({});
 
-  // CBSE co-scholastic grading (grade-only rows, not marks-based) for one
-  // report card. The row DEFINITIONS live on the template; this only fills
-  // in each row's grade for this specific student.
   const [coScholasticOpen, setCoScholasticOpen] = useState(false);
   const [coScholasticReport, setCoScholasticReport] = useState<ReportCard | null>(null);
   const [coScholasticValues, setCoScholasticValues] = useState<Record<string, string>>({});
@@ -394,9 +391,6 @@ export default function ReportCardsPage() {
     setDetailOpen(true);
   };
 
-  // Falls back to a single legacy "Class Teacher's Remarks" field when the
-  // report's template has no remark fields configured (CIE, or a class that
-  // hasn't set any up yet) - keeps old data readable and editable.
   const getRemarkFieldsForReport = (report: ReportCard): { key: string; label: string }[] => {
     const configured = report.template?.remarkFields ?? [];
 
@@ -1390,24 +1384,24 @@ export default function ReportCardsPage() {
         </div>
 
         <Tabs defaultValue="reports">
-          <TabsList>
-            <TabsTrigger value="reports" className="gap-1.5">
-              <ClipboardList className="size-4" />
+          <TabsList className="grid w-full grid-cols-2 gap-1.5 sm:inline-flex sm:w-auto">
+            <TabsTrigger value="reports" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
+              <ClipboardList className="size-4 shrink-0" />
               Report Cards
             </TabsTrigger>
 
-            <TabsTrigger value="grading" className="gap-1.5">
-              <Award className="size-4" />
+            <TabsTrigger value="grading" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
+              <Award className="size-4 shrink-0" />
               Grading Schemes
             </TabsTrigger>
 
-            <TabsTrigger value="structure" className="gap-1.5">
-              <Sliders className="size-4" />
+            <TabsTrigger value="structure" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
+              <Sliders className="size-4 shrink-0" />
               Class Exam Structure
             </TabsTrigger>
 
-            <TabsTrigger value="templates" className="gap-1.5">
-              <LayoutTemplate className="size-4" />
+            <TabsTrigger value="templates" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
+              <LayoutTemplate className="size-4 shrink-0" />
               Report Templates
             </TabsTrigger>
           </TabsList>
@@ -1464,8 +1458,8 @@ export default function ReportCardsPage() {
             </div>
 
             <div className="rounded-xl border bg-card p-4 sm:p-5">
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px_auto]">
-                <div className="relative">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px_auto]">
+                <div className="relative col-span-2 lg:col-span-1">
                   <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search student, admission no., exam group..." className="h-10 pl-10" />
                 </div>
@@ -1675,6 +1669,19 @@ export default function ReportCardsPage() {
                             </button>
                           )}
 
+                          {report.pdfUrl && (
+                            <a
+                              href={report.pdfUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                              aria-label="Download PDF"
+                              title="Download PDF"
+                            >
+                              <Download className="size-4" />
+                            </a>
+                          )}
+
                           {canDelete && (
                             <button
                               type="button"
@@ -1686,65 +1693,6 @@ export default function ReportCardsPage() {
                               <Trash2 className="size-4" />
                             </button>
                           )}
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild className="md:hidden">
-                              <button type="button" className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" aria-label="More actions">
-                                <MoreVertical className="size-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openReport(report)}>
-                                <FileText className="mr-2 size-4" />
-                                View report
-                              </DropdownMenuItem>
-
-                              {canUpdate && (
-                                <DropdownMenuItem onClick={() => openRemarks(report)}>
-                                  <MessageSquareText className="mr-2 size-4" />
-                                  Teacher remarks
-                                </DropdownMenuItem>
-                              )}
-
-                              {canCreate && (
-                                <DropdownMenuItem onClick={() => handleRefresh(report)} disabled={refreshingReportId === report.id}>
-                                  <RefreshCw className="mr-2 size-4" />
-                                  Refresh with latest marks
-                                </DropdownMenuItem>
-                              )}
-
-                              {canPublish && report.status !== "PUBLISHED" && (
-                                <DropdownMenuItem onClick={() => openPublish(report)}>
-                                  <Send className="mr-2 size-4" />
-                                  Publish
-                                </DropdownMenuItem>
-                              )}
-
-                              {canPublish && report.status === "PUBLISHED" && (
-                                <DropdownMenuItem onClick={() => openUnpublish(report)}>
-                                  <Undo2 className="mr-2 size-4" />
-                                  Unpublish
-                                </DropdownMenuItem>
-                              )}
-
-                              {report.pdfUrl && (
-                                <DropdownMenuItem asChild>
-                                  <a href={report.pdfUrl} target="_blank" rel="noreferrer">
-                                    <Download className="mr-2 size-4" />
-                                    Download PDF
-                                  </a>
-                                </DropdownMenuItem>
-                              )}
-
-                              {canDelete && (
-                                <DropdownMenuItem onClick={() => openDeleteReport(report)} className="text-destructive">
-                                  <Trash2 className="mr-2 size-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </div>
 
                         <div className="md:hidden">

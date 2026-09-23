@@ -62,6 +62,7 @@ import {
   UpdateReportCardPayload,
   ComponentSource,
   CreateClassSubjectComponentTemplatePayload,
+  CopyClassComponentTemplatePayload,
   ComponentTemplateDefinitionItem,
   UpdateManualMarksPayload,
   UpdateCoScholasticMarksPayload,
@@ -632,8 +633,10 @@ export interface ClassSubjectComponentTemplate {
   schoolId: string;
   classId: string;
   examGroupId: string;
+  subjectId?: string;
   class: AcademicClass;
   examGroup: ExamGroup;
+  subject?: Subject;
   definitions: ComponentTemplateDefinition[];
   createdAt: string;
   updatedAt: string;
@@ -751,8 +754,9 @@ interface AcademicStore {
   replaceReportCardTemplateCoScholasticRows: (id: string, items: ReportCoScholasticRowItem[]) => Promise<void>;
 
   fetchClassComponentTemplates: (classId?: string) => Promise<void>;
-  fetchClassComponentTemplateByClassAndExamGroup: (classId: string, examGroupId: string) => Promise<void>;
+  fetchClassComponentTemplateByClassAndExamGroup: (classId: string, examGroupId: string, subjectId?: string) => Promise<void>;
   createClassComponentTemplate: (data: CreateClassSubjectComponentTemplatePayload) => Promise<void>;
+  copyClassComponentTemplate: (data: CopyClassComponentTemplatePayload) => Promise<{ message: string; results: { classId: string; rowsCopied: number }[] }>;
   deleteClassComponentTemplate: (id: string) => Promise<void>;
   replaceClassComponentTemplateDefinitions: (id: string, items: ComponentTemplateDefinitionItem[]) => Promise<void>;
 
@@ -763,6 +767,7 @@ interface AcademicStore {
   createExamSchedule: (examId: string, data: CreateExamSchedulePayload) => Promise<void>;
   updateExamSchedule: (scheduleId: string, data: UpdateExamSchedulePayload) => Promise<void>;
   deleteExamSchedule: (scheduleId: string) => Promise<void>;
+  syncExamComponentsForClassExamGroup: (classId: string, examGroupId: string) => Promise<{ message: string; synced: number; skipped: { scheduleId: string; subjectName: string; reason: string }[] }>;
 
   fetchExamSubjectComponents: (examId: string, subjectId?: string) => Promise<void>;
   createExamSubjectComponent: (examId: string, data: CreateExamSubjectComponentPayload) => Promise<void>;
@@ -1699,12 +1704,12 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     }
   },
 
-  fetchClassComponentTemplateByClassAndExamGroup: async (classId, examGroupId) => {
+  fetchClassComponentTemplateByClassAndExamGroup: async (classId, examGroupId, subjectId) => {
     try {
-      const response = await academicService.classComponentTemplates.getByClassAndExamGroup(classId, examGroupId);
+      const response = await academicService.classComponentTemplates.getByClassAndExamGroup(classId, examGroupId, subjectId);
 
       const template = response.data.data;
-      const others = get().classComponentTemplates.filter((t) => !(t.classId === classId && t.examGroupId === examGroupId));
+      const others = get().classComponentTemplates.filter((t) => !(t.classId === classId && t.examGroupId === examGroupId && (t.subjectId ?? undefined) === (subjectId ?? undefined)));
 
       set({
         classComponentTemplates: template ? [...others, template] : others,
@@ -1721,6 +1726,16 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.classComponentTemplates.create(data);
       await get().fetchClassComponentTemplates(data.classId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  copyClassComponentTemplate: async (data) => {
+    try {
+      const response = await academicService.classComponentTemplates.copy(data);
+      await get().fetchClassComponentTemplates();
+      return response.data.data;
     } catch (error) {
       throw error;
     }
@@ -1855,6 +1870,16 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     try {
       await academicService.exams.deleteSchedule(scheduleId);
       await get().fetchExams();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  syncExamComponentsForClassExamGroup: async (classId, examGroupId) => {
+    try {
+      const response = await academicService.exams.syncComponents(classId, examGroupId);
+      await get().fetchExams();
+      return response.data.data;
     } catch (error) {
       throw error;
     }

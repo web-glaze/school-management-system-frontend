@@ -22,7 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { eachDayOfInterval, format } from "date-fns";
 
 type ApiErrorResponse = {
   message?: string;
@@ -69,6 +69,10 @@ function todayStr() {
 
 function toDateInputValue(value?: string) {
   return value ? value.slice(0, 10) : "";
+}
+
+function toLocalDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function toTimeInputValue(value?: string) {
@@ -279,10 +283,15 @@ export default function ExamsPage() {
     deleteExamSubjectComponent,
 
     classComponentTemplates,
-    fetchClassComponentTemplateByClassAndExamGroup,
+    fetchClassComponentTemplates,
     createClassComponentTemplate,
+    copyClassComponentTemplate,
     deleteClassComponentTemplate,
     replaceClassComponentTemplateDefinitions,
+    syncExamComponentsForClassExamGroup,
+
+    classes,
+    fetchClasses,
   } = useAcademicStore();
 
   const authorized = usePermission("exam.read");
@@ -315,6 +324,7 @@ export default function ExamsPage() {
     fetchExamGroups();
     fetchExams();
     fetchSubjectAllocations();
+    fetchClasses();
   }, [userChecked]);
 
   const activeSessionId = useMemo(() => {
@@ -398,6 +408,7 @@ export default function ExamsPage() {
   const [scheduleSectionFilter, setScheduleSectionFilter] = useState("ALL");
   const [scheduleShiftFilter, setScheduleShiftFilter] = useState<ExamShiftT | "ALL">("ALL");
   const hasActiveScheduleFilters = Boolean(scheduleSearch) || scheduleClassFilter !== "ALL" || scheduleSectionFilter !== "ALL" || scheduleShiftFilter !== "ALL";
+  const [dateSheetTab, setDateSheetTab] = useState<"manage" | "datesheet">("manage");
   const detailClasses = useMemo(() => {
     if (!detailExam) return [];
 
@@ -440,6 +451,59 @@ export default function ExamsPage() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [detailExam, scheduleClassFilter, isTeacherView, teacherAllocationIds]);
 
+  const pivotClasses = useMemo(() => {
+    return [...detailClasses].sort((a, b) => {
+      const numA = parseInt(a.name, 10);
+      const numB = parseInt(b.name, 10);
+
+      if (!Number.isNaN(numA) && !Number.isNaN(numB) && numA !== numB) {
+        return numA - numB;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+  }, [detailClasses]);
+
+  const pivotDates = useMemo(() => {
+    if (!detailExam) return [];
+
+    try {
+      return eachDayOfInterval({ start: new Date(detailExam.startDate), end: new Date(detailExam.endDate) });
+    } catch {
+      return [];
+    }
+  }, [detailExam]);
+
+  const pivotSubjectsByDateAndClass = useMemo(() => {
+    const map = new Map<string, string[]>();
+
+    if (!detailExam) return map;
+
+    (detailExam.schedules ?? []).forEach((schedule) => {
+      if (isTeacherView && !teacherAllocationIds.has(schedule.subjectAllocationId)) {
+        return;
+      }
+
+      const key = `${toDateInputValue(schedule.examDate)}::${schedule.subjectAllocation.class.id}`;
+      const existing = map.get(key) ?? [];
+      const subjectName = schedule.subjectAllocation.subject.name;
+
+      if (!existing.includes(subjectName)) {
+        existing.push(subjectName);
+      }
+
+      map.set(key, existing);
+    });
+
+    return map;
+  }, [detailExam, isTeacherView, teacherAllocationIds]);
+
+  const pivotCell = (dateStr: string, classId: string) => {
+    const subjects = pivotSubjectsByDateAndClass.get(`${dateStr}::${classId}`);
+
+    return subjects && subjects.length > 0 ? subjects.join(" / ") : "-";
+  };
+
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
   const [scheduleAllocationId, setScheduleAllocationId] = useState("");
@@ -452,9 +516,6 @@ export default function ExamsPage() {
   const [scheduleDateOpen, setScheduleDateOpen] = useState(false);
   const [detailScheduleDeleteOpen, setDetailScheduleDeleteOpen] = useState(false);
   const [deletingSchedule, setDeletingSchedule] = useState<ExamSchedule | null>(null);
-
-  // Exam Groups manager (Unit Test, Mid-Term, End-Term, Pre-Board I, ...).
-  // Lives inside this page instead of as a separate settings page.
   const [examGroupManagerOpen, setExamGroupManagerOpen] = useState(false);
   const [editingExamGroup, setEditingExamGroup] = useState<ExamGroup | null>(null);
   const [egName, setEgName] = useState("");
@@ -463,12 +524,6 @@ export default function ExamsPage() {
   const [egIsActive, setEgIsActive] = useState(true);
   const [egDeleteOpen, setEgDeleteOpen] = useState(false);
   const [deletingExamGroup, setDeletingExamGroup] = useState<ExamGroup | null>(null);
-
-  // Exam-subject component setup (Theory / Practical / Enrichment / ...)
-  // for CIE / General classes. Scoped to (examId, subjectId) — defined
-  // once, applies automatically to every section that has a schedule for
-  // that subject in this exam. CBSE classes never use this — see the
-  // Class Component Template manager below instead.
   const [componentOpen, setComponentOpen] = useState(false);
   const [componentContext, setComponentContext] = useState<{
     examId: string;
@@ -485,10 +540,6 @@ export default function ExamsPage() {
   const [componentIsOptionalSubject, setComponentIsOptionalSubject] = useState(false);
   const [componentDeleteOpen, setComponentDeleteOpen] = useState(false);
   const [deletingComponent, setDeletingComponent] = useState<{ id: string } | null>(null);
-
-  // CBSE grade-level marks structure (Theory/Practical/etc.) — set up once
-  // per class + exam group, applies to every subject/section/session
-  // automatically. This replaces per-subject component setup for CBSE.
   const [componentTemplateOpen, setComponentTemplateOpen] = useState(false);
   const [componentTemplateContext, setComponentTemplateContext] = useState<{
     classId: string;
@@ -496,17 +547,32 @@ export default function ExamsPage() {
     examGroupId: string;
     examGroupName: string;
   } | null>(null);
+  const [componentTemplateSelectedSubjectId, setComponentTemplateSelectedSubjectId] = useState<string | null>(null);
   const [componentTemplateDefRows, setComponentTemplateDefRows] = useState<
     { name: string; source: "FETCHED" | "MANUAL"; maximumMarks: string; passingMarks: string; displayOrder: number }[]
   >([]);
   const [savingComponentTemplate, setSavingComponentTemplate] = useState(false);
   const [componentTemplateDeleteOpen, setComponentTemplateDeleteOpen] = useState(false);
+  const [syncingComponents, setSyncingComponents] = useState(false);
+  const [copyTemplateOpen, setCopyTemplateOpen] = useState(false);
+  const [copyTargetClassIds, setCopyTargetClassIds] = useState<string[]>([]);
+  const [copyingTemplate, setCopyingTemplate] = useState(false);
+
+  const sortedClasses = useMemo(() => [...classes].sort((a, b) => a.sortOrder - b.sortOrder), [classes]);
+
+  const classComponentTemplateRowsForExamGroup = useMemo(() => {
+    if (!componentTemplateContext) return [];
+
+    return classComponentTemplates.filter((t) => t.classId === componentTemplateContext.classId && t.examGroupId === componentTemplateContext.examGroupId);
+  }, [classComponentTemplates, componentTemplateContext]);
+
+  const componentTemplateOverrideSubjectIds = useMemo(() => {
+    return new Set(classComponentTemplateRowsForExamGroup.filter((t) => t.subjectId).map((t) => t.subjectId as string));
+  }, [classComponentTemplateRowsForExamGroup]);
 
   const existingComponentTemplate = useMemo(() => {
-    if (!componentTemplateContext) return null;
-
-    return classComponentTemplates.find((t) => t.classId === componentTemplateContext.classId && t.examGroupId === componentTemplateContext.examGroupId) ?? null;
-  }, [classComponentTemplates, componentTemplateContext]);
+    return classComponentTemplateRowsForExamGroup.find((t) => (t.subjectId ?? null) === componentTemplateSelectedSubjectId) ?? null;
+  }, [classComponentTemplateRowsForExamGroup, componentTemplateSelectedSubjectId]);
 
   const availableAllocations = useMemo(() => {
     if (!detailExam) return [];
@@ -536,6 +602,7 @@ export default function ExamsPage() {
     setScheduleClassFilter("ALL");
     setScheduleSectionFilter("ALL");
     setScheduleShiftFilter("ALL");
+    setDateSheetTab("manage");
   };
 
   const resetScheduleForm = (exam?: Exam) => {
@@ -783,7 +850,7 @@ export default function ExamsPage() {
     } catch (error) {
       const err = error as AxiosError<ApiErrorResponse>;
 
-      toast.error(err.response?.data?.message || "Failed to save exam schedule. If this is a CBSE class, make sure its marks structure is set up first.");
+      toast.error(err.response?.data?.message || "Failed to save exam schedule. Make sure this class's marks structure is set up first.");
     }
   };
 
@@ -888,7 +955,7 @@ export default function ExamsPage() {
   };
 
   // ---------------------------------------------------------
-  // Exam subject component manager (CIE / General classes only)
+  // Exam subject component manager (advanced: one-off, per-exam overrides)
   // ---------------------------------------------------------
 
   const openComponentManager = (schedule: ExamSchedule) => {
@@ -907,8 +974,6 @@ export default function ExamsPage() {
     return [...(detailExam.subjectComponents ?? [])].filter((c) => c.subjectId === componentContext.subjectId).sort((a, b) => a.displayOrder - b.displayOrder);
   }, [detailExam, componentContext]);
 
-  // How many sections currently have a schedule for this subject in this
-  // exam — i.e. how many sections instantly inherit whatever is set up here.
   const componentSubjectScheduleCount = useMemo(() => {
     if (!detailExam || !componentContext) return 0;
 
@@ -1025,8 +1090,30 @@ export default function ExamsPage() {
   };
 
   // ---------------------------------------------------------
-  // CBSE grade-level component template manager
+  // Grade-level component template manager (default + subject overrides)
   // ---------------------------------------------------------
+
+  const loadDefRowsForSelection = (classId: string, examGroupId: string, subjectId: string | null) => {
+    const found = useAcademicStore
+      .getState()
+      .classComponentTemplates.find((t) => t.classId === classId && t.examGroupId === examGroupId && (t.subjectId ?? null) === subjectId);
+
+    if (found) {
+      setComponentTemplateDefRows(
+        [...found.definitions]
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+          .map((d) => ({
+            name: d.name,
+            source: d.source,
+            maximumMarks: String(d.maximumMarks),
+            passingMarks: d.passingMarks != null ? String(d.passingMarks) : "",
+            displayOrder: d.displayOrder,
+          })),
+      );
+    } else {
+      setComponentTemplateDefRows([{ name: "Theory", source: "FETCHED", maximumMarks: "", passingMarks: "", displayOrder: 1 }]);
+    }
+  };
 
   const openComponentTemplateManager = async (schedule: ExamSchedule) => {
     if (!detailExam) return;
@@ -1037,32 +1124,25 @@ export default function ExamsPage() {
     const examGroupName = detailExam.examGroup?.name ?? examGroupLabel(examGroupId);
 
     setComponentTemplateContext({ classId, className, examGroupId, examGroupName });
+    setComponentTemplateSelectedSubjectId(null);
     setComponentTemplateOpen(true);
 
     try {
-      await fetchClassComponentTemplateByClassAndExamGroup(classId, examGroupId);
-
-      const found = useAcademicStore.getState().classComponentTemplates.find((t) => t.classId === classId && t.examGroupId === examGroupId);
-
-      if (found) {
-        setComponentTemplateDefRows(
-          [...found.definitions]
-            .sort((a, b) => a.displayOrder - b.displayOrder)
-            .map((d) => ({
-              name: d.name,
-              source: d.source,
-              maximumMarks: String(d.maximumMarks),
-              passingMarks: d.passingMarks != null ? String(d.passingMarks) : "",
-              displayOrder: d.displayOrder,
-            })),
-        );
-      } else {
-        setComponentTemplateDefRows([{ name: "Theory", source: "FETCHED", maximumMarks: "", passingMarks: "", displayOrder: 1 }]);
-      }
+      await fetchClassComponentTemplates(classId);
     } catch {
-      // Not configured yet — start with a sensible default row.
-      setComponentTemplateDefRows([{ name: "Theory", source: "FETCHED", maximumMarks: "", passingMarks: "", displayOrder: 1 }]);
+      // Nothing configured for this class yet - fine, form starts blank.
+    } finally {
+      loadDefRowsForSelection(classId, examGroupId, null);
     }
+  };
+
+  const handleComponentTemplateSubjectChange = (value: string) => {
+    if (!componentTemplateContext) return;
+
+    const subjectId = value === "DEFAULT" ? null : value;
+
+    setComponentTemplateSelectedSubjectId(subjectId);
+    loadDefRowsForSelection(componentTemplateContext.classId, componentTemplateContext.examGroupId, subjectId);
   };
 
   const addComponentTemplateRow = () => {
@@ -1108,10 +1188,21 @@ export default function ExamsPage() {
       let template = existingComponentTemplate;
 
       if (!template) {
-        await createClassComponentTemplate({ classId: componentTemplateContext.classId, examGroupId: componentTemplateContext.examGroupId });
+        await createClassComponentTemplate({
+          classId: componentTemplateContext.classId,
+          examGroupId: componentTemplateContext.examGroupId,
+          subjectId: componentTemplateSelectedSubjectId ?? undefined,
+        });
 
         template =
-          useAcademicStore.getState().classComponentTemplates.find((t) => t.classId === componentTemplateContext.classId && t.examGroupId === componentTemplateContext.examGroupId) ?? null;
+          useAcademicStore
+            .getState()
+            .classComponentTemplates.find(
+              (t) =>
+                t.classId === componentTemplateContext.classId &&
+                t.examGroupId === componentTemplateContext.examGroupId &&
+                (t.subjectId ?? null) === componentTemplateSelectedSubjectId,
+            ) ?? null;
       }
 
       if (!template) {
@@ -1129,10 +1220,13 @@ export default function ExamsPage() {
         })),
       );
 
-      toast.success("Marks structure saved — it now applies to every subject in this class for this exam group");
+      toast.success(
+        componentTemplateSelectedSubjectId
+          ? "Marks structure saved for this subject"
+          : "Marks structure saved — it now applies to every subject in this class for this exam group",
+      );
 
       await fetchExams();
-      setComponentTemplateOpen(false);
     } catch (error) {
       const err = error as AxiosError<ApiErrorResponse>;
       toast.error(err.response?.data?.message || "Failed to save marks structure");
@@ -1150,10 +1244,75 @@ export default function ExamsPage() {
       toast.success("Marks structure deleted");
 
       setComponentTemplateDeleteOpen(false);
-      setComponentTemplateOpen(false);
+
+      if (componentTemplateContext) {
+        loadDefRowsForSelection(componentTemplateContext.classId, componentTemplateContext.examGroupId, componentTemplateSelectedSubjectId);
+      }
     } catch (error) {
       const err = error as AxiosError<ApiErrorResponse>;
       toast.error(err.response?.data?.message || "Failed to delete marks structure");
+    }
+  };
+
+  const handleSyncComponents = async () => {
+    if (!componentTemplateContext) return;
+
+    setSyncingComponents(true);
+
+    try {
+      const result = await syncExamComponentsForClassExamGroup(componentTemplateContext.classId, componentTemplateContext.examGroupId);
+
+      if (result.skipped.length > 0) {
+        toast.success(`${result.message} — ${result.skipped.length} skipped (nothing configured for that subject yet)`);
+      } else {
+        toast.success(result.message);
+      }
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+      toast.error(err.response?.data?.message || "Failed to sync exam schedules");
+    } finally {
+      setSyncingComponents(false);
+    }
+  };
+
+  // ---------------------------------------------------------
+  // Copy marks structure to other classes
+  // ---------------------------------------------------------
+
+  const openCopyTemplate = () => {
+    setCopyTargetClassIds([]);
+    setCopyTemplateOpen(true);
+  };
+
+  const toggleCopyTargetClass = (classId: string, checked: boolean) => {
+    setCopyTargetClassIds((previous) => (checked ? [...previous, classId] : previous.filter((id) => id !== classId)));
+  };
+
+  const handleCopyTemplate = async () => {
+    if (!componentTemplateContext) return;
+
+    if (copyTargetClassIds.length === 0) {
+      toast.error("Select at least one target class");
+      return;
+    }
+
+    setCopyingTemplate(true);
+
+    try {
+      const result = await copyClassComponentTemplate({
+        sourceClassId: componentTemplateContext.classId,
+        examGroupId: componentTemplateContext.examGroupId,
+        targetClassIds: copyTargetClassIds,
+      });
+
+      toast.success(result.message);
+
+      setCopyTemplateOpen(false);
+    } catch (error) {
+      const err = error as AxiosError<ApiErrorResponse>;
+      toast.error(err.response?.data?.message || "Failed to copy marks structure");
+    } finally {
+      setCopyingTemplate(false);
     }
   };
 
@@ -1358,14 +1517,42 @@ export default function ExamsPage() {
               </p>
             </div>
 
-            {canCreate && (
-              <Button className="h-9 gap-2" onClick={openAddSchedule}>
-                <Plus className="size-4" />
-                Add Schedule
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDateSheetTab("manage")}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                    dateSheetTab === "manage" ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Manage
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDateSheetTab("datesheet")}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                    dateSheetTab === "datesheet" ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Overview
+                </button>
+              </div>
+
+              {dateSheetTab === "manage" && canCreate && (
+                <Button className="h-9 gap-2" onClick={openAddSchedule}>
+                  <Plus className="size-4" />
+                  Add Schedule
+                </Button>
+              )}
+            </div>
           </div>
 
+          {dateSheetTab === "manage" && (
+          <>
           <div className="grid grid-cols-1 items-center gap-3 border-b py-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,160px))_auto]">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -1480,7 +1667,6 @@ export default function ExamsPage() {
                     <tbody>
                       {schedules.map((schedule) => {
                         const allocation = schedule.subjectAllocation;
-                        const isCbse = allocation.class.board === "CBSE";
 
                         return (
                           <tr key={schedule.id} className="border-b last:border-0 hover:bg-muted/10">
@@ -1505,27 +1691,27 @@ export default function ExamsPage() {
                                 <div className="flex items-center justify-end gap-1">
                                   {/* Desktop */}
                                   <div className="hidden items-center gap-1 md:flex">
-                                    {canCreate && !isCbse && (
+                                    {canCreate && (
                                       <button
                                         type="button"
-                                        aria-label="Manage components"
-                                        title="Manage components for this subject (applies to every section)"
-                                        onClick={() => openComponentManager(schedule)}
+                                        aria-label="Marks structure"
+                                        title="Set the marks structure for this class (applies to every subject and section, every session)"
+                                        onClick={() => openComponentTemplateManager(schedule)}
                                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
                                       >
                                         <ListChecks className="size-4" />
                                       </button>
                                     )}
 
-                                    {canCreate && isCbse && (
+                                    {canCreate && (
                                       <button
                                         type="button"
-                                        aria-label="Marks structure"
-                                        title="Set the Theory/Practical marks structure for this class (applies to every subject, every session)"
-                                        onClick={() => openComponentTemplateManager(schedule)}
+                                        aria-label="Manage components"
+                                        title="Advanced: add a one-off component just for this exam, without changing the reusable structure"
+                                        onClick={() => openComponentManager(schedule)}
                                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
                                       >
-                                        <ListChecks className="size-4" />
+                                        <Plus className="size-4" />
                                       </button>
                                     )}
 
@@ -1564,17 +1750,17 @@ export default function ExamsPage() {
                                       </DropdownMenuTrigger>
 
                                       <DropdownMenuContent align="end">
-                                        {canCreate && !isCbse && (
-                                          <DropdownMenuItem onClick={() => openComponentManager(schedule)}>
-                                            <ListChecks className="mr-2 size-4" />
-                                            Manage components
-                                          </DropdownMenuItem>
-                                        )}
-
-                                        {canCreate && isCbse && (
+                                        {canCreate && (
                                           <DropdownMenuItem onClick={() => openComponentTemplateManager(schedule)}>
                                             <ListChecks className="mr-2 size-4" />
                                             Marks structure
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {canCreate && (
+                                          <DropdownMenuItem onClick={() => openComponentManager(schedule)}>
+                                            <Plus className="mr-2 size-4" />
+                                            Manage components (advanced)
                                           </DropdownMenuItem>
                                         )}
 
@@ -1623,6 +1809,63 @@ export default function ExamsPage() {
               </div>
             )}
           </div>
+          </>
+          )}
+
+          {dateSheetTab === "datesheet" && (
+            <div className="pt-4">
+              <p className="text-sm text-muted-foreground">A simple exam schedule — easy to read and share with parents and students.</p>
+
+              <div className="mt-4 overflow-hidden rounded-md border">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-175 text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/10 text-left">
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Date</th>
+                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Day</th>
+
+                        {pivotClasses.map((cls) => (
+                          <th key={cls.id} className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            {cls.name}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {pivotDates.map((date) => {
+                        const dateStr = toLocalDateKey(date);
+                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                        return (
+                          <tr key={dateStr} className={cn("border-b last:border-0", isWeekend && "bg-muted/20")}>
+                            <td className="whitespace-nowrap px-4 py-3 font-medium">{format(date, "dd/MM/yyyy")}</td>
+                            <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{format(date, "EEEE")}</td>
+
+                            {pivotClasses.map((cls) => (
+                              <td key={cls.id} className="px-4 py-3 text-center text-muted-foreground">
+                                {pivotCell(dateStr, cls.id)}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {pivotClasses.length === 0 && (
+                  <div className="p-10 text-center">
+                    <CalendarIcon className="mx-auto size-8 text-muted-foreground" />
+
+                    <h3 className="mt-3 font-semibold">No schedules found</h3>
+
+                    <p className="mt-1 text-sm text-muted-foreground">Add schedules in the Manage tab to build the date sheet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -2505,7 +2748,7 @@ export default function ExamsPage() {
                   <div className="p-8 text-center">
                     <ListChecks className="mx-auto size-7 text-muted-foreground" />
                     <p className="mt-2 text-sm font-medium">No exam groups yet</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Add your school's exam terms below — e.g. Unit Test, Mid-Term, End-Term.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Add your school&apos;s exam terms below — e.g. Unit Test, Mid-Term, End-Term.</p>
                   </div>
                 )}
               </div>
@@ -2871,7 +3114,7 @@ export default function ExamsPage() {
       </AlertDialog>
 
       {/* =====================================================
-          CBSE Grade Component Template (marks structure)
+          Grade-level Component Template (marks structure)
       ===================================================== */}
 
       <Dialog
@@ -2881,6 +3124,7 @@ export default function ExamsPage() {
 
           if (!open) {
             setComponentTemplateContext(null);
+            setComponentTemplateSelectedSubjectId(null);
             setComponentTemplateDefRows([]);
           }
         }}
@@ -2897,8 +3141,8 @@ export default function ExamsPage() {
 
                 <DialogDescription>
                   {componentTemplateContext
-                    ? `${componentTemplateContext.className} — ${componentTemplateContext.examGroupName}. Set up once, applies to every subject, section, and future session automatically.`
-                    : "Define the Theory/Practical structure for this class and exam group."}
+                    ? `${componentTemplateContext.className} — ${componentTemplateContext.examGroupName}. Set a default for every subject, plus overrides for the ones that differ.`
+                    : "Define the marks structure for this class and exam group."}
                 </DialogDescription>
               </div>
             </div>
@@ -2915,6 +3159,55 @@ export default function ExamsPage() {
                 </div>
               </div>
             </div>
+
+            <Field>
+              <Label>Applies to</Label>
+
+              <Select value={componentTemplateSelectedSubjectId ?? "DEFAULT"} onValueChange={handleComponentTemplateSubjectChange}>
+                <SelectTrigger className="h-11 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="DEFAULT">All subjects (default)</SelectItem>
+
+                  {[...subjects]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                        {componentTemplateOverrideSubjectIds.has(subject.id) ? " (override set)" : ""}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Leave on &quot;All subjects&quot; for the structure every subject uses. Pick one subject to give it its own structure instead (e.g. Painting = practical only).
+              </p>
+            </Field>
+
+            {componentTemplateOverrideSubjectIds.size > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Existing overrides:</span>
+
+                {subjects
+                  .filter((subject) => componentTemplateOverrideSubjectIds.has(subject.id))
+                  .map((subject) => (
+                    <button
+                      key={subject.id}
+                      type="button"
+                      onClick={() => handleComponentTemplateSubjectChange(subject.id)}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                        componentTemplateSelectedSubjectId === subject.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {subject.name}
+                    </button>
+                  ))}
+              </div>
+            )}
 
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full min-w-125 text-sm">
@@ -2986,14 +3279,26 @@ export default function ExamsPage() {
             </Button>
           </div>
 
-          <DialogFooter className="shrink-0 flex-row items-center justify-between gap-2 border-t px-6 py-4">
-            <div>
+          <DialogFooter className="shrink-0 flex-row flex-wrap items-center justify-between gap-2 border-t px-6 py-4">
+            <div className="flex flex-wrap gap-2">
               {existingComponentTemplate && (
                 <Button type="button" variant="outline" className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setComponentTemplateDeleteOpen(true)}>
                   <Trash2 className="size-4" />
-                  Delete Structure
+                  Delete
                 </Button>
               )}
+
+              {classComponentTemplateRowsForExamGroup.length > 0 && (
+                <Button type="button" variant="outline" className="gap-2" onClick={openCopyTemplate}>
+                  <ClipboardList className="size-4" />
+                  Copy to Classes
+                </Button>
+              )}
+
+              <Button type="button" variant="outline" className="gap-2" onClick={handleSyncComponents} disabled={syncingComponents}>
+                {syncingComponents ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
+                Sync Existing Schedules
+              </Button>
             </div>
 
             <div className="flex gap-2">
@@ -3024,7 +3329,10 @@ export default function ExamsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this marks structure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the Theory/Practical structure for {componentTemplateContext?.className ?? "this class"} under {componentTemplateContext?.examGroupName ?? "this exam group"}. Existing exams already using
+              {componentTemplateSelectedSubjectId
+                ? "This removes the override for this subject — it will fall back to the class-wide default (if one exists)."
+                : "This removes the class-wide default structure."}{" "}
+              This removes it for {componentTemplateContext?.className ?? "this class"} under {componentTemplateContext?.examGroupName ?? "this exam group"}. Existing exams already using
               it keep their components — this only affects new schedules going forward. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -3037,6 +3345,80 @@ export default function ExamsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* =====================================================
+          Copy Marks Structure to Other Classes
+      ===================================================== */}
+
+      <Dialog
+        open={copyTemplateOpen}
+        onOpenChange={(open) => {
+          setCopyTemplateOpen(open);
+
+          if (!open) {
+            setCopyTargetClassIds([]);
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[80vh] flex-col overflow-hidden p-0 sm:max-w-125">
+          <div className="shrink-0 border-b px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                <ClipboardList className="size-5 text-primary" />
+              </div>
+
+              <div>
+                <DialogTitle className="text-lg">Copy Marks Structure</DialogTitle>
+
+                <DialogDescription>
+                  Copies the default and every subject override from {componentTemplateContext?.className ?? "this class"} — {componentTemplateContext?.examGroupName ?? "this exam group"} onto the classes you pick
+                  below. Any subjects a target class doesn&apos;t teach are simply unused, not an error.
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="rounded-md border">
+              <div className="divide-y">
+                {sortedClasses
+                  .filter((item) => item.id !== componentTemplateContext?.classId)
+                  .map((item) => (
+                    <label key={item.id} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer select-none">
+                      <Checkbox checked={copyTargetClassIds.includes(item.id)} onCheckedChange={(value) => toggleCopyTargetClass(item.id, Boolean(value))} />
+                      <span className="text-sm font-medium">{item.name}</span>
+                      <span className="text-xs text-muted-foreground">({item.board})</span>
+                    </label>
+                  ))}
+
+                {sortedClasses.filter((item) => item.id !== componentTemplateContext?.classId).length === 0 && (
+                  <p className="p-6 text-center text-sm text-muted-foreground">No other classes to copy to.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="shrink-0 border-t px-6 py-4">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+
+            <Button type="button" onClick={handleCopyTemplate} disabled={copyingTemplate || copyTargetClassIds.length === 0} className="min-w-32.5 gap-2">
+              {copyingTemplate ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Copying...
+                </>
+              ) : (
+                <>
+                  <ClipboardList className="size-4" />
+                  Copy
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

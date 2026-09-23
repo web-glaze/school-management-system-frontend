@@ -412,6 +412,13 @@ export type ComponentSource = "FETCHED" | "MANUAL";
 export interface CreateClassSubjectComponentTemplatePayload {
   classId: string;
   examGroupId: string;
+  subjectId?: string;
+}
+
+export interface CopyClassComponentTemplatePayload {
+  sourceClassId: string;
+  examGroupId: string;
+  targetClassIds: string[];
 }
 
 export interface ComponentTemplateDefinitionItem {
@@ -783,6 +790,8 @@ export const academicService = {
     updateSubjectComponent: (componentId: string, data: UpdateExamSubjectComponentPayload) => apiClient.patch(`/academic/exams/subject-components/${componentId}`, data),
 
     deleteSubjectComponent: (componentId: string) => apiClient.delete(`/academic/exams/subject-components/${componentId}`),
+
+    syncComponents: (classId: string, examGroupId: string) => apiClient.post(`/academic/exams/class/${classId}/exam-group/${examGroupId}/sync-components`),
   },
 
   examMarks: {
@@ -804,9 +813,12 @@ export const academicService = {
 
     getById: (id: string) => apiClient.get(`/academic/class-component-templates/${id}`),
 
-    getByClassAndExamGroup: (classId: string, examGroupId: string) => apiClient.get(`/academic/class-component-templates/class/${classId}/exam-group/${examGroupId}`),
+    getByClassAndExamGroup: (classId: string, examGroupId: string, subjectId?: string) =>
+      apiClient.get(`/academic/class-component-templates/class/${classId}/exam-group/${examGroupId}`, { params: subjectId ? { subjectId } : undefined }),
 
     create: (data: CreateClassSubjectComponentTemplatePayload) => apiClient.post("/academic/class-component-templates", data),
+
+    copy: (data: CopyClassComponentTemplatePayload) => apiClient.post("/academic/class-component-templates/copy", data),
 
     delete: (id: string) => apiClient.delete(`/academic/class-component-templates/${id}`),
 
