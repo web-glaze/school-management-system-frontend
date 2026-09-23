@@ -557,6 +557,8 @@ export default function ExamsPage() {
   const [copyTemplateOpen, setCopyTemplateOpen] = useState(false);
   const [copyTargetClassIds, setCopyTargetClassIds] = useState<string[]>([]);
   const [copyingTemplate, setCopyingTemplate] = useState(false);
+  const [classPickerOpen, setClassPickerOpen] = useState(false);
+  const [classPickerSelectedId, setClassPickerSelectedId] = useState("");
 
   const sortedClasses = useMemo(() => [...classes].sort((a, b) => a.sortOrder - b.sortOrder), [classes]);
 
@@ -1115,11 +1117,9 @@ export default function ExamsPage() {
     }
   };
 
-  const openComponentTemplateManager = async (schedule: ExamSchedule) => {
+  const openComponentTemplateManagerForClass = async (classId: string, className: string) => {
     if (!detailExam) return;
 
-    const classId = schedule.subjectAllocation.classId;
-    const className = schedule.subjectAllocation.class.name;
     const examGroupId = detailExam.examGroupId;
     const examGroupName = detailExam.examGroup?.name ?? examGroupLabel(examGroupId);
 
@@ -1134,6 +1134,28 @@ export default function ExamsPage() {
     } finally {
       loadDefRowsForSelection(classId, examGroupId, null);
     }
+  };
+
+  const openComponentTemplateManager = async (schedule: ExamSchedule) => {
+    await openComponentTemplateManagerForClass(schedule.subjectAllocation.classId, schedule.subjectAllocation.class.name);
+  };
+
+  const openClassPicker = () => {
+    setClassPickerSelectedId("");
+    setClassPickerOpen(true);
+  };
+
+  const handleClassPickerContinue = async () => {
+    const selected = sortedClasses.find((item) => item.id === classPickerSelectedId);
+
+    if (!selected) {
+      toast.error("Select a class");
+      return;
+    }
+
+    setClassPickerOpen(false);
+
+    await openComponentTemplateManagerForClass(selected.id, selected.name);
   };
 
   const handleComponentTemplateSubjectChange = (value: string) => {
@@ -1541,6 +1563,13 @@ export default function ExamsPage() {
                   Overview
                 </button>
               </div>
+
+              {dateSheetTab === "manage" && canCreate && (
+                <Button variant="outline" className="h-9 gap-2" onClick={openClassPicker}>
+                  <ListChecks className="size-4" />
+                  Marks Structure
+                </Button>
+              )}
 
               {dateSheetTab === "manage" && canCreate && (
                 <Button className="h-9 gap-2" onClick={openAddSchedule}>
@@ -3112,6 +3141,54 @@ export default function ExamsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* =====================================================
+          Pick a class (for Marks Structure, before any schedule exists)
+      ===================================================== */}
+
+      <Dialog open={classPickerOpen} onOpenChange={setClassPickerOpen}>
+        <DialogContent className="sm:max-w-100">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+              <ListChecks className="size-5 text-primary" />
+            </div>
+
+            <div>
+              <DialogTitle className="text-lg">Marks Structure</DialogTitle>
+              <DialogDescription>Pick a class to set up or edit its marks structure for this exam group.</DialogDescription>
+            </div>
+          </div>
+
+          <Field>
+            <Label>Class</Label>
+
+            <Select value={classPickerSelectedId} onValueChange={setClassPickerSelectedId}>
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue placeholder="Select a class" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {sortedClasses.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name} ({item.board})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <DialogFooter className="mt-6">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+
+            <Button type="button" onClick={handleClassPickerContinue} disabled={!classPickerSelectedId} className="gap-2">
+              <ListChecks className="size-4" />
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* =====================================================
           Grade-level Component Template (marks structure)
