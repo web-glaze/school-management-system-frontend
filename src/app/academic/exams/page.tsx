@@ -34,6 +34,7 @@ type ExamShiftT = "MORNING" | "AFTERNOON";
 
 interface StoredUser {
   teacherId?: string | null;
+  studentClassId?: string | null;
 }
 
 const EXAM_STATUS_OPTIONS: {
@@ -299,6 +300,7 @@ export default function ExamsPage() {
   const canUpdate = usePermission("exam.update");
   const canDelete = usePermission("exam.delete");
   const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
+  const [myStudentClassId, setMyStudentClassId] = useState<string | null>(null);
   const [userChecked, setUserChecked] = useState(false);
 
   useEffect(() => {
@@ -307,8 +309,10 @@ export default function ExamsPage() {
       const parsed: StoredUser | null = stored ? JSON.parse(stored) : null;
 
       setMyTeacherId(parsed?.teacherId ?? null);
+      setMyStudentClassId(parsed?.studentClassId ?? null);
     } catch {
       setMyTeacherId(null);
+      setMyStudentClassId(null);
     } finally {
       setUserChecked(true);
     }
@@ -463,6 +467,24 @@ export default function ExamsPage() {
       return a.name.localeCompare(b.name);
     });
   }, [detailClasses]);
+
+  const [publicSelectedClassId, setPublicSelectedClassId] = useState("");
+
+  useEffect(() => {
+    if (pivotClasses.length === 0) {
+      if (publicSelectedClassId) setPublicSelectedClassId("");
+      return;
+    }
+
+    if (myStudentClassId && pivotClasses.some((cls) => cls.id === myStudentClassId)) {
+      if (publicSelectedClassId !== myStudentClassId) setPublicSelectedClassId(myStudentClassId);
+      return;
+    }
+
+    if (!pivotClasses.some((cls) => cls.id === publicSelectedClassId)) {
+      setPublicSelectedClassId(pivotClasses[0].id);
+    }
+  }, [pivotClasses, myStudentClassId, publicSelectedClassId]);
 
   const pivotDates = useMemo(() => {
     if (!detailExam) return [];
@@ -1130,7 +1152,6 @@ export default function ExamsPage() {
     try {
       await fetchClassComponentTemplates(classId);
     } catch {
-      // Nothing configured for this class yet - fine, form starts blank.
     } finally {
       loadDefRowsForSelection(classId, examGroupId, null);
     }
@@ -1560,7 +1581,7 @@ export default function ExamsPage() {
                     dateSheetTab === "datesheet" ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  Overview
+                  Student &amp; Parent View
                 </button>
               </div>
 
@@ -1843,56 +1864,71 @@ export default function ExamsPage() {
 
           {dateSheetTab === "datesheet" && (
             <div className="pt-4">
-              <p className="text-sm text-muted-foreground">A simple exam schedule — easy to read and share with parents and students.</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">A simple exam schedule — easy to read and share with parents and students.</p>
 
-              <div className="mt-4 overflow-hidden rounded-md border">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-175 text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/10 text-left">
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Date</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Day</th>
+                {pivotClasses.length > 0 &&
+                  (myStudentClassId ? (
+                    <span className="w-fit rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">
+                      {pivotClasses.find((cls) => cls.id === myStudentClassId)?.name ?? "Your Class"}
+                    </span>
+                  ) : (
+                    <Select value={publicSelectedClassId} onValueChange={setPublicSelectedClassId}>
+                      <SelectTrigger className="h-10 w-full sm:w-48">
+                        <SelectValue placeholder="Select a class" />
+                      </SelectTrigger>
 
+                      <SelectContent>
                         {pivotClasses.map((cls) => (
-                          <th key={cls.id} className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <SelectItem key={cls.id} value={cls.id}>
                             {cls.name}
-                          </th>
+                          </SelectItem>
                         ))}
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {pivotDates.map((date) => {
-                        const dateStr = toLocalDateKey(date);
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-                        return (
-                          <tr key={dateStr} className={cn("border-b last:border-0", isWeekend && "bg-muted/20")}>
-                            <td className="whitespace-nowrap px-4 py-3 font-medium">{format(date, "dd/MM/yyyy")}</td>
-                            <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{format(date, "EEEE")}</td>
-
-                            {pivotClasses.map((cls) => (
-                              <td key={cls.id} className="px-4 py-3 text-center text-muted-foreground">
-                                {pivotCell(dateStr, cls.id)}
-                              </td>
-                            ))}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {pivotClasses.length === 0 && (
-                  <div className="p-10 text-center">
-                    <CalendarIcon className="mx-auto size-8 text-muted-foreground" />
-
-                    <h3 className="mt-3 font-semibold">No schedules found</h3>
-
-                    <p className="mt-1 text-sm text-muted-foreground">Add schedules in the Manage tab to build the date sheet.</p>
-                  </div>
-                )}
+                      </SelectContent>
+                    </Select>
+                  ))}
               </div>
+
+              {pivotClasses.length === 0 ? (
+                <div className="mt-4 rounded-md border p-10 text-center">
+                  <CalendarIcon className="mx-auto size-8 text-muted-foreground" />
+
+                  <h3 className="mt-3 font-semibold">No schedules found</h3>
+
+                  <p className="mt-1 text-sm text-muted-foreground">Add schedules in the Manage tab to build the date sheet.</p>
+                </div>
+              ) : (
+                <div className="mt-4 overflow-hidden rounded-md border">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/10 text-left">
+                          <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Date</th>
+                          <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Day</th>
+                          <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Subject</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {pivotDates.map((date) => {
+                          const dateStr = toLocalDateKey(date);
+                          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                          const subjectText = pivotCell(dateStr, publicSelectedClassId);
+                          const hasExam = subjectText !== "-";
+
+                          return (
+                            <tr key={dateStr} className={cn("border-b last:border-0", isWeekend && "bg-muted/20")}>
+                              <td className="whitespace-nowrap px-4 py-3 font-medium">{format(date, "dd MMM yyyy")}</td>
+                              <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{format(date, "EEEE")}</td>
+                              <td className={cn("px-4 py-3", hasExam ? "font-medium" : "text-muted-foreground")}>{subjectText}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
