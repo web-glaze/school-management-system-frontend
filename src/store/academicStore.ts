@@ -412,7 +412,6 @@ export interface ClassExamStructure {
   gradingSchemeId?: string;
   hasOptionalSubject: boolean;
   combineExamGroups: boolean;
-  showPerformanceGraph: boolean;
   isActive: boolean;
   notes?: string;
   class: AcademicClass;
@@ -458,7 +457,6 @@ export interface ReportCardTemplate {
   schoolId: string;
   classId: string;
   examGroupId?: string;
-  gradingSchemeId?: string;
   name: string;
   reportScope: "INDIVIDUAL" | "COMBINED";
   showPerformanceGraph: boolean;
@@ -466,7 +464,6 @@ export interface ReportCardTemplate {
   isActive: boolean;
   class: AcademicClass;
   examGroup?: ExamGroup;
-  gradingScheme?: GradingScheme;
   sections: ReportCardSection[];
   remarkFields: ReportRemarkFieldDefinition[];
   coScholasticRows: ReportCoScholasticRowDefinition[];
@@ -569,6 +566,19 @@ export interface ReportCardOverallResult {
   remark: string | null;
 }
 
+export interface SubjectHistoryPoint {
+  subjectId: string;
+  subjectName: string;
+  percentage: number;
+}
+
+export interface ExamGroupHistoryEntry {
+  examGroupId: string;
+  examGroupName: string;
+  sequence: number;
+  subjects: SubjectHistoryPoint[];
+}
+
 export interface IndividualReportCardResult {
   examGroupId: string;
   examGroupName: string;
@@ -576,6 +586,7 @@ export interface IndividualReportCardResult {
   examName: string;
   subjects: ReportCardSubjectResult[];
   overall: ReportCardOverallResult;
+  history: ExamGroupHistoryEntry[];
 }
 
 export interface CombinedReportCardResult {

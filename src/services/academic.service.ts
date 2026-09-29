@@ -349,7 +349,6 @@ export interface CreateClassExamStructurePayload {
   gradingSchemeId?: string;
   hasOptionalSubject?: boolean;
   combineExamGroups?: boolean;
-  showPerformanceGraph?: boolean;
   notes?: string;
 }
 
@@ -357,7 +356,6 @@ export interface UpdateClassExamStructurePayload {
   gradingSchemeId?: string;
   hasOptionalSubject?: boolean;
   combineExamGroups?: boolean;
-  showPerformanceGraph?: boolean;
   notes?: string;
   isActive?: boolean;
 }
@@ -372,7 +370,6 @@ export interface ClassExamGroupWeightItem {
 export interface CreateReportCardTemplatePayload {
   classId: string;
   examGroupId?: string;
-  gradingSchemeId?: string;
   name: string;
   reportScope: "INDIVIDUAL" | "COMBINED";
   showPerformanceGraph?: boolean;
@@ -382,7 +379,6 @@ export interface CreateReportCardTemplatePayload {
 
 export interface UpdateReportCardTemplatePayload {
   name?: string;
-  gradingSchemeId?: string;
   showPerformanceGraph?: boolean;
   showFinalResultWeightage?: boolean;
   isActive?: boolean;

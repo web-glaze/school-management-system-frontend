@@ -931,7 +931,6 @@ export default function ReportCardsPage() {
   const [structureGradingSchemeId, setStructureGradingSchemeId] = useState("");
   const [structureHasOptionalSubject, setStructureHasOptionalSubject] = useState(false);
   const [structureCombineExamGroups, setStructureCombineExamGroups] = useState(false);
-  const [structureShowPerformanceGraph, setStructureShowPerformanceGraph] = useState(false);
   const [structureNotes, setStructureNotes] = useState("");
   const [structureWeights, setStructureWeights] = useState<Record<string, { weightagePercent: string; includeInFinalResult: boolean }>>({});
   const [savingStructure, setSavingStructure] = useState(false);
@@ -950,7 +949,6 @@ export default function ReportCardsPage() {
     setStructureGradingSchemeId(existingStructure?.gradingSchemeId ?? "");
     setStructureHasOptionalSubject(existingStructure?.hasOptionalSubject ?? false);
     setStructureCombineExamGroups(existingStructure?.combineExamGroups ?? false);
-    setStructureShowPerformanceGraph(existingStructure?.showPerformanceGraph ?? false);
     setStructureNotes(existingStructure?.notes ?? "");
 
     const weightMap: Record<string, { weightagePercent: string; includeInFinalResult: boolean }> = {};
@@ -1000,7 +998,6 @@ export default function ReportCardsPage() {
       gradingSchemeId: structureGradingSchemeId || undefined,
       hasOptionalSubject: structureHasOptionalSubject,
       combineExamGroups: structureCombineExamGroups,
-      showPerformanceGraph: structureShowPerformanceGraph,
       notes: structureNotes.trim() || undefined,
     };
 
@@ -1056,7 +1053,6 @@ export default function ReportCardsPage() {
   const [templateClassId, setTemplateClassId] = useState("");
   const [templateScope, setTemplateScope] = useState<ReportCardScopeT>("INDIVIDUAL");
   const [templateExamGroupId, setTemplateExamGroupId] = useState("");
-  const [templateGradingSchemeId, setTemplateGradingSchemeId] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [templateShowGraph, setTemplateShowGraph] = useState(false);
   const [templateShowWeightage, setTemplateShowWeightage] = useState(false);
@@ -1079,7 +1075,6 @@ export default function ReportCardsPage() {
     setTemplateClassId("");
     setTemplateScope("INDIVIDUAL");
     setTemplateExamGroupId("");
-    setTemplateGradingSchemeId("");
     setTemplateName("");
     setTemplateShowGraph(false);
     setTemplateShowWeightage(false);
@@ -1096,7 +1091,6 @@ export default function ReportCardsPage() {
     setTemplateClassId(template.classId);
     setTemplateScope(template.reportScope);
     setTemplateExamGroupId(template.examGroupId ?? "");
-    setTemplateGradingSchemeId(template.gradingSchemeId ?? "");
     setTemplateName(template.name);
     setTemplateShowGraph(template.showPerformanceGraph);
     setTemplateShowWeightage(template.showFinalResultWeightage);
@@ -1126,7 +1120,6 @@ export default function ReportCardsPage() {
       if (editingTemplate) {
         await updateReportCardTemplate(editingTemplate.id, {
           name: templateName.trim(),
-          gradingSchemeId: templateGradingSchemeId || undefined,
           showPerformanceGraph: templateShowGraph,
           showFinalResultWeightage: templateShowWeightage,
           isActive: templateIsActive,
@@ -1136,7 +1129,6 @@ export default function ReportCardsPage() {
         await createReportCardTemplate({
           classId: templateClassId,
           examGroupId: templateScope === "INDIVIDUAL" ? templateExamGroupId : undefined,
-          gradingSchemeId: templateGradingSchemeId || undefined,
           name: templateName.trim(),
           reportScope: templateScope,
           showPerformanceGraph: templateShowGraph,
@@ -2027,22 +2019,13 @@ export default function ReportCardsPage() {
                       </Field>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <Label>Combine Exam Groups Into a Final Report</Label>
-                        <div className="mt-3">
-                          <Switch checked={structureCombineExamGroups} onCheckedChange={setStructureCombineExamGroups} />
-                        </div>
-                        <p className="mt-1.5 text-xs text-muted-foreground">On = CBSE-style (e.g. Term 1 + Term 2 combine). Off = CIE-style (each exam group stands alone).</p>
-                      </Field>
-
-                      <Field>
-                        <Label>Show Performance Graph</Label>
-                        <div className="mt-3">
-                          <Switch checked={structureShowPerformanceGraph} onCheckedChange={setStructureShowPerformanceGraph} />
-                        </div>
-                      </Field>
-                    </div>
+                    <Field>
+                      <Label>Combine Exam Groups Into a Final Report</Label>
+                      <div className="mt-3">
+                        <Switch checked={structureCombineExamGroups} onCheckedChange={setStructureCombineExamGroups} />
+                      </div>
+                      <p className="mt-1.5 text-xs text-muted-foreground">On = CBSE-style (e.g. Term 1 + Term 2 combine). Off = CIE-style (each exam group stands alone).</p>
+                    </Field>
 
                     <Field>
                       <Label>Notes</Label>
@@ -2176,8 +2159,6 @@ export default function ReportCardsPage() {
                         {template.class.name}
                         <span className="mx-1.5">•</span>
                         {template.reportScope === "INDIVIDUAL" ? (template.examGroup?.name ?? "Exam Group") : "Combined result"}
-                        <span className="mx-1.5">•</span>
-                        {template.gradingScheme?.name ?? "No grading scheme"}
                         <span className="mx-1.5">•</span>
                         {template.sections.length} section{template.sections.length === 1 ? "" : "s"}
                         <span className="mx-1.5">•</span>
@@ -2433,6 +2414,63 @@ export default function ReportCardsPage() {
                     </div>
 
                     {(() => {
+                      const history = !isCombined ? readArray(data.history).map((entry) => readObject(entry)) : [];
+
+                      if (history.length > 1) {
+                        const subjectNames = Array.from(new Set(history.flatMap((entry) => readArray(entry.subjects).map((item) => String(readObject(item).subjectName ?? "")))));
+
+                        const colors = ["fill-primary", "fill-primary/60", "fill-primary/40", "fill-primary/25", "fill-primary/15"];
+                        const seriesCount = history.length;
+                        const barWidth = 16;
+                        const barGap = 4;
+                        const groupGap = 34;
+                        const groupWidth = seriesCount * barWidth + (seriesCount - 1) * barGap;
+                        const chartWidth = Math.max(subjectNames.length * (groupWidth + groupGap) + 20, 320);
+                        const baseline = 150;
+                        const maxBarHeight = 130;
+
+                        return (
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap gap-3">
+                              {history.map((entry, i) => (
+                                <div key={String(entry.examGroupId ?? i)} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <span className={cn("inline-block size-2.5 rounded-sm", colors[i % colors.length])} />
+                                  {String(entry.examGroupName ?? "")}
+                                </div>
+                              ))}
+                            </div>
+
+                            <svg viewBox={`0 0 ${chartWidth} 190`} className="w-full" style={{ maxHeight: 220 }}>
+                              <line x1="0" y1={baseline} x2={chartWidth} y2={baseline} stroke="currentColor" strokeOpacity="0.15" />
+
+                              {subjectNames.map((subjectName, groupIndex) => {
+                                const groupX = groupIndex * (groupWidth + groupGap) + 20;
+                                const label = subjectName.length > 9 ? `${subjectName.slice(0, 8)}…` : subjectName;
+
+                                return (
+                                  <g key={`${subjectName}-${groupIndex}`}>
+                                    {history.map((entry, seriesIndex) => {
+                                      const subjectPoint = readArray(entry.subjects)
+                                        .map((item) => readObject(item))
+                                        .find((item) => String(item.subjectName ?? "") === subjectName);
+                                      const value = Number(subjectPoint?.percentage ?? 0);
+                                      const barHeight = Math.max((Math.min(value, 100) / 100) * maxBarHeight, 2);
+                                      const x = groupX + seriesIndex * (barWidth + barGap);
+                                      const y = baseline - barHeight;
+
+                                      return <rect key={seriesIndex} x={x} y={y} width={barWidth} height={barHeight} rx={3} className={colors[seriesIndex % colors.length]} />;
+                                    })}
+                                    <text x={groupX + groupWidth / 2} y={baseline + 16} textAnchor="middle" fontSize="10" className="fill-muted-foreground">
+                                      {label}
+                                    </text>
+                                  </g>
+                                );
+                              })}
+                            </svg>
+                          </div>
+                        );
+                      }
+
                       const graphData = subjects.map((item) => {
                         const subject = readObject(item);
                         const rawValue = isCombined ? subject.weightedPercentage : subject.percentage;
@@ -3074,23 +3112,6 @@ export default function ReportCardsPage() {
                 <Field>
                   <Label>Template Name</Label>
                   <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="e.g. Mid-Term Report" className="h-11" />
-                </Field>
-
-                <Field>
-                  <Label>Grading Scheme</Label>
-                  <Select value={templateGradingSchemeId || "NONE"} onValueChange={(value) => setTemplateGradingSchemeId(value === "NONE" ? "" : value)}>
-                    <SelectTrigger className="h-11 w-full">
-                      <SelectValue placeholder="No grading scheme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="NONE">No grading scheme</SelectItem>
-                      {gradingSchemes.map((scheme) => (
-                        <SelectItem key={scheme.id} value={scheme.id}>
-                          {scheme.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </Field>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
