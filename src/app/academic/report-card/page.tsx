@@ -2518,33 +2518,33 @@ export default function ReportCardsPage() {
                   </div>
                 )}
 
-                <div className="rounded-xl border p-4">
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="size-4 text-muted-foreground" />
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overall Result</p>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-end gap-8">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Percentage</p>
-                      <p className="mt-1 text-2xl font-bold">{overall.percentage != null ? `${overall.percentage}%` : "—"}</p>
+                {selectedReport.template?.showOverallGrade !== false && (
+                  <div className="rounded-xl border p-4">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="size-4 text-muted-foreground" />
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overall Result</p>
                     </div>
 
-                    {selectedReport.template?.showOverallGrade !== false && (
+                    <div className="mt-4 flex flex-wrap items-end gap-8">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Percentage</p>
+                        <p className="mt-1 text-2xl font-bold">{overall.percentage != null ? `${overall.percentage}%` : "—"}</p>
+                      </div>
+
                       <div>
                         <p className="text-xs text-muted-foreground">Grade</p>
                         <p className="mt-1 text-2xl font-bold">{String(overall.grade ?? "—")}</p>
                       </div>
-                    )}
 
-                    {selectedReport.template?.showOverallGrade !== false && overall.remark != null && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Remark</p>
-                        <p className="mt-1 text-sm font-medium">{String(overall.remark)}</p>
-                      </div>
-                    )}
+                      {overall.remark != null && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Remark</p>
+                          <p className="mt-1 text-sm font-medium">{String(overall.remark)}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {selectedReport.template?.coScholasticRows && selectedReport.template.coScholasticRows.length > 0 && (
                   <div className="rounded-xl border">
