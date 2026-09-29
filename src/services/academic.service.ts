@@ -374,6 +374,7 @@ export interface CreateReportCardTemplatePayload {
   reportScope: "INDIVIDUAL" | "COMBINED";
   showPerformanceGraph?: boolean;
   showFinalResultWeightage?: boolean;
+  showOverallGrade?: boolean;
   isActive?: boolean;
 }
 
@@ -381,6 +382,7 @@ export interface UpdateReportCardTemplatePayload {
   name?: string;
   showPerformanceGraph?: boolean;
   showFinalResultWeightage?: boolean;
+  showOverallGrade?: boolean;
   isActive?: boolean;
 }
 

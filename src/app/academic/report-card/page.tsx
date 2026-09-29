@@ -1056,6 +1056,7 @@ export default function ReportCardsPage() {
   const [templateName, setTemplateName] = useState("");
   const [templateShowGraph, setTemplateShowGraph] = useState(false);
   const [templateShowWeightage, setTemplateShowWeightage] = useState(false);
+  const [templateShowOverallGrade, setTemplateShowOverallGrade] = useState(true);
   const [templateIsActive, setTemplateIsActive] = useState(true);
   const [templateDeleteOpen, setTemplateDeleteOpen] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<ReportCardTemplate | null>(null);
@@ -1078,6 +1079,7 @@ export default function ReportCardsPage() {
     setTemplateName("");
     setTemplateShowGraph(false);
     setTemplateShowWeightage(false);
+    setTemplateShowOverallGrade(true);
     setTemplateIsActive(true);
   };
 
@@ -1094,6 +1096,7 @@ export default function ReportCardsPage() {
     setTemplateName(template.name);
     setTemplateShowGraph(template.showPerformanceGraph);
     setTemplateShowWeightage(template.showFinalResultWeightage);
+    setTemplateShowOverallGrade(template.showOverallGrade);
     setTemplateIsActive(template.isActive);
     setTemplateFormOpen(true);
   };
@@ -1122,6 +1125,7 @@ export default function ReportCardsPage() {
           name: templateName.trim(),
           showPerformanceGraph: templateShowGraph,
           showFinalResultWeightage: templateShowWeightage,
+          showOverallGrade: templateShowOverallGrade,
           isActive: templateIsActive,
         });
         toast.success("Report card template updated");
@@ -1133,6 +1137,7 @@ export default function ReportCardsPage() {
           reportScope: templateScope,
           showPerformanceGraph: templateShowGraph,
           showFinalResultWeightage: templateShowWeightage,
+          showOverallGrade: templateShowOverallGrade,
           isActive: templateIsActive,
         });
         toast.success("Report card template created");
@@ -2525,12 +2530,14 @@ export default function ReportCardsPage() {
                       <p className="mt-1 text-2xl font-bold">{overall.percentage != null ? `${overall.percentage}%` : "—"}</p>
                     </div>
 
-                    <div>
-                      <p className="text-xs text-muted-foreground">Grade</p>
-                      <p className="mt-1 text-2xl font-bold">{String(overall.grade ?? "—")}</p>
-                    </div>
+                    {selectedReport.template?.showOverallGrade !== false && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Grade</p>
+                        <p className="mt-1 text-2xl font-bold">{String(overall.grade ?? "—")}</p>
+                      </div>
+                    )}
 
-                    {overall.remark != null && (
+                    {selectedReport.template?.showOverallGrade !== false && overall.remark != null && (
                       <div>
                         <p className="text-xs text-muted-foreground">Remark</p>
                         <p className="mt-1 text-sm font-medium">{String(overall.remark)}</p>
@@ -3129,6 +3136,13 @@ export default function ReportCardsPage() {
                     </div>
                   </Field>
                 </div>
+
+                <Field>
+                  <Label>Show Overall Grade</Label>
+                  <div className="mt-3">
+                    <Switch checked={templateShowOverallGrade} onCheckedChange={setTemplateShowOverallGrade} />
+                  </div>
+                </Field>
 
                 <Field>
                   <Label>Active</Label>

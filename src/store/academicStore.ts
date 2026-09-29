@@ -461,6 +461,7 @@ export interface ReportCardTemplate {
   reportScope: "INDIVIDUAL" | "COMBINED";
   showPerformanceGraph: boolean;
   showFinalResultWeightage: boolean;
+  showOverallGrade: boolean;
   isActive: boolean;
   class: AcademicClass;
   examGroup?: ExamGroup;
