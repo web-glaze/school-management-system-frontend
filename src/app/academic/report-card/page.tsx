@@ -3135,7 +3135,6 @@ export default function ReportCardsPage() {
                       <Switch checked={templateShowWeightage} onCheckedChange={setTemplateShowWeightage} />
                     </div>
                   </Field>
-                </div>
 
                 <Field>
                   <Label>Show Overall Grade</Label>
@@ -3150,6 +3149,7 @@ export default function ReportCardsPage() {
                     <Switch checked={templateIsActive} onCheckedChange={setTemplateIsActive} />
                   </div>
                 </Field>
+                  </div>
               </FieldGroup>
             </div>
 
