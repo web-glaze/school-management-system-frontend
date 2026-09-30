@@ -3135,20 +3135,20 @@ export default function ReportCardsPage() {
                       <Switch checked={templateShowWeightage} onCheckedChange={setTemplateShowWeightage} />
                     </div>
                   </Field>
-                <Field>
-                  <Label>Show Overall Grade</Label>
-                  <div className="mt-3">
-                    <Switch checked={templateShowOverallGrade} onCheckedChange={setTemplateShowOverallGrade} />
-                  </div>
-                </Field>
+                  <Field>
+                    <Label>Show Overall Grade</Label>
+                    <div className="mt-3">
+                      <Switch checked={templateShowOverallGrade} onCheckedChange={setTemplateShowOverallGrade} />
+                    </div>
+                  </Field>
 
-                <Field>
-                  <Label>Active</Label>
-                  <div className="mt-3">
-                    <Switch checked={templateIsActive} onCheckedChange={setTemplateIsActive} />
-                  </div>
-                </Field>
-                  </div>
+                  <Field>
+                    <Label>Active</Label>
+                    <div className="mt-3">
+                      <Switch checked={templateIsActive} onCheckedChange={setTemplateIsActive} />
+                    </div>
+                  </Field>
+                </div>
               </FieldGroup>
             </div>
 
