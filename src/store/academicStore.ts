@@ -492,6 +492,8 @@ export interface ExamSchedule {
 export interface ExamSubjectComponent {
   id: string;
   examId: string;
+  classId: string;
+  class?: AcademicClass;
   subjectId: string;
   subject?: Subject;
   name: string;
@@ -781,7 +783,7 @@ interface AcademicStore {
   deleteExamSchedule: (scheduleId: string) => Promise<void>;
   syncExamComponentsForClassExamGroup: (classId: string, examGroupId: string) => Promise<{ message: string; synced: number; skipped: { scheduleId: string; subjectName: string; reason: string }[] }>;
 
-  fetchExamSubjectComponents: (examId: string, subjectId?: string) => Promise<void>;
+  fetchExamSubjectComponents: (examId: string, subjectId?: string, classId?: string) => Promise<void>;
   createExamSubjectComponent: (examId: string, data: CreateExamSubjectComponentPayload) => Promise<void>;
   updateExamSubjectComponent: (componentId: string, data: UpdateExamSubjectComponentPayload) => Promise<void>;
   deleteExamSubjectComponent: (componentId: string) => Promise<void>;
@@ -1819,9 +1821,9 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
     }
   },
 
-  fetchExamSubjectComponents: async (examId, subjectId) => {
+  fetchExamSubjectComponents: async (examId, subjectId, classId) => {
     try {
-      const response = await academicService.exams.getSubjectComponents(examId, subjectId);
+      const response = await academicService.exams.getSubjectComponents(examId, subjectId, classId);
 
       set({
         examSubjectComponents: response.data.data ?? [],

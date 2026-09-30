@@ -260,29 +260,20 @@ export default function ExamsPage() {
     subjectAllocations,
     examGroups,
     exams,
-
     fetchSessions,
     fetchSubjects,
     fetchSubjectAllocations,
     fetchExamGroups,
     fetchExams,
-
     createExam,
     updateExam,
     deleteExam,
-
     createExamGroup,
     updateExamGroup,
     deleteExamGroup,
-
     createExamSchedule,
     updateExamSchedule,
     deleteExamSchedule,
-
-    createExamSubjectComponent,
-    updateExamSubjectComponent,
-    deleteExamSubjectComponent,
-
     classComponentTemplates,
     fetchClassComponentTemplates,
     createClassComponentTemplate,
@@ -290,7 +281,6 @@ export default function ExamsPage() {
     deleteClassComponentTemplate,
     replaceClassComponentTemplateDefinitions,
     syncExamComponentsForClassExamGroup,
-
     classes,
     fetchClasses,
   } = useAcademicStore();
@@ -546,22 +536,6 @@ export default function ExamsPage() {
   const [egIsActive, setEgIsActive] = useState(true);
   const [egDeleteOpen, setEgDeleteOpen] = useState(false);
   const [deletingExamGroup, setDeletingExamGroup] = useState<ExamGroup | null>(null);
-  const [componentOpen, setComponentOpen] = useState(false);
-  const [componentContext, setComponentContext] = useState<{
-    examId: string;
-    subjectId: string;
-    subjectName: string;
-  } | null>(null);
-  const [editingComponent, setEditingComponent] = useState<{ id: string } | null>(null);
-  const [componentName, setComponentName] = useState("");
-  const [componentCode, setComponentCode] = useState("");
-  const [componentMaximumMarks, setComponentMaximumMarks] = useState("");
-  const [componentPassingMarks, setComponentPassingMarks] = useState("");
-  const [componentWeightage, setComponentWeightage] = useState("");
-  const [componentDisplayOrder, setComponentDisplayOrder] = useState("1");
-  const [componentIsOptionalSubject, setComponentIsOptionalSubject] = useState(false);
-  const [componentDeleteOpen, setComponentDeleteOpen] = useState(false);
-  const [deletingComponent, setDeletingComponent] = useState<{ id: string } | null>(null);
   const [componentTemplateOpen, setComponentTemplateOpen] = useState(false);
   const [componentTemplateContext, setComponentTemplateContext] = useState<{
     classId: string;
@@ -645,17 +619,6 @@ export default function ExamsPage() {
     setEgCode("");
     setEgSequence(String(examGroups.length + 1));
     setEgIsActive(true);
-  };
-
-  const resetComponentForm = () => {
-    setEditingComponent(null);
-    setComponentName("");
-    setComponentCode("");
-    setComponentMaximumMarks("");
-    setComponentPassingMarks("");
-    setComponentWeightage("");
-    setComponentDisplayOrder("1");
-    setComponentIsOptionalSubject(false);
   };
 
   const openDetail = (exam: Exam) => {
@@ -975,141 +938,6 @@ export default function ExamsPage() {
       const err = error as AxiosError<ApiErrorResponse>;
 
       toast.error(err.response?.data?.message || "Failed to delete exam group");
-    }
-  };
-
-  // ---------------------------------------------------------
-  // Exam subject component manager (advanced: one-off, per-exam overrides)
-  // ---------------------------------------------------------
-
-  const openComponentManager = (schedule: ExamSchedule) => {
-    setComponentContext({
-      examId: schedule.examId,
-      subjectId: schedule.subjectAllocation.subjectId,
-      subjectName: schedule.subjectAllocation.subject.name,
-    });
-    resetComponentForm();
-    setComponentOpen(true);
-  };
-
-  const componentList = useMemo(() => {
-    if (!detailExam || !componentContext) return [];
-
-    return [...(detailExam.subjectComponents ?? [])].filter((c) => c.subjectId === componentContext.subjectId).sort((a, b) => a.displayOrder - b.displayOrder);
-  }, [detailExam, componentContext]);
-
-  const componentSubjectScheduleCount = useMemo(() => {
-    if (!detailExam || !componentContext) return 0;
-
-    return (detailExam.schedules ?? []).filter((schedule) => schedule.subjectAllocation.subjectId === componentContext.subjectId).length;
-  }, [detailExam, componentContext]);
-
-  const componentSubjectIsOptional = useMemo(() => {
-    if (!componentContext) return false;
-
-    return subjects.find((subject) => subject.id === componentContext.subjectId)?.isOptional ?? false;
-  }, [subjects, componentContext]);
-
-  const openEditComponent = (component: { id: string; name: string; code?: string; maximumMarks: string; passingMarks?: string; weightage?: string; displayOrder: number; isOptionalSubject: boolean }) => {
-    setEditingComponent(component);
-    setComponentName(component.name);
-    setComponentCode(component.code ?? "");
-    setComponentMaximumMarks(String(component.maximumMarks ?? ""));
-    setComponentPassingMarks(component.passingMarks != null ? String(component.passingMarks) : "");
-    setComponentWeightage(component.weightage != null ? String(component.weightage) : "");
-    setComponentDisplayOrder(String(component.displayOrder ?? 1));
-    setComponentIsOptionalSubject(component.isOptionalSubject);
-  };
-
-  const handleSaveComponent = async (e: FormEvent) => {
-    e.preventDefault();
-
-    if (!componentContext) return;
-
-    if (!componentName.trim()) {
-      toast.error("Component name is required");
-      return;
-    }
-
-    const maximumMarks = Number(componentMaximumMarks);
-    const passingMarks = componentPassingMarks.trim() ? Number(componentPassingMarks) : undefined;
-    const weightage = componentWeightage.trim() ? Number(componentWeightage) : undefined;
-    const displayOrder = Number(componentDisplayOrder);
-
-    if (Number.isNaN(maximumMarks) || maximumMarks < 0) {
-      toast.error("Maximum marks must be valid");
-      return;
-    }
-
-    if (passingMarks !== undefined && (Number.isNaN(passingMarks) || passingMarks < 0 || passingMarks > maximumMarks)) {
-      toast.error("Passing marks must be between 0 and maximum marks");
-      return;
-    }
-
-    if (weightage !== undefined && (Number.isNaN(weightage) || weightage < 0 || weightage > 100)) {
-      toast.error("Weightage must be between 0 and 100");
-      return;
-    }
-
-    if (Number.isNaN(displayOrder) || displayOrder < 1) {
-      toast.error("Display order must be a positive number");
-      return;
-    }
-
-    try {
-      if (editingComponent) {
-        await updateExamSubjectComponent(editingComponent.id, {
-          name: componentName.trim(),
-          code: componentCode.trim() || undefined,
-          maximumMarks,
-          passingMarks,
-          weightage,
-          displayOrder,
-          isOptionalSubject: componentIsOptionalSubject,
-        });
-
-        toast.success("Exam component updated");
-      } else {
-        await createExamSubjectComponent(componentContext.examId, {
-          subjectId: componentContext.subjectId,
-          name: componentName.trim(),
-          code: componentCode.trim() || undefined,
-          maximumMarks,
-          passingMarks,
-          weightage,
-          displayOrder,
-          isOptionalSubject: componentIsOptionalSubject,
-        });
-
-        toast.success("Exam component added — it now applies to every section taking this subject");
-      }
-
-      await fetchExams();
-      resetComponentForm();
-    } catch (error) {
-      const err = error as AxiosError<ApiErrorResponse>;
-      toast.error(err.response?.data?.message || "Failed to save exam component");
-    }
-  };
-
-  const openDeleteComponent = (component: { id: string }) => {
-    setDeletingComponent(component);
-    setComponentDeleteOpen(true);
-  };
-
-  const handleDeleteComponent = async () => {
-    if (!deletingComponent) return;
-
-    try {
-      await deleteExamSubjectComponent(deletingComponent.id);
-      toast.success("Exam component deleted");
-      setComponentDeleteOpen(false);
-      setDeletingComponent(null);
-
-      await fetchExams();
-    } catch (error) {
-      const err = error as AxiosError<ApiErrorResponse>;
-      toast.error(err.response?.data?.message || "Failed to delete exam component");
     }
   };
 
@@ -1753,18 +1581,6 @@ export default function ExamsPage() {
                                       </button>
                                     )}
 
-                                    {canCreate && (
-                                      <button
-                                        type="button"
-                                        aria-label="Manage components"
-                                        title="Advanced: add a one-off component just for this exam, without changing the reusable structure"
-                                        onClick={() => openComponentManager(schedule)}
-                                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                                      >
-                                        <Plus className="size-4" />
-                                      </button>
-                                    )}
-
                                     {canUpdate && (
                                       <button
                                         type="button"
@@ -1804,13 +1620,6 @@ export default function ExamsPage() {
                                           <DropdownMenuItem onClick={() => openComponentTemplateManager(schedule)}>
                                             <ListChecks className="mr-2 size-4" />
                                             Marks structure
-                                          </DropdownMenuItem>
-                                        )}
-
-                                        {canCreate && (
-                                          <DropdownMenuItem onClick={() => openComponentManager(schedule)}>
-                                            <Plus className="mr-2 size-4" />
-                                            Manage components (advanced)
                                           </DropdownMenuItem>
                                         )}
 
@@ -2899,239 +2708,6 @@ export default function ExamsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteExamGroup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* =====================================================
-          Manage Exam Subject Components
-      ===================================================== */}
-
-      <Dialog
-        open={componentOpen}
-        onOpenChange={(open) => {
-          setComponentOpen(open);
-
-          if (!open) {
-            setComponentContext(null);
-            resetComponentForm();
-          }
-        }}
-      >
-        <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden p-0 sm:max-w-160">
-          <div className="shrink-0 border-b px-6 py-5">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-                <ClipboardList className="size-5 text-primary" />
-              </div>
-
-              <div>
-                <DialogTitle className="text-lg">Exam Components</DialogTitle>
-                <DialogDescription>
-                  {componentContext ? `${componentContext.subjectName} — this setup is shared by every section, not just one` : "Manage papers and components for this subject."}
-                </DialogDescription>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="space-y-4">
-              {componentContext && componentSubjectScheduleCount > 0 && (
-                <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-primary">
-                  Applies automatically to {componentSubjectScheduleCount} section{componentSubjectScheduleCount === 1 ? "" : "s"} currently scheduled for {componentContext.subjectName} in this exam — no need to set
-                  this up again per section.
-                </div>
-              )}
-
-              <div className="rounded-md border">
-                <div className="border-b bg-muted/20 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Configured Components</p>
-                </div>
-
-                <div className="divide-y">
-                  {componentList.map((component) => (
-                    <div key={component.id} className="flex items-center gap-3 px-4 py-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium">{component.name}</p>
-                          {component.code && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{component.code}</span>}
-                          {component.isOptionalSubject && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">Optional subject only</span>}
-                        </div>
-
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {component.maximumMarks} marks
-                          {component.passingMarks != null ? ` • Pass ${component.passingMarks}` : ""}
-                          {component.weightage != null ? ` • ${component.weightage}% weightage` : ""}
-                        </p>
-                      </div>
-
-                      <div className="flex shrink-0 items-center gap-1">
-                        {canUpdate && (
-                          <button
-                            type="button"
-                            aria-label="Edit component"
-                            onClick={() => openEditComponent(component)}
-                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                          >
-                            <Pencil className="size-4" />
-                          </button>
-                        )}
-
-                        {canDelete && (
-                          <button
-                            type="button"
-                            aria-label="Delete component"
-                            onClick={() => openDeleteComponent(component)}
-                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {componentList.length === 0 && (
-                    <div className="p-8 text-center">
-                      <ClipboardList className="mx-auto size-7 text-muted-foreground" />
-                      <p className="mt-2 text-sm font-medium">No components added</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Add papers or assessment components for this subject — e.g. Theory, Practical, Enrichment.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {canCreate || canUpdate ? (
-                <form onSubmit={handleSaveComponent} className="rounded-md border p-4">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold">{editingComponent ? "Edit Component" : "Add Component"}</p>
-                      <p className="text-xs text-muted-foreground">Define the paper or assessment structure and marks.</p>
-                    </div>
-
-                    {editingComponent && (
-                      <Button type="button" variant="ghost" size="sm" onClick={resetComponentForm}>
-                        Cancel edit
-                      </Button>
-                    )}
-                  </div>
-
-                  <FieldGroup>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <Label>Name</Label>
-                        <Input value={componentName} onChange={(e) => setComponentName(e.target.value)} placeholder="e.g. Theory" className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
-                      </Field>
-
-                      <Field>
-                        <Label>Code</Label>
-                        <Input value={componentCode} onChange={(e) => setComponentCode(e.target.value)} placeholder="Optional" className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
-                      </Field>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <Label>Maximum Marks</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={componentMaximumMarks}
-                          onChange={(e) => setComponentMaximumMarks(e.target.value)}
-                          placeholder="e.g. 40"
-                          className="h-11"
-                          disabled={editingComponent ? !canUpdate : !canCreate}
-                        />
-                      </Field>
-
-                      <Field>
-                        <Label>Passing Marks</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={componentPassingMarks}
-                          onChange={(e) => setComponentPassingMarks(e.target.value)}
-                          placeholder="Optional"
-                          className="h-11"
-                          disabled={editingComponent ? !canUpdate : !canCreate}
-                        />
-                      </Field>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <Label>Weightage (%)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={componentWeightage}
-                          onChange={(e) => setComponentWeightage(e.target.value)}
-                          placeholder="Optional"
-                          className="h-11"
-                          disabled={editingComponent ? !canUpdate : !canCreate}
-                        />
-                      </Field>
-
-                      <Field>
-                        <Label>Display Order</Label>
-                        <Input type="number" min="1" value={componentDisplayOrder} onChange={(e) => setComponentDisplayOrder(e.target.value)} className="h-11" disabled={editingComponent ? !canUpdate : !canCreate} />
-                      </Field>
-                    </div>
-
-                    {componentSubjectIsOptional && (
-                      <Field>
-                        <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
-                          <Checkbox
-                            checked={componentIsOptionalSubject}
-                            onCheckedChange={(value) => setComponentIsOptionalSubject(Boolean(value))}
-                            disabled={editingComponent ? !canUpdate : !canCreate}
-                          />
-                          Only count this component for students who opted into this subject
-                        </label>
-                      </Field>
-                    )}
-                  </FieldGroup>
-
-                  <div className="mt-4 flex justify-end">
-                    <Button type="submit" disabled={loading || !componentName.trim() || !componentMaximumMarks || (editingComponent ? !canUpdate : !canCreate)} className="min-w-32.5">
-                      {editingComponent ? (
-                        <>
-                          <Pencil className="mr-2 size-4" />
-                          Update
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="mr-2 size-4" />
-                          Add Component
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              ) : null}
-            </div>
-          </div>
-
-          <DialogFooter className="shrink-0 border-t px-6 py-4">
-            <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={componentDeleteOpen} onOpenChange={setComponentDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this component?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently remove the component and its recorded marks for every section sharing this subject in this exam.</AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteComponent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

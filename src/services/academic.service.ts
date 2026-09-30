@@ -465,6 +465,7 @@ export interface UpdateExamSchedulePayload {
 }
 
 export interface CreateExamSubjectComponentPayload {
+  classId: string;
   subjectId: string;
   name: string;
   code?: string;
@@ -781,7 +782,8 @@ export const academicService = {
 
     deleteSchedule: (scheduleId: string) => apiClient.delete(`/academic/exams/schedules/${scheduleId}`),
 
-    getSubjectComponents: (examId: string, subjectId?: string) => apiClient.get(`/academic/exams/${examId}/subject-components`, { params: subjectId ? { subjectId } : undefined }),
+    getSubjectComponents: (examId: string, subjectId?: string, classId?: string) =>
+      apiClient.get(`/academic/exams/${examId}/subject-components`, { params: { ...(subjectId ? { subjectId } : {}), ...(classId ? { classId } : {}) } }),
 
     createSubjectComponent: (examId: string, data: CreateExamSubjectComponentPayload) => apiClient.post(`/academic/exams/${examId}/subject-components`, data),
 
