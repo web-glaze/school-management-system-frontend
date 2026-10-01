@@ -544,9 +544,7 @@ export default function ExamsPage() {
     examGroupName: string;
   } | null>(null);
   const [componentTemplateSelectedSubjectId, setComponentTemplateSelectedSubjectId] = useState<string | null>(null);
-  const [componentTemplateDefRows, setComponentTemplateDefRows] = useState<
-    { name: string; source: "FETCHED" | "MANUAL"; maximumMarks: string; passingMarks: string; displayOrder: number }[]
-  >([]);
+  const [componentTemplateDefRows, setComponentTemplateDefRows] = useState<{ name: string; source: "FETCHED" | "MANUAL"; maximumMarks: string; passingMarks: string; displayOrder: number }[]>([]);
   const [savingComponentTemplate, setSavingComponentTemplate] = useState(false);
   const [componentTemplateDeleteOpen, setComponentTemplateDeleteOpen] = useState(false);
   const [syncingComponents, setSyncingComponents] = useState(false);
@@ -946,9 +944,7 @@ export default function ExamsPage() {
   // ---------------------------------------------------------
 
   const loadDefRowsForSelection = (classId: string, examGroupId: string, subjectId: string | null) => {
-    const found = useAcademicStore
-      .getState()
-      .classComponentTemplates.find((t) => t.classId === classId && t.examGroupId === examGroupId && (t.subjectId ?? null) === subjectId);
+    const found = useAcademicStore.getState().classComponentTemplates.find((t) => t.classId === classId && t.examGroupId === examGroupId && (t.subjectId ?? null) === subjectId);
 
     if (found) {
       setComponentTemplateDefRows(
@@ -960,7 +956,7 @@ export default function ExamsPage() {
             maximumMarks: String(d.maximumMarks),
             passingMarks: d.passingMarks != null ? String(d.passingMarks) : "",
             displayOrder: d.displayOrder,
-          })),
+          }))
       );
     } else {
       setComponentTemplateDefRows([{ name: "Theory", source: "FETCHED", maximumMarks: "", passingMarks: "", displayOrder: 1 }]);
@@ -1049,7 +1045,7 @@ export default function ExamsPage() {
     }
 
     if (!componentTemplateDefRows.some((row) => row.source === "FETCHED")) {
-      toast.error("At least one component must be Fetched (e.g. Theory) so it links to real exam marks");
+      toast.error('At least one component must be "Via Exam Marks" (e.g. Theory), so it links to real exam marks');
       return;
     }
 
@@ -1069,10 +1065,7 @@ export default function ExamsPage() {
           useAcademicStore
             .getState()
             .classComponentTemplates.find(
-              (t) =>
-                t.classId === componentTemplateContext.classId &&
-                t.examGroupId === componentTemplateContext.examGroupId &&
-                (t.subjectId ?? null) === componentTemplateSelectedSubjectId,
+              (t) => t.classId === componentTemplateContext.classId && t.examGroupId === componentTemplateContext.examGroupId && (t.subjectId ?? null) === componentTemplateSelectedSubjectId
             ) ?? null;
       }
 
@@ -1088,14 +1081,10 @@ export default function ExamsPage() {
           maximumMarks: Number(row.maximumMarks),
           passingMarks: row.passingMarks.trim() ? Number(row.passingMarks) : undefined,
           displayOrder: index + 1,
-        })),
+        }))
       );
 
-      toast.success(
-        componentTemplateSelectedSubjectId
-          ? "Marks structure saved for this subject"
-          : "Marks structure saved — it now applies to every subject in this class for this exam group",
-      );
+      toast.success(componentTemplateSelectedSubjectId ? "Marks structure saved for this subject" : "Marks structure saved — it now applies to every subject in this class for this exam group");
 
       await fetchExams();
     } catch (error) {
@@ -1430,245 +1419,245 @@ export default function ExamsPage() {
           </div>
 
           {dateSheetTab === "manage" && (
-          <>
-          <div className="grid grid-cols-1 items-center gap-3 border-b py-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,160px))_auto]">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <>
+              <div className="grid grid-cols-1 items-center gap-3 border-b py-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,160px))_auto]">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 
-              <Input placeholder="Search subject, class, teacher..." value={scheduleSearch} onChange={(e) => setScheduleSearch(e.target.value)} className="h-10 pl-10" />
-            </div>
-
-            <Select
-              value={scheduleClassFilter}
-              onValueChange={(value) => {
-                setScheduleClassFilter(value);
-                setScheduleSectionFilter("ALL");
-              }}
-            >
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="All Classes" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="ALL">All Classes</SelectItem>
-
-                {detailClasses.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={scheduleSectionFilter} onValueChange={setScheduleSectionFilter}>
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="All Sections" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="ALL">All Sections</SelectItem>
-
-                {detailSections.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={scheduleShiftFilter} onValueChange={(value) => setScheduleShiftFilter(value as ExamShiftT | "ALL")}>
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="All Shifts" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="ALL">All Shifts</SelectItem>
-
-                {SHIFT_OPTIONS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {hasActiveScheduleFilters && (
-              <Button type="button" variant="ghost" onClick={resetDetailFilters} className="h-10 gap-1.5 text-muted-foreground hover:text-foreground">
-                <RotateCcw className="size-3.5" />
-                Reset
-              </Button>
-            )}
-          </div>
-
-          <div className="mt-5 space-y-6">
-            {groupedSchedules.map(([date, schedules]) => (
-              <div key={date} className="overflow-hidden rounded-md border">
-                <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
-                  <div>
-                    <p className="font-semibold">{format(new Date(date), "dd MMMM yyyy")}</p>
-
-                    <p className="text-xs text-muted-foreground">{format(new Date(date), "EEEE")}</p>
-                  </div>
-
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {schedules.length} schedule
-                    {schedules.length === 1 ? "" : "s"}
-                  </span>
+                  <Input placeholder="Search subject, class, teacher..." value={scheduleSearch} onChange={(e) => setScheduleSearch(e.target.value)} className="h-10 pl-10" />
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-245 table-fixed text-sm">
-                    <colgroup>
-                      <col className="w-[13%]" />
-                      <col className="w-[11%]" />
-                      <col className="w-[20%]" />
-                      <col className="w-[10%]" />
-                      <col className="w-[16%]" />
-                      <col className="w-[10%]" />
-                      <col className="w-[12%]" />
-                      {(canUpdate || canDelete || canCreate) && <col className="w-[8%]" />}
-                    </colgroup>
+                <Select
+                  value={scheduleClassFilter}
+                  onValueChange={(value) => {
+                    setScheduleClassFilter(value);
+                    setScheduleSectionFilter("ALL");
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="All Classes" />
+                  </SelectTrigger>
 
-                    <thead>
-                      <tr className="border-b bg-muted/10 text-left">
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Class</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Section</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Subject</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Shift</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Time</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Room</th>
-                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Components</th>
-                        {(canUpdate || canDelete || canCreate) && <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:relative md:-left-7">Actions</th>}
-                      </tr>
-                    </thead>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Classes</SelectItem>
 
-                    <tbody>
-                      {schedules.map((schedule) => {
-                        const allocation = schedule.subjectAllocation;
+                    {detailClasses.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-                        return (
-                          <tr key={schedule.id} className="border-b last:border-0 hover:bg-muted/10">
-                            <td className="truncate px-4 py-3 font-medium">{allocation.class.name}</td>
-                            <td className="truncate px-4 py-3 text-muted-foreground">{allocation.section.name}</td>
-                            <td className="px-4 py-3">
-                              <div className="truncate font-medium">{allocation.subject.name}</div>
-                              <div className="truncate text-xs text-muted-foreground">{allocation.teacher.name}</div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{shiftLabel(schedule.shift)}</span>
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                              {schedule.startTime && schedule.endTime ? `${formatTimeDisplay(toTimeInputValue(schedule.startTime))} - ${formatTimeDisplay(toTimeInputValue(schedule.endTime))}` : "—"}
-                            </td>
-                            <td className="truncate px-4 py-3 text-muted-foreground">{schedule.room || "—"}</td>
-                            <td className="px-4 py-3 text-muted-foreground">
-                              {(schedule.components ?? []).length} {(schedule.components ?? []).length === 1 ? "component" : "components"}
-                            </td>
-                            {(canUpdate || canDelete || canCreate) && (
-                              <td className="px-4 py-3">
-                                <div className="flex items-center justify-end gap-1">
-                                  {/* Desktop */}
-                                  <div className="hidden items-center gap-1 md:flex">
-                                    {canCreate && (
-                                      <button
-                                        type="button"
-                                        aria-label="Marks structure"
-                                        title="Set the marks structure for this class (applies to every subject and section, every session)"
-                                        onClick={() => openComponentTemplateManager(schedule)}
-                                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                                      >
-                                        <ListChecks className="size-4" />
-                                      </button>
-                                    )}
+                <Select value={scheduleSectionFilter} onValueChange={setScheduleSectionFilter}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="All Sections" />
+                  </SelectTrigger>
 
-                                    {canUpdate && (
-                                      <button
-                                        type="button"
-                                        aria-label="Edit schedule"
-                                        title="Edit schedule"
-                                        onClick={() => openEditSchedule(schedule)}
-                                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                                      >
-                                        <Pencil className="size-4" />
-                                      </button>
-                                    )}
+                  <SelectContent>
+                    <SelectItem value="ALL">All Sections</SelectItem>
 
-                                    {canDelete && (
-                                      <button
-                                        type="button"
-                                        aria-label="Delete schedule"
-                                        title="Delete schedule"
-                                        onClick={() => openDeleteSchedule(schedule)}
-                                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                                      >
-                                        <Trash2 className="size-4" />
-                                      </button>
-                                    )}
-                                  </div>
+                    {detailSections.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-                                  {/* Mobile */}
-                                  <div className="md:hidden">
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <button type="button" aria-label="Schedule actions" className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted">
-                                          <MoreVertical className="size-4" />
-                                        </button>
-                                      </DropdownMenuTrigger>
+                <Select value={scheduleShiftFilter} onValueChange={(value) => setScheduleShiftFilter(value as ExamShiftT | "ALL")}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="All Shifts" />
+                  </SelectTrigger>
 
-                                      <DropdownMenuContent align="end">
-                                        {canCreate && (
-                                          <DropdownMenuItem onClick={() => openComponentTemplateManager(schedule)}>
-                                            <ListChecks className="mr-2 size-4" />
-                                            Marks structure
-                                          </DropdownMenuItem>
-                                        )}
+                  <SelectContent>
+                    <SelectItem value="ALL">All Shifts</SelectItem>
 
-                                        {canUpdate && (
-                                          <DropdownMenuItem onClick={() => openEditSchedule(schedule)}>
-                                            <Pencil className="mr-2 size-4" />
-                                            Edit
-                                          </DropdownMenuItem>
-                                        )}
+                    {SHIFT_OPTIONS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-                                        {canDelete && (
-                                          <DropdownMenuItem onClick={() => openDeleteSchedule(schedule)} className="text-destructive">
-                                            <Trash2 className="mr-2 size-4" />
-                                            Delete
-                                          </DropdownMenuItem>
-                                        )}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </div>
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
-
-            {filteredSchedules.length === 0 && (
-              <div className="rounded-md border p-10 text-center">
-                <CalendarIcon className="mx-auto size-8 text-muted-foreground" />
-
-                <h3 className="mt-3 font-semibold">No schedules found</h3>
-
-                <p className="mt-1 text-sm text-muted-foreground">{(detailExam.schedules ?? []).length === 0 ? "This exam does not have any date-sheet entries yet." : "No schedules match the selected filters."}</p>
-
-                {hasActiveScheduleFilters && (detailExam.schedules ?? []).length > 0 && (
-                  <Button type="button" variant="outline" size="sm" onClick={resetDetailFilters} className="mt-4 gap-1.5">
+                {hasActiveScheduleFilters && (
+                  <Button type="button" variant="ghost" onClick={resetDetailFilters} className="h-10 gap-1.5 text-muted-foreground hover:text-foreground">
                     <RotateCcw className="size-3.5" />
-                    Reset filters
+                    Reset
                   </Button>
                 )}
               </div>
-            )}
-          </div>
-          </>
+
+              <div className="mt-5 space-y-6">
+                {groupedSchedules.map(([date, schedules]) => (
+                  <div key={date} className="overflow-hidden rounded-md border">
+                    <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
+                      <div>
+                        <p className="font-semibold">{format(new Date(date), "dd MMMM yyyy")}</p>
+
+                        <p className="text-xs text-muted-foreground">{format(new Date(date), "EEEE")}</p>
+                      </div>
+
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {schedules.length} schedule
+                        {schedules.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-245 table-fixed text-sm">
+                        <colgroup>
+                          <col className="w-[13%]" />
+                          <col className="w-[11%]" />
+                          <col className="w-[20%]" />
+                          <col className="w-[10%]" />
+                          <col className="w-[16%]" />
+                          <col className="w-[10%]" />
+                          <col className="w-[12%]" />
+                          {(canUpdate || canDelete || canCreate) && <col className="w-[8%]" />}
+                        </colgroup>
+
+                        <thead>
+                          <tr className="border-b bg-muted/10 text-left">
+                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Class</th>
+                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Section</th>
+                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Subject</th>
+                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Shift</th>
+                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Time</th>
+                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Room</th>
+                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Components</th>
+                            {(canUpdate || canDelete || canCreate) && <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:relative md:-left-7">Actions</th>}
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {schedules.map((schedule) => {
+                            const allocation = schedule.subjectAllocation;
+
+                            return (
+                              <tr key={schedule.id} className="border-b last:border-0 hover:bg-muted/10">
+                                <td className="truncate px-4 py-3 font-medium">{allocation.class.name}</td>
+                                <td className="truncate px-4 py-3 text-muted-foreground">{allocation.section.name}</td>
+                                <td className="px-4 py-3">
+                                  <div className="truncate font-medium">{allocation.subject.name}</div>
+                                  <div className="truncate text-xs text-muted-foreground">{allocation.teacher.name}</div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{shiftLabel(schedule.shift)}</span>
+                                </td>
+                                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                                  {schedule.startTime && schedule.endTime ? `${formatTimeDisplay(toTimeInputValue(schedule.startTime))} - ${formatTimeDisplay(toTimeInputValue(schedule.endTime))}` : "—"}
+                                </td>
+                                <td className="truncate px-4 py-3 text-muted-foreground">{schedule.room || "—"}</td>
+                                <td className="px-4 py-3 text-muted-foreground">
+                                  {(schedule.components ?? []).length} {(schedule.components ?? []).length === 1 ? "component" : "components"}
+                                </td>
+                                {(canUpdate || canDelete || canCreate) && (
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center justify-end gap-1">
+                                      {/* Desktop */}
+                                      <div className="hidden items-center gap-1 md:flex">
+                                        {canCreate && (
+                                          <button
+                                            type="button"
+                                            aria-label="Marks structure"
+                                            title="Set the marks structure for this class (applies to every subject and section, every session)"
+                                            onClick={() => openComponentTemplateManager(schedule)}
+                                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                          >
+                                            <ListChecks className="size-4" />
+                                          </button>
+                                        )}
+
+                                        {canUpdate && (
+                                          <button
+                                            type="button"
+                                            aria-label="Edit schedule"
+                                            title="Edit schedule"
+                                            onClick={() => openEditSchedule(schedule)}
+                                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                          >
+                                            <Pencil className="size-4" />
+                                          </button>
+                                        )}
+
+                                        {canDelete && (
+                                          <button
+                                            type="button"
+                                            aria-label="Delete schedule"
+                                            title="Delete schedule"
+                                            onClick={() => openDeleteSchedule(schedule)}
+                                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                                          >
+                                            <Trash2 className="size-4" />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {/* Mobile */}
+                                      <div className="md:hidden">
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <button type="button" aria-label="Schedule actions" className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted">
+                                              <MoreVertical className="size-4" />
+                                            </button>
+                                          </DropdownMenuTrigger>
+
+                                          <DropdownMenuContent align="end">
+                                            {canCreate && (
+                                              <DropdownMenuItem onClick={() => openComponentTemplateManager(schedule)}>
+                                                <ListChecks className="mr-2 size-4" />
+                                                Marks structure
+                                              </DropdownMenuItem>
+                                            )}
+
+                                            {canUpdate && (
+                                              <DropdownMenuItem onClick={() => openEditSchedule(schedule)}>
+                                                <Pencil className="mr-2 size-4" />
+                                                Edit
+                                              </DropdownMenuItem>
+                                            )}
+
+                                            {canDelete && (
+                                              <DropdownMenuItem onClick={() => openDeleteSchedule(schedule)} className="text-destructive">
+                                                <Trash2 className="mr-2 size-4" />
+                                                Delete
+                                              </DropdownMenuItem>
+                                            )}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </div>
+                                    </div>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+
+                {filteredSchedules.length === 0 && (
+                  <div className="rounded-md border p-10 text-center">
+                    <CalendarIcon className="mx-auto size-8 text-muted-foreground" />
+
+                    <h3 className="mt-3 font-semibold">No schedules found</h3>
+
+                    <p className="mt-1 text-sm text-muted-foreground">{(detailExam.schedules ?? []).length === 0 ? "This exam does not have any date-sheet entries yet." : "No schedules match the selected filters."}</p>
+
+                    {hasActiveScheduleFilters && (detailExam.schedules ?? []).length > 0 && (
+                      <Button type="button" variant="outline" size="sm" onClick={resetDetailFilters} className="mt-4 gap-1.5">
+                        <RotateCcw className="size-3.5" />
+                        Reset filters
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {dateSheetTab === "datesheet" && (
@@ -1678,9 +1667,7 @@ export default function ExamsPage() {
 
                 {pivotClasses.length > 0 &&
                   (myStudentClassId ? (
-                    <span className="w-fit rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">
-                      {pivotClasses.find((cls) => cls.id === myStudentClassId)?.name ?? "Your Class"}
-                    </span>
+                    <span className="w-fit rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">{pivotClasses.find((cls) => cls.id === myStudentClassId)?.name ?? "Your Class"}</span>
                   ) : (
                     <Select value={publicSelectedClassId} onValueChange={setPublicSelectedClassId}>
                       <SelectTrigger className="h-10 w-full sm:w-48">
@@ -2038,9 +2025,7 @@ export default function ExamsPage() {
 
                   {formErrors.examGroupId && <p className="mt-1 text-sm text-red-500">{formErrors.examGroupId}</p>}
 
-                  {sortedExamGroups.length === 0 && (
-                    <p className="mt-1 text-xs text-muted-foreground">No exam groups yet — click &quot;manage exam groups&quot; to create one (e.g. Unit Test, Mid-Term, End-Term).</p>
-                  )}
+                  {sortedExamGroups.length === 0 && <p className="mt-1 text-xs text-muted-foreground">No exam groups yet — click &quot;manage exam groups&quot; to create one (e.g. Unit Test, Mid-Term, End-Term).</p>}
                 </Field>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -2843,8 +2828,9 @@ export default function ExamsPage() {
                 <ListChecks className="mt-0.5 size-4 shrink-0 text-primary" />
 
                 <div className="text-xs leading-5 text-muted-foreground">
-                  <span className="font-semibold text-foreground">Fetched</span> components pull their marks automatically from real exams entered on this page (e.g. Theory). <span className="font-semibold text-foreground">Manual</span> components
-                  are typed in directly by a teacher on the report card (e.g. Practical, Assessment, Enrichment) — they never need a schedule or exam marks entry here.
+                  <span className="font-semibold text-foreground">Fetched</span> components pull their marks automatically from real exams entered on this page (e.g. Theory).{" "}
+                  <span className="font-semibold text-foreground">Manual</span> components are typed in directly by a teacher on the report card (e.g. Practical, Assessment, Enrichment) — they never need a schedule or
+                  exam marks entry here.
                 </div>
               </div>
             </div>
@@ -2898,12 +2884,17 @@ export default function ExamsPage() {
               </div>
             )}
 
+            <p className="text-xs text-muted-foreground">
+              &quot;Via Exam Marks&quot; components are scheduled and marked on the Exam Marks page, like Theory or Practical. &quot;Entered on Report Card&quot; components (e.g. Project, Viva) have no exam date — their
+              marks are typed in directly when generating the report card.
+            </p>
+
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full min-w-125 text-sm">
                 <thead>
                   <tr className="border-b bg-muted/10 text-left">
                     <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Name</th>
-                    <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Source</th>
+                    <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Marks Entry</th>
                     <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Max Marks</th>
                     <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Passing Marks</th>
                     <th className="px-3 py-2.5" />
@@ -2919,13 +2910,13 @@ export default function ExamsPage() {
 
                       <td className="px-3 py-2.5">
                         <Select value={row.source} onValueChange={(value) => updateComponentTemplateRow(index, "source", value)}>
-                          <SelectTrigger className="h-9 w-32">
+                          <SelectTrigger className="h-9 w-44">
                             <SelectValue />
                           </SelectTrigger>
 
                           <SelectContent>
-                            <SelectItem value="FETCHED">Fetched</SelectItem>
-                            <SelectItem value="MANUAL">Manual</SelectItem>
+                            <SelectItem value="FETCHED">Via Exam Marks</SelectItem>
+                            <SelectItem value="MANUAL">Entered on Report Card</SelectItem>
                           </SelectContent>
                         </Select>
                       </td>
@@ -3018,11 +3009,9 @@ export default function ExamsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this marks structure?</AlertDialogTitle>
             <AlertDialogDescription>
-              {componentTemplateSelectedSubjectId
-                ? "This removes the override for this subject — it will fall back to the class-wide default (if one exists)."
-                : "This removes the class-wide default structure."}{" "}
-              This removes it for {componentTemplateContext?.className ?? "this class"} under {componentTemplateContext?.examGroupName ?? "this exam group"}. Existing exams already using
-              it keep their components — this only affects new schedules going forward. This action cannot be undone.
+              {componentTemplateSelectedSubjectId ? "This removes the override for this subject — it will fall back to the class-wide default (if one exists)." : "This removes the class-wide default structure."} This
+              removes it for {componentTemplateContext?.className ?? "this class"} under {componentTemplateContext?.examGroupName ?? "this exam group"}. Existing exams already using it keep their components — this only
+              affects new schedules going forward. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -3060,8 +3049,8 @@ export default function ExamsPage() {
                 <DialogTitle className="text-lg">Copy Marks Structure</DialogTitle>
 
                 <DialogDescription>
-                  Copies the default and every subject override from {componentTemplateContext?.className ?? "this class"} — {componentTemplateContext?.examGroupName ?? "this exam group"} onto the classes you pick
-                  below. Any subjects a target class doesn&apos;t teach are simply unused, not an error.
+                  Copies the default and every subject override from {componentTemplateContext?.className ?? "this class"} — {componentTemplateContext?.examGroupName ?? "this exam group"} onto the classes you pick below.
+                  Any subjects a target class doesn&apos;t teach are simply unused, not an error.
                 </DialogDescription>
               </div>
             </div>
@@ -3080,9 +3069,7 @@ export default function ExamsPage() {
                     </label>
                   ))}
 
-                {sortedClasses.filter((item) => item.id !== componentTemplateContext?.classId).length === 0 && (
-                  <p className="p-6 text-center text-sm text-muted-foreground">No other classes to copy to.</p>
-                )}
+                {sortedClasses.filter((item) => item.id !== componentTemplateContext?.classId).length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No other classes to copy to.</p>}
               </div>
             </div>
           </div>

@@ -370,81 +370,86 @@ export default function ExamMarksPage() {
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Examination Selection</span>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div>
-              <label htmlFor="exam-select" className="mb-2 block text-sm font-medium">
-                Examination
-              </label>
-
-              <Select value={examId} onValueChange={handleExamChange}>
-                <SelectTrigger id="exam-select" className="h-11 w-full">
-                  <SelectValue placeholder="Select Examination" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {exams.map((exam) => (
-                    <SelectItem key={exam.id} value={exam.id}>
-                      {exam.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label htmlFor="schedule-select" className="mb-2 block text-sm font-medium">
-                Exam Schedule
-              </label>
-
-              <Select value={scheduleId} onValueChange={handleScheduleChange} disabled={!examId}>
-                <SelectTrigger id="schedule-select" className="h-11 w-full">
-                  <SelectValue placeholder="Select Subject / Paper" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {schedules.map((schedule) => (
-                    <SelectItem key={schedule.id} value={schedule.id}>
-                      {schedule.subjectAllocation.subject.name}
-                      {" — "}
-                      {schedule.subjectAllocation.class.name} {schedule.subjectAllocation.section.name}
-                      {" — "}
-                      {format(new Date(schedule.examDate), "dd MMM yyyy")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedSchedule && (
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
-                <label htmlFor="component-select" className="mb-2 block text-sm font-medium">
-                  Exam Component / Paper
+                <label htmlFor="exam-select" className="mb-2 flex items-center gap-2 text-sm font-medium">
+                  <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">1</span>
+                  Examination
                 </label>
 
-                <Select value={componentId} onValueChange={handleComponentChange} disabled={components.length === 0}>
-                  <SelectTrigger id="component-select" className="h-11 w-full">
-                    <SelectValue placeholder={components.length === 0 ? "No components configured" : "Select Component / Paper"} />
+                <Select value={examId} onValueChange={handleExamChange}>
+                  <SelectTrigger id="exam-select" className="h-11 w-full bg-background">
+                    <SelectValue placeholder="Select Examination" />
                   </SelectTrigger>
 
                   <SelectContent>
-                    {components.map((component) => (
-                      <SelectItem key={component.id} value={component.id}>
-                        {component.name}
-                        {component.code ? ` (${component.code})` : ""}
-                        {" — "}
-                        {component.maximumMarks} marks
+                    {exams.map((exam) => (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-
-                {components.length === 0 && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    No exam components have been configured for this subject yet — set them up once from the Exams page (they&apos;ll apply to every section automatically).
-                  </p>
-                )}
               </div>
-            )}
+
+              <div>
+                <label htmlFor="schedule-select" className="mb-2 flex items-center gap-2 text-sm font-medium">
+                  <span className={cn("flex size-5 items-center justify-center rounded-full text-[11px] font-semibold", examId ? "bg-primary text-primary-foreground" : "bg-muted-foreground/30 text-muted-foreground")}>2</span>
+                  Exam Schedule
+                </label>
+
+                <Select value={scheduleId} onValueChange={handleScheduleChange} disabled={!examId}>
+                  <SelectTrigger id="schedule-select" className="h-11 w-full bg-background">
+                    <SelectValue placeholder="Select Subject / Paper" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {schedules.map((schedule) => (
+                      <SelectItem key={schedule.id} value={schedule.id}>
+                        {schedule.subjectAllocation.subject.name}
+                        {" — "}
+                        {schedule.subjectAllocation.class.name} {schedule.subjectAllocation.section.name}
+                        {" — "}
+                        {format(new Date(schedule.examDate), "dd MMM yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedSchedule && (
+                <div>
+                  <label htmlFor="component-select" className="mb-2 flex items-center gap-2 text-sm font-medium">
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">3</span>
+                    Exam Component / Paper
+                  </label>
+
+                  <Select value={componentId} onValueChange={handleComponentChange} disabled={components.length === 0}>
+                    <SelectTrigger id="component-select" className="h-11 w-full bg-background">
+                      <SelectValue placeholder={components.length === 0 ? "No components configured" : "Select Component / Paper"} />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {components.map((component) => (
+                        <SelectItem key={component.id} value={component.id}>
+                          {component.name}
+                          {component.code ? ` (${component.code})` : ""}
+                          {" — "}
+                          {component.maximumMarks} marks
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {components.length === 0 && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      No exam components have been configured for this subject yet — set them up once from the Exams page (they&apos;ll apply to every section automatically).
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
