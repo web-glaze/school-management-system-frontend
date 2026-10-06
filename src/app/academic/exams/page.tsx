@@ -486,8 +486,8 @@ export default function ExamsPage() {
     }
   }, [detailExam]);
 
-  const pivotSubjectsByDateAndClass = useMemo(() => {
-    const map = new Map<string, string[]>();
+  const pivotEntriesByDateClassShift = useMemo(() => {
+    const map = new Map<string, { name: string; time: string }[]>();
 
     if (!detailExam) return map;
 
@@ -496,12 +496,14 @@ export default function ExamsPage() {
         return;
       }
 
-      const key = `${toDateInputValue(schedule.examDate)}::${schedule.subjectAllocation.class.id}`;
+      const key = `${toDateInputValue(schedule.examDate)}::${schedule.subjectAllocation.class.id}::${schedule.shift}`;
       const existing = map.get(key) ?? [];
-      const subjectName = schedule.subjectAllocation.subject.name;
+      const name = schedule.subjectAllocation.subject.name;
 
-      if (!existing.includes(subjectName)) {
-        existing.push(subjectName);
+      if (!existing.some((entry) => entry.name === name)) {
+        const time = schedule.startTime && schedule.endTime ? `${formatTimeDisplay(toTimeInputValue(schedule.startTime))} - ${formatTimeDisplay(toTimeInputValue(schedule.endTime))}` : "";
+
+        existing.push({ name, time });
       }
 
       map.set(key, existing);
@@ -510,11 +512,7 @@ export default function ExamsPage() {
     return map;
   }, [detailExam, isTeacherView, teacherAllocationIds]);
 
-  const pivotCell = (dateStr: string, classId: string) => {
-    const subjects = pivotSubjectsByDateAndClass.get(`${dateStr}::${classId}`);
-
-    return subjects && subjects.length > 0 ? subjects.join(" / ") : "-";
-  };
+  const pivotCell = (dateStr: string, classId: string, shift: ExamShiftT) => pivotEntriesByDateClassShift.get(`${dateStr}::${classId}::${shift}`) ?? [];
 
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
@@ -1696,27 +1694,60 @@ export default function ExamsPage() {
               ) : (
                 <div className="mt-4 overflow-hidden rounded-md border">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-175 border-collapse text-sm">
+                      <colgroup>
+                        <col className="w-[7%]" />
+                        <col className="w-[16%]" />
+                        <col className="w-[13%]" />
+                        <col className="w-[32%]" />
+                        <col className="w-[32%]" />
+                      </colgroup>
+
                       <thead>
-                        <tr className="border-b bg-muted/10 text-left">
-                          <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Date</th>
-                          <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Day</th>
-                          <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Subject</th>
+                        <tr className="bg-muted/50">
+                          <th className="border-b border-r px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">S.No</th>
+                          <th className="border-b border-r px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Date</th>
+                          <th className="border-b border-r px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Day</th>
+                          <th className="border-b border-r px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">Morning Shift</th>
+                          <th className="border-b px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">Afternoon Shift</th>
                         </tr>
                       </thead>
 
                       <tbody>
-                        {pivotDates.map((date) => {
+                        {pivotDates.map((date, index) => {
                           const dateStr = toLocalDateKey(date);
                           const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                          const subjectText = pivotCell(dateStr, publicSelectedClassId);
-                          const hasExam = subjectText !== "-";
+                          const morning = pivotCell(dateStr, publicSelectedClassId, "MORNING");
+                          const afternoon = pivotCell(dateStr, publicSelectedClassId, "AFTERNOON");
+                          const isLast = index === pivotDates.length - 1;
+                          const rowBorder = isLast ? "" : "border-b";
+
+                          const renderShiftCell = (entries: { name: string; time: string }[], accent: string, borderRight: boolean) => (
+                            <td className={cn("px-3 py-3 align-middle", rowBorder, borderRight && "border-r")}>
+                              {entries.length === 0 ? (
+                                <div className="text-center text-muted-foreground/60">—</div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-1.5">
+                                  {entries.map((entry) => (
+                                    <div key={entry.name} className={cn("w-full max-w-65 rounded-md border px-3 py-1.5 text-center", accent)}>
+                                      <div className="text-sm font-semibold leading-tight">{entry.name}</div>
+
+                                      {entry.time && <div className="mt-0.5 text-[11px] text-muted-foreground">{entry.time}</div>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          );
 
                           return (
-                            <tr key={dateStr} className={cn("border-b last:border-0", isWeekend && "bg-muted/20")}>
-                              <td className="whitespace-nowrap px-4 py-3 font-medium">{format(date, "dd MMM yyyy")}</td>
-                              <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{format(date, "EEEE")}</td>
-                              <td className={cn("px-4 py-3", hasExam ? "font-medium" : "text-muted-foreground")}>{subjectText}</td>
+                            <tr key={dateStr} className={cn(isWeekend ? "bg-muted/30" : index % 2 === 1 && "bg-muted/10")}>
+                              <td className={cn("border-r px-4 py-3 text-center text-muted-foreground", rowBorder)}>{index + 1}</td>
+                              <td className={cn("whitespace-nowrap border-r px-4 py-3 font-medium", rowBorder)}>{format(date, "dd MMM yyyy")}</td>
+                              <td className={cn("whitespace-nowrap border-r px-4 py-3 text-muted-foreground", rowBorder)}>{format(date, "EEEE")}</td>
+
+                              {renderShiftCell(morning, "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200", true)}
+                              {renderShiftCell(afternoon, "border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-900/50 dark:bg-indigo-900/20 dark:text-indigo-200", false)}
                             </tr>
                           );
                         })}
