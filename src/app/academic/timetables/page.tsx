@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAcademicStore, Timetable } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
+import { useStudentScope } from "@/hooks/useStudentScope";
 
 type ApiErrorResponse = {
   message?: string;
@@ -126,6 +127,7 @@ export default function TimetablePage() {
   } = useAcademicStore();
 
   const authorized = usePermission("timetable.read");
+  const { ready: scopeReady, isStudent } = useStudentScope();
 
   // ── Current user / teacher context ────────────────────────────────────
   const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
@@ -158,8 +160,9 @@ export default function TimetablePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draftDayConfig, setDraftDayConfig] = useState<DayConfig>(DEFAULT_DAY_CONFIG);
   useEffect(() => {
-    setDayConfig(loadDayConfig());
-  }, []);
+    // Parents don't manage the structure; theirs is built from the data below
+    if (scopeReady && !isStudent) setDayConfig(loadDayConfig());
+  }, [scopeReady, isStudent]);
   const DAYS = useMemo(() => ALL_DAYS.filter((d) => dayConfig[d.key]?.enabled), [dayConfig]);
   const maxPeriods = useMemo(() => (DAYS.length === 0 ? 0 : Math.max(...DAYS.map((d) => dayConfig[d.key].periods))), [DAYS, dayConfig]);
   const PERIODS = useMemo(() => Array.from({ length: maxPeriods }, (_, i) => i + 1), [maxPeriods]);
@@ -181,7 +184,13 @@ export default function TimetablePage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (!userChecked) return;
+    if (!userChecked || !scopeReady) return;
+
+    // A parent only needs their child's timetable (already filtered by the server)
+    if (isStudent) {
+      fetchTimetables();
+      return;
+    }
 
     fetchSessions();
     fetchTimetables();
@@ -192,7 +201,7 @@ export default function TimetablePage() {
       fetchSections();
       fetchSubjectAllocations();
     }
-  }, [userChecked, isTeacherView, fetchSessions, fetchClasses, fetchSections, fetchSubjectAllocations, fetchTimetables, fetchTeacherAssignments]);
+  }, [userChecked, scopeReady, isStudent, isTeacherView, fetchSessions, fetchClasses, fetchSections, fetchSubjectAllocations, fetchTimetables, fetchTeacherAssignments]);
 
   // ── Active session (used for both teacher tabs) ─────────────────────────
   const activeSessionId = useMemo(() => {
@@ -238,6 +247,41 @@ export default function TimetablePage() {
     return totalSlots - myScheduleTimetables.length;
   }, [DAYS, dayConfig, myScheduleTimetables]);
 
+  // ── Student / parent view ────────────────────────────────────────────────
+  // Use the child's current session (the active one if present, else the latest)
+  const studentSession = useMemo(() => {
+    if (!isStudent || timetables.length === 0) return null;
+    const active = timetables.find((t) => t.session?.isActive);
+    if (active) return active.session;
+    return [...timetables].sort((a, b) => new Date(b.session?.startDate ?? 0).getTime() - new Date(a.session?.startDate ?? 0).getTime())[0].session;
+  }, [isStudent, timetables]);
+
+  const studentTimetables = useMemo(() => {
+    if (!isStudent || !studentSession) return [];
+    return timetables.filter((t) => t.sessionId === studentSession.id);
+  }, [isStudent, timetables, studentSession]);
+
+  const studentCellMap = useMemo(() => {
+    const map: Record<string, Timetable> = {};
+    studentTimetables.forEach((t) => {
+      map[`${t.dayOfWeek}-${t.periodNo}`] = t;
+    });
+    return map;
+  }, [studentTimetables]);
+
+  // Show only the days that have periods, and as many rows as the busiest day
+  useEffect(() => {
+    if (!isStudent || studentTimetables.length === 0) return;
+    const maxPeriod = Math.min(MAX_PERIODS, Math.max(...studentTimetables.map((t) => t.periodNo)));
+    const next = ALL_DAYS.reduce((acc, d) => {
+      acc[d.key] = { enabled: studentTimetables.some((t) => t.dayOfWeek === d.key), periods: maxPeriod };
+      return acc;
+    }, {} as DayConfig);
+    setDayConfig(next);
+  }, [isStudent, studentTimetables]);
+
+  const studentClassLabel = studentTimetables[0] ? `${studentTimetables[0].class.name} — ${studentTimetables[0].section.name}` : "";
+
   // ── Admin scope selection (existing behaviour) ───────────────────────────
   const viewSelected = Boolean(sessionId && classId && sectionId);
   const viewTimetables = useMemo(() => {
@@ -277,7 +321,7 @@ export default function TimetablePage() {
     {} as Record<DayKey, number>
   );
 
-  if (authorized === null || !userChecked) {
+  if (authorized === null || !userChecked || !scopeReady) {
     return null;
   }
 
@@ -649,6 +693,51 @@ export default function TimetablePage() {
           </Table>
         </div>
       </>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // STUDENT / PARENT VIEW (read-only)
+  // ══════════════════════════════════════════════════════════════════════
+  if (isStudent) {
+    return (
+      <DashboardLayout>
+        <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-xl font-bold text-foreground sm:text-2xl">Timetable</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">Weekly class schedule for your child</p>
+          </div>
+        </div>
+
+        <div className="rounded-md border bg-card p-4 sm:p-5">
+          {loading && timetables.length === 0 ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((p) => (
+                <div key={p} className="h-16 rounded-xl bg-muted animate-pulse sm:h-20" />
+              ))}
+            </div>
+          ) : studentTimetables.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center sm:py-20">
+              <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-muted">
+                <CalendarRange className="size-6 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Timetable not available yet</h3>
+              <p className="max-w-sm text-muted-foreground">The school has not published a timetable for your child&apos;s class yet.</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-5 flex flex-wrap items-center gap-2 border-b pb-4">
+                <CheckCircle2 className="size-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">
+                  {studentClassLabel}
+                  {studentSession ? ` • ${studentSession.name}` : ""}
+                </span>
+              </div>
+              {renderReadonlySchedule(studentCellMap, (t) => `Taught by ${t.subjectAllocation.teacher.name}`, "Free")}
+            </>
+          )}
+        </div>
+      </DashboardLayout>
     );
   }
 

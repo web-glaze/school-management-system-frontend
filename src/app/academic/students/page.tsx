@@ -8,8 +8,9 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CalendarDays, Calendar as CalendarIconTable, CalendarIcon, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
-import { useAcademicStore } from "@/store/academicStore";
+import { CalendarDays, Calendar as CalendarIconTable, CalendarIcon, Copy, Inbox, KeyRound, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
+import { useAcademicStore, type StudentCredentials } from "@/store/academicStore";
+import { academicService } from "@/services/academic.service";
 import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/usePermission";
 import { useEffect, useState } from "react";
@@ -44,10 +45,26 @@ interface Student {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  user?: {
+    userCode: string;
+    userName: string | null;
+  } | null;
+}
+
+interface PendingStudent {
+  admissionNo: string;
+  firstName: string;
+  lastName: string;
+  dob: string;
+  fatherName: string;
+  motherName: string;
+  phone: string;
+  email: string;
+  admissionDate: string;
 }
 
 export default function StudentsPage() {
-  const { students, loading, fetchStudents, createStudent, updateStudent, deleteStudent } = useAcademicStore();
+  const { students, loading, fetchStudents, createStudent, createStudentLogin, updateStudent, deleteStudent } = useAcademicStore();
   const [admissionNo, setAdmissionNo] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -80,16 +97,88 @@ export default function StudentsPage() {
   const [admissionDateOpen, setAdmissionDateOpen] = useState(false);
   const [editDobOpen, setEditDobOpen] = useState(false);
   const [editAdmissionDateOpen, setEditAdmissionDateOpen] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [pendingStudent, setPendingStudent] = useState<PendingStudent | null>(null);
+  const [userName, setUserName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loginErrors, setLoginErrors] = useState<Record<string, string>>({});
+  const [checking, setChecking] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<StudentCredentials | null>(null);
+
+  // Adding a login to a student who was created before logins existed.
+  const [loginStudent, setLoginStudent] = useState<Student | null>(null);
+  const [existingUserName, setExistingUserName] = useState("");
+  const [existingPassword, setExistingPassword] = useState("");
+  const [existingConfirm, setExistingConfirm] = useState("");
+  const [existingErrors, setExistingErrors] = useState<Record<string, string>>({});
+  const [existingSubmitting, setExistingSubmitting] = useState(false);
 
   useEffect(() => {
     fetchStudents();
   }, []);
 
+  const resetAddForm = () => {
+    setAdmissionNo("");
+    setFirstName("");
+    setLastName("");
+    setDob("");
+    setFatherName("");
+    setMotherName("");
+    setPhone("");
+    setEmail("");
+    setAdmissionDate("");
+    setUserName("");
+    setPassword("");
+    setConfirmPassword("");
+    setPendingStudent(null);
+    setFormErrors({});
+    setLoginErrors({});
+  };
+
+  // Step 1: check the student details and suggest a username.
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    setFormErrors({});
+
+    const errors: Record<string, string> = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[6-9]\d{9}$/;
+
+    if (!admissionNo.trim()) errors.admissionNo = "Admission number is required";
+    if (!firstName.trim()) errors.firstName = "First name is required";
+    if (!lastName.trim()) errors.lastName = "Last name is required";
+    if (!dob) errors.dob = "Date of birth is required";
+    if (!fatherName.trim()) errors.fatherName = "Father name is required";
+    if (!motherName.trim()) errors.motherName = "Mother name is required";
+
+    if (!phone.trim()) errors.phone = "Phone number is required";
+    else if (!phoneRegex.test(phone.trim())) errors.phone = "Phone number must be a valid 10-digit mobile number";
+
+    if (!email.trim()) errors.email = "Email is required";
+    else if (!emailRegex.test(email.trim())) errors.email = "Invalid email address";
+
+    if (!admissionDate) errors.admissionDate = "Admission date is required";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
     try {
-      await createStudent({
+      setChecking(true);
+
+      const response = await academicService.students.generateUsername({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        admissionNo: admissionNo.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      });
+
+      setPendingStudent({
         admissionNo,
         firstName,
         lastName,
@@ -101,30 +190,157 @@ export default function StudentsPage() {
         admissionDate,
       });
 
-      setAdmissionNo("");
-      setFirstName("");
-      setLastName("");
-      setDob("");
-      setFatherName("");
-      setMotherName("");
-      setPhone("");
-      setEmail("");
-      setAdmissionDate("");
-      setFormErrors({});
+      setUserName(response.data.data ?? "");
+      setPassword("");
+      setConfirmPassword("");
+      setLoginErrors({});
+
       setAddStudentOpen(false);
+      setLoginDialogOpen(true);
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
+
+      const apiErrors = apiError.response?.data?.errors;
+
+      if (apiErrors) {
+        setFormErrors(apiErrors);
+        return;
+      }
+
+      toast.error(apiError.response?.data?.message ?? "Validation failed");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  // Step 2: set the login details and create the student with their login.
+  const handleCreateLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!pendingStudent) return;
+
+    const errors: Record<string, string> = {};
+
+    if (!userName.trim()) errors.userName = "Username is required";
+    if (password.length < 8) errors.password = "Password must be at least 8 characters";
+    else if (password !== confirmPassword) errors.confirmPassword = "Passwords do not match";
+
+    if (Object.keys(errors).length > 0) {
+      setLoginErrors(errors);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const credentials = await createStudent({
+        ...pendingStudent,
+        userName: userName.trim(),
+        password,
+      });
+
+      setLoginDialogOpen(false);
+      resetAddForm();
+
+      setCreatedCredentials(credentials ?? { userCode: "—", userName: userName.trim() });
 
       toast.success("Student created successfully");
     } catch (error) {
       const apiError = error as AxiosError<ApiErrorResponse>;
 
-      const errors = apiError.response?.data?.errors;
+      const apiErrors = apiError.response?.data?.errors;
 
-      if (errors) {
-        setFormErrors(errors);
+      if (apiErrors) {
+        if (apiErrors.userName) {
+          setLoginErrors({ userName: apiErrors.userName });
+        } else {
+          // Another field clashed since step 1: go back to the details.
+          setFormErrors(apiErrors);
+          setLoginDialogOpen(false);
+          setAddStudentOpen(true);
+        }
         return;
       }
 
       toast.error(apiError.response?.data?.message ?? "Failed to create student");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openExistingLoginDialog = async (student: Student) => {
+    setLoginStudent(student);
+    setExistingUserName("");
+    setExistingPassword("");
+    setExistingConfirm("");
+    setExistingErrors({});
+
+    try {
+      const response = await academicService.students.suggestUsername(student.id);
+      setExistingUserName(response.data?.data ?? "");
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
+      toast.error(apiError.response?.data?.message ?? "Could not suggest a username");
+    }
+  };
+
+  const closeExistingLoginDialog = () => {
+    setLoginStudent(null);
+    setExistingPassword("");
+    setExistingConfirm("");
+    setExistingErrors({});
+  };
+
+  const handleCreateExistingLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!loginStudent) return;
+
+    const errors: Record<string, string> = {};
+
+    if (!existingUserName.trim()) errors.userName = "Username is required";
+    if (existingPassword.length < 8) errors.password = "Password must be at least 8 characters";
+    else if (existingPassword !== existingConfirm) errors.confirmPassword = "Passwords do not match";
+
+    if (Object.keys(errors).length > 0) {
+      setExistingErrors(errors);
+      return;
+    }
+
+    try {
+      setExistingSubmitting(true);
+
+      const credentials = await createStudentLogin(loginStudent.id, {
+        userName: existingUserName.trim(),
+        password: existingPassword,
+      });
+
+      closeExistingLoginDialog();
+      setCreatedCredentials(credentials ?? { userCode: "—", userName: existingUserName.trim() });
+
+      toast.success("Login created successfully");
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
+
+      const apiErrors = apiError.response?.data?.errors;
+
+      if (apiErrors?.userName) {
+        setExistingErrors({ userName: apiErrors.userName });
+        return;
+      }
+
+      toast.error(apiError.response?.data?.message ?? "Failed to create login");
+    } finally {
+      setExistingSubmitting(false);
+    }
+  };
+
+  const copyText = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("Copied");
+    } catch {
+      toast.error("Could not copy");
     }
   };
 
@@ -267,17 +483,7 @@ export default function StudentsPage() {
               setAddStudentOpen(open);
 
               if (!open) {
-                setAdmissionNo("");
-                setFirstName("");
-                setLastName("");
-                setDob("");
-                setFatherName("");
-                setMotherName("");
-                setPhone("");
-                setEmail("");
-                setAdmissionDate("");
-
-                setFormErrors({});
+                resetAddForm();
               }
             }}
           >
@@ -298,7 +504,7 @@ export default function StudentsPage() {
 
                   <div className="min-w-0">
                     <DialogTitle className="text-base sm:text-lg leading-tight">Create Student</DialogTitle>
-                    <DialogDescription className="text-xs sm:text-sm">Add a new student</DialogDescription>
+                    <DialogDescription className="text-xs sm:text-sm">Step 1 of 2: student details</DialogDescription>
                   </div>
                 </div>
               </div>
@@ -522,16 +728,16 @@ export default function StudentsPage() {
                     </Button>
                   </DialogClose>
 
-                  <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-                    {loading ? (
+                  <Button type="submit" disabled={checking} className="w-full sm:w-auto">
+                    {checking ? (
                       <>
                         <Loader2 className="size-4 animate-spin mr-2" />
-                        Creating...
+                        Checking...
                       </>
                     ) : (
                       <>
                         <Plus className="size-4 mr-2" />
-                        Create
+                        Next
                       </>
                     )}
                   </Button>
@@ -657,6 +863,19 @@ export default function StudentsPage() {
 
                       <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <div className="hidden md:flex justify-end gap-1">
+                          {!student.user && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-emerald-300/10 hover:text-emerald-700 transition-all"
+                              title="Create login"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={() => openExistingLoginDialog(student)}
+                            >
+                              <KeyRound className="size-5" />
+                            </Button>
+                          )}
+
                           <Button
                             variant="ghost"
                             size="icon"
@@ -693,6 +912,13 @@ export default function StudentsPage() {
                                 <Pencil className="mr-2 size-4" />
                                 Edit
                               </DropdownMenuItem>
+
+                              {!student.user && (
+                                <DropdownMenuItem onClick={() => openExistingLoginDialog(student)}>
+                                  <KeyRound className="mr-2 size-4" />
+                                  Create login
+                                </DropdownMenuItem>
+                              )}
 
                               <DropdownMenuItem onClick={() => openDeleteDialog(student)} className="text-destructive">
                                 <Trash2 className="mr-2 size-4" />
@@ -949,6 +1175,8 @@ export default function StudentsPage() {
                   </Select>
 
                   {editErrors.status && <p className="text-xs text-red-500 mt-1.5">{editErrors.status}</p>}
+
+                  {editingStudent?.user && editStatus !== "ACTIVE" && <p className="text-xs text-muted-foreground mt-1.5">Only Active students can log in. This student&apos;s login will be blocked.</p>}
                 </Field>
               </FieldGroup>
             </div>
@@ -978,6 +1206,239 @@ export default function StudentsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Step 2: login details for the new student (also used by the parents) */}
+      <Dialog
+        open={loginDialogOpen}
+        onOpenChange={(open) => {
+          setLoginDialogOpen(open);
+
+          // Closing with X or Escape returns to the student details.
+          if (!open) {
+            setAddStudentOpen(true);
+            setPassword("");
+            setConfirmPassword("");
+            setLoginErrors({});
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Create Student Login</DialogTitle>
+
+          <DialogDescription>Step 2 of 2: set the login for this student. Parents use the same login.</DialogDescription>
+
+          <form onSubmit={handleCreateLogin} className="space-y-5 mt-4">
+            <Field>
+              <Label>Username</Label>
+
+              <Input
+                value={userName}
+                className={loginErrors.userName ? "border-red-500 focus-visible:ring-red-500/30" : ""}
+                onChange={(e) => {
+                  setUserName(e.target.value);
+                  setLoginErrors((prev) => ({ ...prev, userName: "" }));
+                }}
+              />
+
+              {loginErrors.userName && <p className="text-xs text-red-500 mt-1.5">{loginErrors.userName}</p>}
+            </Field>
+
+            <Field>
+              <Label>Password</Label>
+
+              <Input
+                type="password"
+                value={password}
+                className={loginErrors.password ? "border-red-500 focus-visible:ring-red-500/30" : ""}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setLoginErrors((prev) => ({ ...prev, password: "" }));
+                }}
+              />
+
+              {loginErrors.password && <p className="text-xs text-red-500 mt-1.5">{loginErrors.password}</p>}
+            </Field>
+
+            <Field>
+              <Label>Confirm Password</Label>
+
+              <Input
+                type="password"
+                value={confirmPassword}
+                className={loginErrors.confirmPassword ? "border-red-500 focus-visible:ring-red-500/30" : ""}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setLoginErrors((prev) => ({ ...prev, confirmPassword: "" }));
+                }}
+              />
+
+              {loginErrors.confirmPassword && <p className="text-xs text-red-500 mt-1.5">{loginErrors.confirmPassword}</p>}
+            </Field>
+
+            <Field>
+              <Label>Role</Label>
+
+              <Input value="STUDENT" readOnly />
+            </Field>
+
+            <p className="text-xs text-muted-foreground">The password must be changed at first login.</p>
+
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setLoginDialogOpen(false);
+                  setAddStudentOpen(true);
+                  setPassword("");
+                  setConfirmPassword("");
+                  setLoginErrors({});
+                }}
+              >
+                Back
+              </Button>
+
+              <Button type="submit" disabled={submitting} className="gap-2">
+                {submitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Student"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create a login for a student who has none yet */}
+      <Dialog
+        open={!!loginStudent}
+        onOpenChange={(open) => {
+          if (!open) closeExistingLoginDialog();
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Create Login</DialogTitle>
+
+          <DialogDescription>
+            Set the login for {loginStudent ? `${loginStudent.firstName} ${loginStudent.lastName}` : "this student"}. Parents use the same login.
+          </DialogDescription>
+
+          <form onSubmit={handleCreateExistingLogin} className="space-y-5 mt-4">
+            <Field>
+              <Label>Username</Label>
+
+              <Input
+                value={existingUserName}
+                className={existingErrors.userName ? "border-red-500 focus-visible:ring-red-500/30" : ""}
+                onChange={(e) => {
+                  setExistingUserName(e.target.value);
+                  setExistingErrors((prev) => ({ ...prev, userName: "" }));
+                }}
+              />
+
+              {existingErrors.userName && <p className="text-xs text-red-500 mt-1.5">{existingErrors.userName}</p>}
+            </Field>
+
+            <Field>
+              <Label>Password</Label>
+
+              <Input
+                type="password"
+                value={existingPassword}
+                className={existingErrors.password ? "border-red-500 focus-visible:ring-red-500/30" : ""}
+                onChange={(e) => {
+                  setExistingPassword(e.target.value);
+                  setExistingErrors((prev) => ({ ...prev, password: "" }));
+                }}
+              />
+
+              {existingErrors.password && <p className="text-xs text-red-500 mt-1.5">{existingErrors.password}</p>}
+            </Field>
+
+            <Field>
+              <Label>Confirm Password</Label>
+
+              <Input
+                type="password"
+                value={existingConfirm}
+                className={existingErrors.confirmPassword ? "border-red-500 focus-visible:ring-red-500/30" : ""}
+                onChange={(e) => {
+                  setExistingConfirm(e.target.value);
+                  setExistingErrors((prev) => ({ ...prev, confirmPassword: "" }));
+                }}
+              />
+
+              {existingErrors.confirmPassword && <p className="text-xs text-red-500 mt-1.5">{existingErrors.confirmPassword}</p>}
+            </Field>
+
+            <Field>
+              <Label>Role</Label>
+
+              <Input value="STUDENT" readOnly />
+            </Field>
+
+            <p className="text-xs text-muted-foreground">The password must be changed at first login.</p>
+
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={closeExistingLoginDialog}>
+                Cancel
+              </Button>
+
+              <Button type="submit" disabled={existingSubmitting} className="gap-2">
+                {existingSubmitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Login"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Login details of the student that was just created */}
+      <Dialog
+        open={!!createdCredentials}
+        onOpenChange={(open) => {
+          if (!open) setCreatedCredentials(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Login created</DialogTitle>
+
+          <DialogDescription>Share these login details with the student or parent. Log in with the username and the password you just set.</DialogDescription>
+
+          <div className="space-y-3 mt-4">
+            {[
+              { label: "Username", value: createdCredentials?.userName ?? "" },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">{row.label}</p>
+                  <p className="font-mono text-sm truncate">{row.value}</p>
+                </div>
+
+                <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0" title={`Copy ${row.label.toLowerCase()}`} onClick={() => copyText(row.value)}>
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button type="button" onClick={() => setCreatedCredentials(null)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={deleteStudentOpen} onOpenChange={setDeleteStudentOpen}>
         <AlertDialogContent className="sm:max-w-105">
           <AlertDialogHeader>
@@ -989,6 +1450,7 @@ export default function StudentsPage() {
 
             <AlertDialogDescription className="text-center">
               This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingStudent && `${deletingStudent.firstName} ${deletingStudent.lastName}`}</span>
+              {deletingStudent?.user ? " and their login" : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
 

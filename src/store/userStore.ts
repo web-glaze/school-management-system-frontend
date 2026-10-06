@@ -14,6 +14,14 @@ export interface User {
     isActive: boolean;
   };
 
+  student?: {
+    id: string;
+    isActive: boolean;
+    status: "ACTIVE" | "INACTIVE" | "GRADUATED" | "TRANSFERRED";
+    phone?: string | null;
+    email?: string | null;
+  } | null;
+
   userRoles: {
     role: {
       name: string;

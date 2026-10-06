@@ -62,7 +62,7 @@ export default function UserManagementPage() {
 
   // Set default role when roles load
   const defaultRole = useMemo(() => {
-    return roles.find((r) => !["SUPER_ADMIN", "ADMIN"].includes(r.name))?.name ?? "";
+    return roles.find((r) => !["SUPER_ADMIN", "ADMIN", "STUDENT"].includes(r.name))?.name ?? "";
   }, [roles]);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -171,7 +171,13 @@ export default function UserManagementPage() {
       await deleteUser(id);
       setDeleteUserOpen(false);
       setDeletingUser(null);
-      toast.success(deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Teacher deactivated successfully" : "User deleted successfully");
+      toast.success(
+        deletingUser?.student
+          ? "Student deactivated successfully"
+          : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER")
+            ? "Teacher deactivated successfully"
+            : "User deleted successfully",
+      );
     } catch {
       toast.error("Failed to delete user");
     }
@@ -192,7 +198,7 @@ export default function UserManagementPage() {
         users: users.filter((u) => {
           const needle = search.toLowerCase();
           const matchSearch =
-            !needle || u.email?.toLowerCase().includes(needle) || u.name?.toLowerCase().includes(needle) || u.userName?.toLowerCase().includes(needle) || (u.userCode || "").toLowerCase().includes(needle);
+            !needle || u.email?.toLowerCase().includes(needle) || (u.phone ?? u.student?.phone ?? "").includes(needle) || (u.student?.email ?? "").toLowerCase().includes(needle) || u.name?.toLowerCase().includes(needle) || u.userName?.toLowerCase().includes(needle) || (u.userCode || "").toLowerCase().includes(needle);
           const matchRole = roleFilter === "all" || u.userRoles?.some((r) => r.role.name === roleFilter);
           return matchSearch && matchRole;
         }),
@@ -351,7 +357,7 @@ export default function UserManagementPage() {
 
                       <SelectContent>
                         {(roles.length > 0 ? roles.map((r) => r.name) : FALLBACK_ROLES)
-                          .filter((n) => n !== "SUPER_ADMIN")
+                          .filter((n) => n !== "SUPER_ADMIN" && n !== "STUDENT")
                           .map((n) => (
                             <SelectItem key={n} value={n}>
                               {n}
@@ -402,7 +408,7 @@ export default function UserManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  {["SUPER_ADMIN", "ADMIN", ...FALLBACK_ROLES].map((roleName) => (
+                  {["SUPER_ADMIN", "ADMIN", ...FALLBACK_ROLES, "STUDENT"].map((roleName) => (
                     <SelectItem key={roleName} value={roleName}>
                       {roleName}
                     </SelectItem>
@@ -452,7 +458,9 @@ export default function UserManagementPage() {
                             <div className="space-y-1 max-w-62.5">
                               <p className="font-semibold text-foreground">{u.name || u.userName}</p>
 
-                              <p className="text-sm text-muted-foreground">{u.email ?? "No Email"}</p>
+                              <p className="text-sm text-muted-foreground">{u.email ?? u.student?.email ?? "No Email"}</p>
+
+                              {(u.phone ?? u.student?.phone) && <p className="text-sm text-muted-foreground">{u.phone ?? u.student?.phone}</p>}
 
                               <p className="text-xs text-muted-foreground">{u.userCode ?? "—"}</p>
                             </div>
@@ -498,7 +506,7 @@ export default function UserManagementPage() {
                                   variant="ghost"
                                   size="icon"
                                   className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                                  title={roleNames.includes("TEACHER") ? "Deactivate Teacher" : "Delete User"}
+                                  title={u.student ? "Deactivate Student" : roleNames.includes("TEACHER") ? "Deactivate Teacher" : "Delete User"}
                                   onClick={() => openDeleteDialog(u)}
                                 >
                                   <Trash2 className="size-5" />
@@ -524,7 +532,7 @@ export default function UserManagementPage() {
                                   {!isSystemUser && (
                                     <DropdownMenuItem onClick={() => openDeleteDialog(u)} className="text-destructive">
                                       <Trash2 className="mr-2 size-4" />
-                                      {roleNames.includes("TEACHER") ? "Deactivate Teacher" : "Delete User"}
+                                      {u.student ? "Deactivate Student" : roleNames.includes("TEACHER") ? "Deactivate Teacher" : "Delete User"}
                                     </DropdownMenuItem>
                                   )}
                                 </DropdownMenuContent>
@@ -635,14 +643,14 @@ export default function UserManagementPage() {
             <FieldGroup>
               <Field>
                 <Label htmlFor="role">Role</Label>
-                <Select value={editRole} onValueChange={setEditRole}>
+                <Select value={editRole} onValueChange={setEditRole} disabled={!!editingUser?.student}>
                   <SelectTrigger className="w-36">
                     <SelectValue placeholder="Select Role" />
                   </SelectTrigger>
 
                   <SelectContent>
                     {(roles.length > 0 ? roles.map((r) => r.name) : FALLBACK_ROLES)
-                      .filter((n) => n !== "SUPER_ADMIN")
+                      .filter((n) => n !== "SUPER_ADMIN" && (n !== "STUDENT" || !!editingUser?.student))
                       .map((n) => (
                         <SelectItem key={n} value={n}>
                           {n}
@@ -687,11 +695,31 @@ export default function UserManagementPage() {
             </div>
 
             <AlertDialogTitle className="w-full text-center text-xl">
-              {deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? (deletingUser.teacher?.isActive ? "Deactivate Teacher?" : "Teacher Already Deactivated") : "Delete User?"}
+              {deletingUser?.student
+                ? deletingUser.student.isActive
+                  ? "Deactivate Student?"
+                  : "Student Already Deactivated"
+                : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER")
+                  ? deletingUser.teacher?.isActive
+                    ? "Deactivate Teacher?"
+                    : "Teacher Already Deactivated"
+                  : "Delete User?"}
             </AlertDialogTitle>
 
             <AlertDialogDescription className="text-center text-sm">
-              {deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? (
+              {deletingUser?.student ? (
+                deletingUser.student.isActive ? (
+                  <>
+                    This will deactivate the student and block their login. Attendance, marks, and report cards will be preserved.
+                    <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
+                  </>
+                ) : (
+                  <span className="block w-full text-center">
+                    <span className="font-semibold text-foreground">{deletingUser?.name}</span>
+                    &rsquo;s profile is already deactivated.
+                  </span>
+                )
+              ) : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? (
                 deletingUser?.teacher?.isActive ? (
                   <>
                     This will deactivate the teacher account. All attendance, timetable, and academic history will be preserved.
@@ -718,7 +746,11 @@ export default function UserManagementPage() {
             <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
             <AlertDialogAction
-              disabled={deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") && !deletingUser?.teacher?.isActive}
+              disabled={
+                deletingUser?.student
+                  ? !deletingUser.student.isActive
+                  : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") && !deletingUser?.teacher?.isActive
+              }
               onClick={() => {
                 if (deletingUser) {
                   handleDelete(deletingUser.id);
@@ -731,12 +763,14 @@ export default function UserManagementPage() {
                   <Loader2 className="mr-2 size-4 animate-spin" />
                   Deleting...
                 </>
-              ) : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") && !deletingUser?.teacher?.isActive ? (
+              ) : deletingUser?.student && !deletingUser.student.isActive ? (
+                "Deactivate Student"
+              ) : !deletingUser?.student && deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") && !deletingUser?.teacher?.isActive ? (
                 "Deactivate Teacher"
               ) : (
                 <>
                   <Trash2 className="mr-2 size-4" />
-                  {deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Deactivate Teacher" : "Delete User"}
+                  {deletingUser?.student ? "Deactivate Student" : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Deactivate Teacher" : "Delete User"}
                 </>
               )}
             </AlertDialogAction>

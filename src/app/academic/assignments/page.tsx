@@ -11,6 +11,7 @@ import { Field, FieldGroup } from "@/components/ui/field";
 import { Calendar as CalendarIcon, Check, ChevronDown, ClipboardList, ExternalLink, Inbox, Loader2, Pencil, Plus, Search, SlidersHorizontal, Trash2, Users, ArrowLeft, BookOpen, X, NotebookTabs } from "lucide-react";
 import { useAcademicStore, Assignment, AssignmentStudent, SubjectAllocation } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
+import { useStudentScope } from "@/hooks/useStudentScope";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
@@ -138,6 +139,9 @@ export default function AssignmentsPage() {
   const canUpdate = usePermission("assignment.update");
   const canDelete = usePermission("assignment.delete");
 
+  // Student / parent logins get a read-only view of their own child only.
+  const { ready: scopeReady, isStudent } = useStudentScope();
+
   // ── Current user / teacher context ───────────────────────────────────
   const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
   const [userChecked, setUserChecked] = useState(false);
@@ -157,7 +161,13 @@ export default function AssignmentsPage() {
   const isTeacherView = Boolean(myTeacherId);
 
   useEffect(() => {
-    if (!userChecked) return;
+    if (!userChecked || !scopeReady) return;
+
+    if (isStudent) {
+      // The server only returns this child's assignments.
+      fetchAssignments();
+      return;
+    }
 
     fetchSessions();
     fetchAssignments();
@@ -170,7 +180,7 @@ export default function AssignmentsPage() {
       fetchStudentEnrollments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userChecked, isTeacherView]);
+  }, [userChecked, scopeReady, isStudent, isTeacherView]);
 
   const activeSessionId = useMemo(() => {
     const active = sessions.find((s) => s.isActive);
@@ -264,7 +274,7 @@ export default function AssignmentsPage() {
   const [statusValue, setStatusValue] = useState<StudentStatusT>("IN_PROGRESS");
   const [statusRemarks, setStatusRemarks] = useState("");
 
-  if (authorized === null || !userChecked) {
+  if (authorized === null || !userChecked || !scopeReady) {
     return null;
   }
 
@@ -741,6 +751,230 @@ export default function AssignmentsPage() {
         </div>
       </div>
     );
+  }
+
+  // ── Read-only view for student / parent logins ──────────────────────
+  function renderStudentView() {
+    // The server sends only this child's own row inside `students`.
+    const ownEntry = (a: Assignment) => a.students[0];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const isOverdue = (a: Assignment) => {
+      const own = ownEntry(a);
+      return Boolean(own && own.status === "IN_PROGRESS" && a.dueDate && new Date(a.dueDate) < today);
+    };
+
+    const counts: Record<StudentStatusT, number> = { IN_PROGRESS: 0, COMPLETED: 0, NOT_SUBMITTED: 0 };
+    assignments.forEach((a) => {
+      const own = ownEntry(a);
+      if (own) counts[own.status] += 1;
+    });
+
+    const child = assignments[0]?.students[0]?.student;
+    const childClass = assignments[0] ? `${assignments[0].class.name} ${assignments[0].section.name}` : "";
+
+    const filtered = assignments.filter((a) => {
+      const own = ownEntry(a);
+      const needle = studentSearch.toLowerCase();
+      const matchesSearch = a.title.toLowerCase().includes(needle) || a.subjectAllocation.subject.name.toLowerCase().includes(needle) || a.teacher.name.toLowerCase().includes(needle);
+      const matchesStatus = studentStatusFilter === "ALL" || own?.status === studentStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
+    // ── Detail of one assignment ──
+    if (detailAssignment) {
+      const own = ownEntry(detailAssignment);
+      const overdue = isOverdue(detailAssignment);
+
+      return (
+        <DashboardLayout>
+          <div className="space-y-6">
+            <div className="border-b pb-5">
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={closeDetail}
+                  aria-label="Back to assignments"
+                  className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <ArrowLeft className="size-4" />
+                </button>
+
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <ClipboardList className="size-5" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg font-bold leading-tight text-foreground sm:text-xl wrap-break-word">{detailAssignment.title}</h1>
+                  <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:text-sm">
+                    {detailAssignment.subjectAllocation.subject.name}
+                    <span className="mx-1.5 text-muted-foreground/50">•</span>
+                    {detailAssignment.teacher.name}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-md border p-4 sm:p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border bg-muted/20 p-3.5 sm:p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Type</p>
+                  <p className="mt-2 truncate text-sm font-semibold text-foreground">{typeLabel(detailAssignment.type)}</p>
+                </div>
+
+                <div className="rounded-lg border bg-muted/20 p-3.5 sm:p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                  <p className="mt-2 truncate text-sm font-semibold text-foreground">{assignmentStatusLabel(detailAssignment.status)}</p>
+                </div>
+
+                <div className="rounded-lg border bg-muted/20 p-3.5 sm:p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Given Date</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{format(new Date(detailAssignment.givenDate), "dd MMM yyyy")}</p>
+                </div>
+
+                <div className="rounded-lg border bg-muted/20 p-3.5 sm:p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Due Date</p>
+                  <p className={cn("mt-2 text-sm font-semibold", overdue ? "text-red-600" : "text-foreground")}>
+                    {detailAssignment.dueDate ? format(new Date(detailAssignment.dueDate), "dd MMM yyyy") : "—"}
+                    {overdue && <span className="ml-1.5 text-xs font-medium">(overdue)</span>}
+                  </p>
+                </div>
+              </div>
+
+              {detailAssignment.description && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Description</p>
+                  <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{detailAssignment.description}</p>
+                </div>
+              )}
+
+              {detailAssignment.attachmentUrl && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Attachment</p>
+                  <a href={detailAssignment.attachmentUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                    <ExternalLink className="size-3.5" />
+                    View attachment
+                  </a>
+                </div>
+              )}
+
+              {own && (
+                <div className={cn("rounded-lg border p-4", studentStatusTileClass(own.status))}>
+                  <p className={cn("text-xs font-medium uppercase tracking-wide", studentStatusTextClass(own.status))}>
+                    {child ? `${child.firstName}'s progress` : "Progress"}
+                  </p>
+                  <p className={cn("mt-1 text-lg font-bold", studentStatusTextClass(own.status))}>{studentStatusLabel(own.status)}</p>
+                  {own.completedAt && <p className="mt-1 text-xs text-muted-foreground">Completed on {format(new Date(own.completedAt), "dd MMM yyyy")}</p>}
+                  {own.remarks && <p className="mt-2 text-sm text-foreground/80">Teacher&apos;s remark: {own.remarks}</p>}
+                </div>
+              )}
+            </div>
+          </div>
+        </DashboardLayout>
+      );
+    }
+
+    // ── List ──
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Assignments</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">{child ? `${child.firstName} ${child.lastName} • ${childClass}` : "Homework and assignments for your child"}</p>
+          </div>
+
+          {loading && assignments.length === 0 ? (
+            <div className="bg-card rounded-md border p-16 flex items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : assignments.length === 0 ? (
+            <div className="bg-card rounded-md border p-8 sm:p-16 flex flex-col items-center justify-center text-center">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                <Inbox className="size-6" />
+              </div>
+              <h3 className="text-lg font-semibold">No assignments yet</h3>
+              <p className="text-muted-foreground">Homework and assignments will show up here once teachers post them.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                {STUDENT_STATUS_OPTIONS.map((opt) => (
+                  <div key={opt.value} className={cn("rounded-lg border p-4", studentStatusTileClass(opt.value))}>
+                    <p className={cn("text-xs font-medium uppercase tracking-wide", studentStatusTextClass(opt.value))}>{opt.label}</p>
+                    <p className={cn("text-2xl font-bold mt-1", studentStatusTextClass(opt.value))}>{counts[opt.value]}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-card rounded-md border p-4 sm:p-6 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input placeholder="Search title, subject or teacher" value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="h-10 pl-10" />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {STUDENT_STATUS_FILTER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setStudentStatusFilter(opt.value)}
+                        className={cn(
+                          "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors border",
+                          studentStatusFilter === opt.value ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {filtered.map((a) => {
+                    const own = ownEntry(a);
+                    const overdue = isOverdue(a);
+
+                    return (
+                      <div key={a.id} onClick={() => openDetail(a)} className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/20 transition-colors">
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <ClipboardList className="size-5" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold leading-tight truncate">{a.title}</p>
+                          <p className="mt-1 text-xs text-muted-foreground truncate">
+                            {a.subjectAllocation.subject.name} • {typeLabel(a.type)} • {a.teacher.name}
+                          </p>
+                          <p className={cn("mt-0.5 text-xs", overdue ? "font-medium text-red-600" : "text-muted-foreground")}>
+                            Given {format(new Date(a.givenDate), "dd MMM")}
+                            {a.dueDate ? ` • Due ${format(new Date(a.dueDate), "dd MMM yyyy")}` : ""}
+                            {overdue ? " (overdue)" : ""}
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 flex-col items-end gap-1.5">
+                          {own && <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", studentStatusBadgeClass(own.status))}>{studentStatusLabel(own.status)}</span>}
+                          {a.status === "CANCELLED" && <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">Cancelled</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {filtered.length === 0 && <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">No assignments match your filters.</div>}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isStudent) {
+    return renderStudentView();
   }
 
   return (

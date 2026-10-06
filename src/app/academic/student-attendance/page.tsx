@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useAcademicStore, StudentAttendance, SubjectAttendance, StudentEnrollment } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
+import { useStudentScope } from "@/hooks/useStudentScope";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
@@ -148,6 +149,9 @@ export default function StudentAttendancePage() {
 
   const authorized = usePermission("student-attendance.read");
 
+  // Student / parent logins get a read-only view of their own child only.
+  const { ready: scopeReady, isStudent } = useStudentScope();
+
   // ── Current user / teacher context ───────────────────────────────────
   const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
   const [userChecked, setUserChecked] = useState(false);
@@ -167,9 +171,16 @@ export default function StudentAttendancePage() {
   const isTeacherView = Boolean(myTeacherId);
 
   const [viewMode, setViewMode] = useState<"attendance" | "reports">("attendance");
+  const [studentMonth, setStudentMonth] = useState(() => new Date());
 
   useEffect(() => {
-    if (!userChecked) return;
+    if (!userChecked || !scopeReady) return;
+
+    if (isStudent) {
+      // The server only returns this child's records.
+      fetchStudentAttendances();
+      return;
+    }
 
     fetchSessions();
     fetchStudentAttendances();
@@ -186,7 +197,7 @@ export default function StudentAttendancePage() {
       fetchStudentEnrollments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userChecked, isTeacherView]);
+  }, [userChecked, scopeReady, isStudent, isTeacherView]);
 
   const activeEnrollments = useMemo(() => studentEnrollments.filter((e) => e.enrollmentStatus === "ACTIVE"), [studentEnrollments]);
 
@@ -408,7 +419,7 @@ export default function StudentAttendancePage() {
   const [deletingAttendance, setDeletingAttendance] = useState<StudentAttendance | SubjectAttendance | null>(null);
   const [deletingKind, setDeletingKind] = useState<"student" | "subject">("student");
 
-  if (authorized === null || !userChecked) {
+  if (authorized === null || !userChecked || !scopeReady) {
     return null;
   }
 
@@ -643,6 +654,179 @@ export default function StudentAttendancePage() {
         <p className="text-xs text-muted-foreground">Tap any cell to add or edit that day&apos;s attendance. Hover a marked cell to read its full remark.</p>
       </div>
     );
+  }
+
+  // ── Read-only view for student / parent logins ──────────────────────
+  function renderStudentView() {
+    const records = [...studentAttendances].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+    const total = records.length;
+    const present = records.filter((r) => r.status === "PRESENT").length;
+    const absent = records.filter((r) => r.status === "ABSENT").length;
+    const late = records.filter((r) => r.status === "LATE").length;
+    const leave = records.filter((r) => r.status === "LEAVE").length;
+    const pct = total ? Math.round((present / total) * 100) : 0;
+
+    const child = records[0]?.enrollment;
+
+    const year = studentMonth.getFullYear();
+    const month = studentMonth.getMonth();
+    const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    // Monday-first grid
+    const leadingBlanks = (new Date(year, month, 1).getDay() + 6) % 7;
+
+    const monthRecords = records.filter((r) => toDateInputValue(r.date).startsWith(monthKey));
+    const byDay = new Map(monthRecords.map((r) => [toDateInputValue(r.date), r]));
+    const monthPresent = monthRecords.filter((r) => r.status === "PRESENT").length;
+
+    const cellClass = (status: AttendanceStatus) =>
+      status === "PRESENT"
+        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+        : status === "ABSENT"
+          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : status === "LATE"
+            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Attendance</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              {child ? `${child.student.firstName} ${child.student.lastName} • ${child.class.name} ${child.section.name}` : "Your child's attendance record"}
+            </p>
+          </div>
+
+          {loading && total === 0 ? (
+            <div className="bg-card rounded-md border p-16 flex items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : total === 0 ? (
+            <div className="bg-card rounded-md border p-8 sm:p-16 flex flex-col items-center justify-center text-center">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                <Inbox className="size-6" />
+              </div>
+              <h3 className="text-lg font-semibold">No attendance recorded yet</h3>
+              <p className="text-muted-foreground">Attendance will show up here once the school marks it.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                <div className="rounded-lg border bg-card p-4">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Attendance</p>
+                  <p className={cn("text-2xl font-bold mt-1", pct >= 75 ? "text-green-600" : pct >= 50 ? "text-amber-600" : "text-red-600")}>{pct}%</p>
+                  <p className="text-[11px] text-muted-foreground">{total} days marked</p>
+                </div>
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/40 dark:bg-green-900/10">
+                  <p className="text-xs font-medium text-green-700 dark:text-green-400 uppercase tracking-wide">Present</p>
+                  <p className="text-2xl font-bold mt-1 text-green-700 dark:text-green-400">{present}</p>
+                </div>
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-900/10">
+                  <p className="text-xs font-medium text-red-700 dark:text-red-400 uppercase tracking-wide">Absent</p>
+                  <p className="text-2xl font-bold mt-1 text-red-700 dark:text-red-400">{absent}</p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide">Late</p>
+                  <p className="text-2xl font-bold mt-1 text-amber-700 dark:text-amber-400">{late}</p>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/40 dark:bg-blue-900/10">
+                  <p className="text-xs font-medium text-blue-700 dark:text-blue-400 uppercase tracking-wide">Leave</p>
+                  <p className="text-2xl font-bold mt-1 text-blue-700 dark:text-blue-400">{leave}</p>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-md border p-4 sm:p-6 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" className="size-10" onClick={() => setStudentMonth(new Date(year, month - 1, 1))} aria-label="Previous month">
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                    <div className="min-w-36 text-center font-semibold">{format(studentMonth, "MMMM yyyy")}</div>
+                    <Button variant="outline" size="icon" className="size-10" onClick={() => setStudentMonth(new Date(year, month + 1, 1))} aria-label="Next month">
+                      <ChevronRight className="size-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setStudentMonth(new Date())}>
+                      This month
+                    </Button>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground">
+                    {monthRecords.length > 0 ? `${monthPresent} of ${monthRecords.length} days present this month` : "No attendance marked this month"}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                    <div key={d} className="pb-1 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {d}
+                    </div>
+                  ))}
+
+                  {Array.from({ length: leadingBlanks }).map((_, i) => (
+                    <div key={`blank-${i}`} />
+                  ))}
+
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const key = `${monthKey}-${String(day).padStart(2, "0")}`;
+                    const record = byDay.get(key);
+
+                    return (
+                      <div
+                        key={key}
+                        title={record ? `${statusLabel(record.status)}${record.remarks ? ` - ${record.remarks}` : ""}` : undefined}
+                        className={cn(
+                          "flex aspect-square flex-col items-center justify-center rounded-md border text-xs font-medium",
+                          record ? cn("border-transparent", cellClass(record.status)) : "border-dashed border-border text-muted-foreground/60"
+                        )}
+                      >
+                        <span className="text-sm font-semibold">{day}</span>
+                        {record && <span className="hidden sm:block text-[10px] font-medium">{statusLabel(record.status)}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  {STATUS_OPTIONS.map((opt) => (
+                    <span key={opt.value} className="flex items-center gap-1.5">
+                      <span className={cn("size-3 rounded-sm", cellClass(opt.value))} />
+                      {opt.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-card rounded-md border p-4 sm:p-6 space-y-3">
+                <h2 className="font-semibold">{format(studentMonth, "MMMM yyyy")} records</h2>
+
+                {monthRecords.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">No records for this month.</p>
+                ) : (
+                  <div className="divide-y divide-border/40 rounded-md border">
+                    {monthRecords.map((r) => (
+                      <div key={r.id} className="flex items-center gap-3 p-3">
+                        <div className="w-28 shrink-0 text-sm font-medium">{format(new Date(r.date), "dd MMM, EEE")}</div>
+                        <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold shrink-0", statusBadgeClass(r.status))}>{statusLabel(r.status)}</span>
+                        <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground" title={r.remarks || undefined}>
+                          {r.remarks}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isStudent) {
+    return renderStudentView();
   }
 
   return (

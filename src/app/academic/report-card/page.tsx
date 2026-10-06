@@ -54,6 +54,7 @@ import {
   type AcademicClass,
 } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
+import { useStudentScope } from "@/hooks/useStudentScope";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
@@ -222,11 +223,14 @@ export default function ReportCardsPage() {
     updateReportCardCoScholasticMarks,
   } = useAcademicStore();
 
+  // Student / parent logins get a read-only view of their own child's published reports.
+  const { ready: scopeReady, isStudent } = useStudentScope();
+
   const authorized = usePermission("reportcard.read");
-  const canCreate = usePermission("reportcard.create");
-  const canUpdate = usePermission("reportcard.update");
-  const canDelete = usePermission("reportcard.delete");
-  const canPublish = usePermission("reportcard.publish");
+  const canCreate = usePermission("reportcard.create") && !isStudent;
+  const canUpdate = usePermission("reportcard.update") && !isStudent;
+  const canDelete = usePermission("reportcard.delete") && !isStudent;
+  const canPublish = usePermission("reportcard.publish") && !isStudent;
   const canUpdateGrading = usePermission("grading-scheme.update");
   const canCreateGrading = usePermission("grading-scheme.create");
   const canManageGrading = canUpdateGrading || canCreateGrading;
@@ -286,6 +290,14 @@ export default function ReportCardsPage() {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
+    if (!scopeReady) return;
+
+    if (isStudent) {
+      // The server only returns this child's published report cards.
+      fetchReportCards();
+      return;
+    }
+
     fetchSessions();
     fetchExams();
     fetchExamGroups();
@@ -296,7 +308,8 @@ export default function ReportCardsPage() {
     fetchStudents();
     fetchStudentEnrollments();
     fetchReportCards();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeReady, isStudent]);
 
   const activeSessionId = useMemo(() => {
     const active = sessions.find((session) => session.isActive);
@@ -1343,7 +1356,95 @@ export default function ReportCardsPage() {
     }
   };
 
-  if (authorized === null) {
+  // Read-only list for student / parent logins. Opening a card reuses the
+  // same report detail dialog the school staff see, minus every action button.
+  function renderStudentReports() {
+    const childReport = (reportCards as ReportCard[])[0];
+
+    return (
+      <div className="space-y-5">
+        {childReport && (
+          <p className="text-sm text-muted-foreground">
+            {studentName(childReport.student)} • {childReport.enrollment.class?.name} {childReport.enrollment.section?.name}
+          </p>
+        )}
+
+        {loading && (reportCards as ReportCard[]).length === 0 ? (
+          <div className="flex items-center justify-center rounded-xl border bg-card p-16">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (reportCards as ReportCard[]).length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border bg-card p-8 text-center sm:p-16">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-muted">
+              <ClipboardList className="size-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold">No report cards yet</h3>
+            <p className="text-muted-foreground">Report cards will appear here once the school publishes them.</p>
+          </div>
+        ) : (
+          <div className="space-y-4 rounded-xl border bg-card p-4 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Search exam..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {REPORT_SCOPE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setScopeFilter(opt.value)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                      scopeFilter === opt.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {visibleReports.map((report) => {
+                const overall = readObject(readObject(report.reportData).overall);
+                const percentage = typeof overall.percentage === "number" ? overall.percentage : null;
+                const grade = typeof overall.grade === "string" ? overall.grade : null;
+
+                return (
+                  <button key={report.id} type="button" onClick={() => openReport(report)} className="flex w-full items-center gap-4 rounded-md border p-4 text-left transition-colors hover:bg-muted/20">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <FileText className="size-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold leading-tight">{report.scope === "COMBINED" ? "Final Report" : (report.examGroup?.name ?? "Report Card")}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {report.session.name}
+                        {report.publishedAt ? ` • Published ${format(new Date(report.publishedAt), "dd MMM yyyy")}` : ""}
+                      </p>
+                    </div>
+
+                    {(percentage !== null || grade) && (
+                      <div className="shrink-0 text-right">
+                        {percentage !== null && <p className="text-sm font-bold">{percentage}%</p>}
+                        {grade && <p className="text-xs font-medium text-muted-foreground">Grade {grade}</p>}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+
+              {visibleReports.length === 0 && <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">No report cards match your search.</div>}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (authorized === null || !scopeReady) {
     return null;
   }
 
@@ -1380,6 +1481,9 @@ export default function ReportCardsPage() {
           </div>
         </div>
 
+        {isStudent ? (
+          renderStudentReports()
+        ) : (
         <Tabs defaultValue="reports">
           <TabsList className="grid w-full grid-cols-2 gap-1.5 sm:inline-flex sm:w-auto">
             <TabsTrigger value="reports" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
@@ -2231,6 +2335,7 @@ export default function ReportCardsPage() {
             </div>
           </TabsContent>
         </Tabs>
+        )}
       </div>
 
       {/* =====================================================

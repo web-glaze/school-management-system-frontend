@@ -116,6 +116,8 @@ export interface CreateStudentPayload {
   phone?: string;
   email?: string;
   admissionDate: string;
+  userName: string;
+  password: string;
 }
 
 export interface UpdateStudentPayload {
@@ -608,7 +610,14 @@ export const academicService = {
 
     getById: (id: string) => apiClient.get(`/academic/students/${id}`),
 
+    generateUsername: (params: { firstName: string; lastName: string; admissionNo?: string; email?: string; phone?: string }) => apiClient.get("/academic/students/generate-username", { params }),
+
     create: (data: CreateStudentPayload) => apiClient.post("/academic/students", data),
+
+    // For students added before student logins existed.
+    suggestUsername: (id: string) => apiClient.get(`/academic/students/${id}/suggest-username`),
+
+    createLogin: (id: string, data: { userName: string; password: string }) => apiClient.post(`/academic/students/${id}/login`, data),
 
     update: (id: string, data: UpdateStudentPayload) => apiClient.patch(`/academic/students/${id}`, data),
 

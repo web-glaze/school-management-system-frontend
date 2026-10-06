@@ -14,6 +14,7 @@ import { ArrowLeft, Calendar as CalendarIcon, Clock, ClipboardList, ListChecks, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAcademicStore, Exam, ExamGroup, ExamSchedule } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
+import { useStudentScope } from "@/hooks/useStudentScope";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
@@ -286,9 +287,11 @@ export default function ExamsPage() {
   } = useAcademicStore();
 
   const authorized = usePermission("exam.read");
-  const canCreate = usePermission("exam.create");
-  const canUpdate = usePermission("exam.update");
-  const canDelete = usePermission("exam.delete");
+  const { ready: scopeReady, isStudent } = useStudentScope();
+  // Students / parents are always read-only, whatever permissions are ticked
+  const canCreate = usePermission("exam.create") && !isStudent;
+  const canUpdate = usePermission("exam.update") && !isStudent;
+  const canDelete = usePermission("exam.delete") && !isStudent;
   const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
   const [myStudentClassId, setMyStudentClassId] = useState<string | null>(null);
   const [userChecked, setUserChecked] = useState(false);
@@ -311,7 +314,14 @@ export default function ExamsPage() {
   const isTeacherView = Boolean(myTeacherId);
 
   useEffect(() => {
-    if (!userChecked) return;
+    if (!userChecked || !scopeReady) return;
+
+    // A parent only needs their child's exams (sessions, groups and
+    // schedules come inside that response), so skip the staff-only lists.
+    if (isStudent) {
+      fetchExams();
+      return;
+    }
 
     fetchSessions();
     fetchSubjects();
@@ -319,7 +329,7 @@ export default function ExamsPage() {
     fetchExams();
     fetchSubjectAllocations();
     fetchClasses();
-  }, [userChecked]);
+  }, [userChecked, scopeReady, isStudent]);
 
   const activeSessionId = useMemo(() => {
     const active = sessions.find((session) => session.isActive);
@@ -336,6 +346,7 @@ export default function ExamsPage() {
   }, [sortedExamGroups]);
 
   const examGroupLabel = (id: string) => examGroups.find((group) => group.id === id)?.name ?? "—";
+  const examGroupName = (exam: Exam) => (exam as { examGroup?: { name?: string } }).examGroup?.name ?? examGroupLabel(exam.examGroupId);
 
   const teacherAllocations = useMemo(() => {
     if (!myTeacherId) return [];
@@ -352,7 +363,7 @@ export default function ExamsPage() {
   const visibleExams = useMemo(() => {
     return exams
       .filter((exam) => {
-        const matchesSearch = exam.name.toLowerCase().includes(search.toLowerCase()) || examGroupLabel(exam.examGroupId).toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = exam.name.toLowerCase().includes(search.toLowerCase()) || examGroupName(exam).toLowerCase().includes(search.toLowerCase());
 
         const matchesStatus = statusFilter === "ALL" || exam.status === statusFilter;
 
@@ -1228,7 +1239,7 @@ export default function ExamsPage() {
     return Array.from(groups.entries()).sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime());
   }, [filteredSchedules]);
 
-  if (authorized === null || !userChecked) {
+  if (authorized === null || !userChecked || !scopeReady) {
     return null;
   }
 
@@ -1243,6 +1254,139 @@ export default function ExamsPage() {
       editEndDate !== toDateInputValue(editingExam.endDate) ||
       editDescription !== (editingExam.description ?? "") ||
       editStatus !== editingExam.status);
+
+  // Read-only date sheet for a student / parent login. The server already
+  // limits the schedules to the child's own class, section and subjects.
+  function renderStudentDetail() {
+    if (!detailExam) return null;
+
+    const rows = [...(detailExam.schedules ?? [])].sort((a, b) => {
+      const byDate = new Date(a.examDate).getTime() - new Date(b.examDate).getTime();
+
+      if (byDate !== 0) return byDate;
+
+      if (a.shift !== b.shift) return a.shift === "MORNING" ? -1 : 1;
+
+      return new Date(a.startTime ?? 0).getTime() - new Date(b.startTime ?? 0).getTime();
+    });
+
+    return (
+      <div className="space-y-6">
+        <div className="border-b pb-5">
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              onClick={closeDetail}
+              aria-label="Back to exams"
+              className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ClipboardList className="size-5" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-lg font-bold leading-tight sm:text-xl">{detailExam.name}</h1>
+
+                <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", statusBadgeClass(detailExam.status))}>{statusLabel(detailExam.status)}</span>
+              </div>
+
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:text-sm">
+                {examGroupName(detailExam)}
+                <span className="mx-1.5 text-muted-foreground/50">•</span>
+                {format(new Date(detailExam.startDate), "dd MMM yyyy")}
+                <span className="mx-1.5 text-muted-foreground/50">-</span>
+                {format(new Date(detailExam.endDate), "dd MMM yyyy")}
+                <span className="mx-1.5 text-muted-foreground/50">•</span>
+                {detailExam.session.name}
+              </p>
+
+              {detailExam.description && <p className="mt-2 text-sm text-muted-foreground">{detailExam.description}</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-md border bg-card">
+          <div className="border-b px-4 py-4 sm:px-6">
+            <div className="flex items-center gap-1.5">
+              <CalendarIcon className="size-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Date Sheet</span>
+              <span className="text-xs text-muted-foreground">({rows.length})</span>
+            </div>
+          </div>
+
+          {rows.length === 0 ? (
+            <div className="p-10 text-center">
+              <CalendarIcon className="mx-auto size-8 text-muted-foreground" />
+
+              <h3 className="mt-3 font-semibold">Date sheet not published yet</h3>
+
+              <p className="mt-1 text-sm text-muted-foreground">Subjects and dates will appear here once the school adds them.</p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <th className="px-6 py-3">Date</th>
+                      <th className="px-4 py-3">Subject</th>
+                      <th className="px-4 py-3">Shift</th>
+                      <th className="px-4 py-3">Time</th>
+                      <th className="px-4 py-3">Room</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y">
+                    {rows.map((schedule) => (
+                      <tr key={schedule.id}>
+                        <td className="px-6 py-3">
+                          <p className="font-medium">{format(new Date(schedule.examDate), "dd MMM yyyy")}</p>
+                          <p className="text-xs text-muted-foreground">{format(new Date(schedule.examDate), "EEEE")}</p>
+                        </td>
+                        <td className="px-4 py-3 font-medium">{schedule.subjectAllocation.subject.name}</td>
+                        <td className="px-4 py-3">{shiftLabel(schedule.shift)}</td>
+                        <td className="px-4 py-3">
+                          {schedule.startTime && schedule.endTime ? `${formatTimeDisplay(toTimeInputValue(schedule.startTime))} - ${formatTimeDisplay(toTimeInputValue(schedule.endTime))}` : "—"}
+                        </td>
+                        <td className="px-4 py-3">{schedule.room || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {rows.map((schedule) => (
+                  <div key={schedule.id} className="space-y-1 p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold">{schedule.subjectAllocation.subject.name}</p>
+                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold">{shiftLabel(schedule.shift)}</span>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(schedule.examDate), "EEE, dd MMM yyyy")}
+                    </p>
+
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="size-3.5" />
+                      {schedule.startTime && schedule.endTime ? `${formatTimeDisplay(toTimeInputValue(schedule.startTime))} - ${formatTimeDisplay(toTimeInputValue(schedule.endTime))}` : "Time not set"}
+                      {schedule.room ? <span>• Room {schedule.room}</span> : null}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   function renderDetailPage() {
     if (!detailExam) return null;
@@ -1661,8 +1805,6 @@ export default function ExamsPage() {
           {dateSheetTab === "datesheet" && (
             <div className="pt-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted-foreground">A simple exam schedule — easy to read and share with parents and students.</p>
-
                 {pivotClasses.length > 0 &&
                   (myStudentClassId ? (
                     <span className="w-fit rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">{pivotClasses.find((cls) => cls.id === myStudentClassId)?.name ?? "Your Class"}</span>
@@ -1768,7 +1910,7 @@ export default function ExamsPage() {
   return (
     <DashboardLayout>
       {detailExam ? (
-        renderDetailPage()
+        isStudent ? renderStudentDetail() : renderDetailPage()
       ) : (
         <div className="space-y-8">
           <div className="flex flex-col gap-4 mb-6 sm:mb-10">
@@ -1776,7 +1918,7 @@ export default function ExamsPage() {
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">Exams</h1>
 
-                <p className="text-sm sm:text-base text-muted-foreground">Manage examinations and complete date sheets</p>
+                <p className="text-sm sm:text-base text-muted-foreground">{isStudent ? "Exam schedules for your child" : "Manage examinations and complete date sheets"}</p>
               </div>
 
               <div className="flex gap-2">
@@ -1818,6 +1960,7 @@ export default function ExamsPage() {
                 <Input placeholder="Search exams..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 pl-10" />
               </div>
 
+              {!isStudent && (
               <Select value={sessionFilter} onValueChange={setSessionFilter}>
                 <SelectTrigger className="h-10 w-full lg:w-60">
                   <SelectValue placeholder="All Sessions" />
@@ -1833,9 +1976,10 @@ export default function ExamsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              )}
 
               <div className="flex flex-wrap items-center gap-1.5">
-                {EXAM_STATUS_FILTER_OPTIONS.map((option) => (
+                {EXAM_STATUS_FILTER_OPTIONS.filter((option) => !isStudent || option.value !== "DRAFT").map((option) => (
                   <button
                     key={option.value}
                     type="button"
@@ -1876,7 +2020,7 @@ export default function ExamsPage() {
                     </div>
 
                     <p className="mt-1 truncate text-xs text-muted-foreground">
-                      {examGroupLabel(exam.examGroupId)}
+                      {examGroupName(exam)}
                       <span className="mx-1.5">•</span>
                       {format(new Date(exam.startDate), "dd MMM yyyy")}
                       <span className="mx-1.5">-</span>
@@ -1922,7 +2066,7 @@ export default function ExamsPage() {
 
                   <h3 className="mt-3 font-semibold">No exams found</h3>
 
-                  <p className="mt-1 text-sm text-muted-foreground">Create an exam or change the current filters.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{isStudent ? "Exams will appear here once the school schedules them." : "Create an exam or change the current filters."}</p>
                 </div>
               )}
             </div>

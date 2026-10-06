@@ -174,6 +174,18 @@ export interface Student {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  user?: {
+    id: string;
+    userCode: string;
+    userName: string | null;
+    status: "ACTIVE" | "SUSPENDED" | "LOCKED";
+    mustResetPassword: boolean;
+  } | null;
+}
+
+export interface StudentCredentials {
+  userCode: string;
+  userName: string;
 }
 
 export interface StudentEnrollment {
@@ -718,7 +730,8 @@ interface AcademicStore {
   deleteTeacher: (id: string) => Promise<void>;
 
   fetchStudents: () => Promise<void>;
-  createStudent: (data: CreateStudentPayload) => Promise<void>;
+  createStudent: (data: CreateStudentPayload) => Promise<StudentCredentials | null>;
+  createStudentLogin: (id: string, data: { userName: string; password: string }) => Promise<StudentCredentials | null>;
   updateStudent: (id: string, data: UpdateStudentPayload) => Promise<void>;
   deleteStudent: (id: string) => Promise<void>;
 
@@ -1231,11 +1244,21 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
 
   createStudent: async (data) => {
     try {
-      await academicService.students.create(data);
+      const response = await academicService.students.create(data);
       await get().fetchStudents();
+
+      // Login details of the new student, shown once after creation.
+      return (response.data?.data?.credentials as StudentCredentials | undefined) ?? null;
     } catch (error) {
       throw error;
     }
+  },
+
+  createStudentLogin: async (id, data) => {
+    const response = await academicService.students.createLogin(id, data);
+    await get().fetchStudents();
+
+    return (response.data?.data?.credentials as StudentCredentials | undefined) ?? null;
   },
 
   updateStudent: async (id, data) => {

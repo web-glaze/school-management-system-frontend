@@ -45,6 +45,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { toast } from "sonner";
 import { useAcademicStore, CalendarEvent } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
+import { useStudentScope } from "@/hooks/useStudentScope";
 
 type ApiErrorResponse = { message?: string; errors?: Record<string, string> };
 type TabKey = "calendar" | "upcoming";
@@ -347,9 +348,20 @@ function TimePickerPopover({ value, onChange, icon, placeholder, fullWidth }: { 
 }
 
 export default function SchedulePage() {
-  const { loading, sessions, classes, sections, events, fetchSessions, fetchClasses, fetchSections, fetchEvents, createEvent, updateEvent, deleteEvent } = useAcademicStore();
+  const { loading, sessions: storeSessions, classes, sections, events, fetchSessions, fetchClasses, fetchSections, fetchEvents, createEvent, updateEvent, deleteEvent } = useAcademicStore();
 
   const authorized = usePermission("schedule.read");
+  const { ready: scopeReady, isStudent } = useStudentScope();
+
+  // Parents never load the staff session list; theirs comes with the events
+  const sessions = useMemo(() => {
+    if (!isStudent) return storeSessions;
+    const map = new Map<string, (typeof storeSessions)[number]>();
+    events.forEach((e) => {
+      if (e.session) map.set(e.session.id, e.session);
+    });
+    return Array.from(map.values()).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+  }, [isStudent, storeSessions, events]);
 
   function readStoredPermissions(): string[] {
     if (typeof window === "undefined") return [];
@@ -365,17 +377,24 @@ export default function SchedulePage() {
   const [myPermissions] = useState<string[]>(readStoredPermissions);
   const [userChecked] = useState(() => typeof window !== "undefined");
 
-  const canCreate = myPermissions.includes("schedule.create");
-  const canUpdate = myPermissions.includes("schedule.update");
-  const canDelete = myPermissions.includes("schedule.delete");
+  // Students / parents are always read-only, whatever permissions are ticked
+  const canCreate = myPermissions.includes("schedule.create") && !isStudent;
+  const canUpdate = myPermissions.includes("schedule.update") && !isStudent;
+  const canDelete = myPermissions.includes("schedule.delete") && !isStudent;
 
   useEffect(() => {
-    if (!userChecked) return;
+    if (!userChecked || !scopeReady) return;
+
+    if (isStudent) {
+      fetchEvents();
+      return;
+    }
+
     fetchSessions();
     fetchClasses();
     fetchSections();
     fetchEvents();
-  }, [userChecked, fetchSessions, fetchClasses, fetchSections, fetchEvents]);
+  }, [userChecked, scopeReady, isStudent, fetchSessions, fetchClasses, fetchSections, fetchEvents]);
 
   const today = useMemo(() => toDateOnly(new Date()), []);
 
@@ -678,7 +697,7 @@ export default function SchedulePage() {
       .sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [scopedEvents, upcomingRange, today]);
 
-  if (authorized === null || !userChecked) {
+  if (authorized === null || !userChecked || !scopeReady) {
     return null;
   }
 
@@ -889,7 +908,7 @@ export default function SchedulePage() {
         ) : (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Showing events for {formatMonthLabel(monthCursor)}</p>
-            {listEvents.length === 0 ? <EmptyState icon={CalendarDays} title="No events found" description="Try adjusting your filters, or create a new event." /> : listEvents.map((ev) => renderEventCard(ev))}
+            {listEvents.length === 0 ? <EmptyState icon={CalendarDays} title="No events found" description={isStudent ? "Try adjusting your filters." : "Try adjusting your filters, or create a new event."} /> : listEvents.map((ev) => renderEventCard(ev))}
           </div>
         )}
 
@@ -1209,7 +1228,7 @@ export default function SchedulePage() {
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold text-foreground sm:text-2xl">Academic Calendar</h1>
-          <p className="truncate text-sm text-muted-foreground sm:text-base">Manage holidays, exams, and school-wide events</p>
+          <p className="truncate text-sm text-muted-foreground sm:text-base">{isStudent ? "Holidays, exams and events for your child" : "Manage holidays, exams, and school-wide events"}</p>
         </div>
 
         {canCreate && (
@@ -1343,12 +1362,16 @@ export default function SchedulePage() {
                       </span>
                     );
                   })()}
-                  <Badge variant={viewingEvent.isPublished ? "secondary" : "outline"} className="shrink-0">
-                    {viewingEvent.isPublished ? "Published" : "Draft"}
-                  </Badge>
-                  <Badge variant={viewingEvent.isActive ? "secondary" : "outline"} className="shrink-0">
-                    {viewingEvent.isActive ? "Active" : "Inactive"}
-                  </Badge>
+                  {!isStudent && (
+                    <>
+                      <Badge variant={viewingEvent.isPublished ? "secondary" : "outline"} className="shrink-0">
+                        {viewingEvent.isPublished ? "Published" : "Draft"}
+                      </Badge>
+                      <Badge variant={viewingEvent.isActive ? "secondary" : "outline"} className="shrink-0">
+                        {viewingEvent.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </>
+                  )}
                 </div>
                 <DialogTitle className="text-left text-xl break-all">{viewingEvent.title}</DialogTitle>
               </DialogHeader>
