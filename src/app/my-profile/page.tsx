@@ -15,6 +15,7 @@ import { useUserStore } from "@/store/userStore";
 
 export default function SettingsPage() {
   const { updateMyProfile, changeMyPassword, updating, changingPasswordId } = useUserStore();
+
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [userName, setUserName] = useState("");
@@ -65,6 +66,11 @@ export default function SettingsPage() {
     loadProfile();
   }, []);
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+    setPhone(digitsOnly);
+  };
+
   const hasChanges = name !== originalName || userName !== originalUserName || phone !== originalPhone;
 
   const handleProfileUpdate = async () => {
@@ -80,6 +86,10 @@ export default function SettingsPage() {
       return;
     }
 
+    if (phone && !/^[6-9]\d{9}$/.test(phone.trim())) {
+      toast.error("Phone number must be a valid 10-digit mobile number");
+      return;
+    }
     try {
       const updatedUser = await updateMyProfile({
         name: name.trim(),
@@ -261,7 +271,7 @@ export default function SettingsPage() {
               <FieldGroup>
                 <Field>
                   <Label>Phone</Label>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <Input type="tel" inputMode="numeric" maxLength={10} placeholder="10-digit mobile number" value={phone} onChange={handlePhoneChange} />
                 </Field>
               </FieldGroup>
 
