@@ -53,7 +53,7 @@ import {
   type ReportCardTemplate,
   type AcademicClass,
 } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useStudentScope } from "@/hooks/useStudentScope";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -227,24 +227,24 @@ export default function ReportCardsPage() {
   const { ready: scopeReady, isStudent } = useStudentScope();
 
   const authorized = usePermission("reportcard.read");
-  const canCreate = usePermission("reportcard.create") && !isStudent;
-  const canUpdate = usePermission("reportcard.update") && !isStudent;
-  const canDelete = usePermission("reportcard.delete") && !isStudent;
-  const canPublish = usePermission("reportcard.publish") && !isStudent;
-  const canUpdateGrading = usePermission("grading-scheme.update");
-  const canCreateGrading = usePermission("grading-scheme.create");
+  const canCreate = useHasPermission("reportcard.create") && !isStudent;
+  const canUpdate = useHasPermission("reportcard.update") && !isStudent;
+  const canDelete = useHasPermission("reportcard.delete") && !isStudent;
+  const canPublish = useHasPermission("reportcard.publish") && !isStudent;
+  const canUpdateGrading = useHasPermission("grading-scheme.update");
+  const canCreateGrading = useHasPermission("grading-scheme.create");
   const canManageGrading = canUpdateGrading || canCreateGrading;
 
-  const canUpdateStructure = usePermission("class-exam-structure.update");
-  const canCreateStructure = usePermission("class-exam-structure.create");
+  const canUpdateStructure = useHasPermission("class-exam-structure.update");
+  const canCreateStructure = useHasPermission("class-exam-structure.create");
   const canManageStructure = canUpdateStructure || canCreateStructure;
 
-  const canUpdateTemplates = usePermission("report-card-template.update");
-  const canCreateTemplates = usePermission("report-card-template.create");
+  const canUpdateTemplates = useHasPermission("report-card-template.update");
+  const canCreateTemplates = useHasPermission("report-card-template.create");
   const canManageTemplates = canUpdateTemplates || canCreateTemplates;
-  const canDeleteGrading = usePermission("grading-scheme.delete");
-  const canDeleteStructure = usePermission("class-exam-structure.delete");
-  const canDeleteTemplates = usePermission("report-card-template.delete");
+  const canDeleteGrading = useHasPermission("grading-scheme.delete");
+  const canDeleteStructure = useHasPermission("class-exam-structure.delete");
+  const canDeleteTemplates = useHasPermission("report-card-template.delete");
 
   // ---------------------------------------------------------
   // Reports tab

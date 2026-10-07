@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Calendar as CalendarIcon, Clock, ClipboardList, ListChecks, Loader2, MoreVertical, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAcademicStore, Exam, ExamGroup, ExamSchedule } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useStudentScope } from "@/hooks/useStudentScope";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -289,9 +289,9 @@ export default function ExamsPage() {
   const authorized = usePermission("exam.read");
   const { ready: scopeReady, isStudent } = useStudentScope();
   // Students / parents are always read-only, whatever permissions are ticked
-  const canCreate = usePermission("exam.create") && !isStudent;
-  const canUpdate = usePermission("exam.update") && !isStudent;
-  const canDelete = usePermission("exam.delete") && !isStudent;
+  const canCreate = useHasPermission("exam.create") && !isStudent;
+  const canUpdate = useHasPermission("exam.update") && !isStudent;
+  const canDelete = useHasPermission("exam.delete") && !isStudent;
   const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
   const [myStudentClassId, setMyStudentClassId] = useState<string | null>(null);
   const [userChecked, setUserChecked] = useState(false);

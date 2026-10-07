@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Calendar as CalendarIcon, Check, ChevronDown, ClipboardList, ExternalLink, Inbox, Loader2, Pencil, Plus, Search, SlidersHorizontal, Trash2, Users, ArrowLeft, BookOpen, X, NotebookTabs } from "lucide-react";
 import { useAcademicStore, Assignment, AssignmentStudent, SubjectAllocation } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useStudentScope } from "@/hooks/useStudentScope";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -135,9 +135,9 @@ export default function AssignmentsPage() {
   } = useAcademicStore();
 
   const authorized = usePermission("assignment.read");
-  const canCreate = usePermission("assignment.create");
-  const canUpdate = usePermission("assignment.update");
-  const canDelete = usePermission("assignment.delete");
+  const canCreate = useHasPermission("assignment.create");
+  const canUpdate = useHasPermission("assignment.update");
+  const canDelete = useHasPermission("assignment.delete");
 
   // Student / parent logins get a read-only view of their own child only.
   const { ready: scopeReady, isStudent } = useStudentScope();
