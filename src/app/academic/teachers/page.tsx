@@ -8,7 +8,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CalendarDays, Calendar as CalendarIcon, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
+import { ArrowLeft, CalendarDays, Calendar as CalendarIcon, ChevronRight, Inbox, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
 import { useAcademicStore } from "@/store/academicStore";
 import { academicService } from "@/services/academic.service";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProfilePanel from "@/components/profile/profilePanel";
 
 type ApiErrorResponse = {
   message?: string;
@@ -79,6 +81,10 @@ export default function TeachersPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const [generatingUsername, setGeneratingUsername] = useState(false);
+
+  // Personal info tab
+  const [activeTab, setActiveTab] = useState<"teachers" | "personal">("teachers");
+  const [profileTeacher, setProfileTeacher] = useState<Teacher | null>(null);
 
   useEffect(() => {
     fetchTeachers();
@@ -567,6 +573,80 @@ export default function TeachersPage() {
           </Dialog>
         </div>
 
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "teachers" | "personal")}>
+          <TabsList className="rounded-full bg-muted/60 p-1">
+            <TabsTrigger value="teachers" className="rounded-full px-5 py-2 text-sm data-[state=active]:shadow-sm">
+              Teachers
+            </TabsTrigger>
+            <TabsTrigger value="personal" className="rounded-full px-5 py-2 text-sm data-[state=active]:shadow-sm">
+              Personal Info
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {activeTab === "personal" ? (
+          profileTeacher ? (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between gap-4 bg-card rounded-md p-5 border border-border/60">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-foreground truncate">{profileTeacher.name}</h2>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {profileTeacher.teacherCode} • {profileTeacher.designation}
+                  </p>
+                </div>
+
+                <Button variant="outline" className="gap-2 shrink-0" onClick={() => setProfileTeacher(null)}>
+                  <ArrowLeft className="size-4" />
+                  Back
+                </Button>
+              </div>
+
+              <ProfilePanel entity="teacher" mode="edit" personId={profileTeacher.id} />
+            </div>
+          ) : (
+            <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-4">
+              <div className="relative w-full lg:w-87.5 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+
+                <Input type="text" placeholder="Search by teacher name or code" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
+              </div>
+
+              {loading && teachers.length === 0 ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="size-6 animate-spin text-primary" />
+                </div>
+              ) : filteredTeachers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
+                    <Inbox className="size-6 stroke-[1.5]" />
+                  </div>
+
+                  <h3 className="text-lg font-bold text-foreground">{teachers.length === 0 ? "No teachers created yet." : "No teachers found."}</h3>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {filteredTeachers.map((teacher) => (
+                    <button
+                      key={teacher.id}
+                      type="button"
+                      onClick={() => setProfileTeacher(teacher)}
+                      className="group flex items-center justify-between gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-foreground group-hover:text-primary">{teacher.name}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {teacher.teacherCode} • {teacher.designation}
+                        </p>
+                      </div>
+
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground/50 group-hover:text-primary/60" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        ) : (
         <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="relative w-full lg:w-87.5 group">
@@ -722,6 +802,7 @@ export default function TeachersPage() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       <Dialog

@@ -8,7 +8,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CalendarDays, Calendar as CalendarIconTable, CalendarIcon, Copy, Inbox, KeyRound, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
+import { ArrowLeft, CalendarDays, Calendar as CalendarIconTable, CalendarIcon, ChevronRight, Copy, Inbox, KeyRound, Loader2, Pencil, Plus, Search, Trash2, MoreVertical } from "lucide-react";
 import { useAcademicStore, type StudentCredentials } from "@/store/academicStore";
 import { academicService } from "@/services/academic.service";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProfilePanel from "@/components/profile/profilePanel";
 
 type ApiErrorResponse = {
   message?: string;
@@ -114,6 +116,10 @@ export default function StudentsPage() {
   const [existingConfirm, setExistingConfirm] = useState("");
   const [existingErrors, setExistingErrors] = useState<Record<string, string>>({});
   const [existingSubmitting, setExistingSubmitting] = useState(false);
+
+  // Personal info tab
+  const [activeTab, setActiveTab] = useState<"students" | "personal">("students");
+  const [profileStudent, setProfileStudent] = useState<Student | null>(null);
 
   useEffect(() => {
     fetchStudents();
@@ -747,194 +753,269 @@ export default function StudentsPage() {
           </Dialog>
         </div>
 
-        <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-3">
-          <div className="relative w-full lg:w-96 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground" />
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "students" | "personal")}>
+          <TabsList className="rounded-full bg-muted/60 p-1">
+            <TabsTrigger value="students" className="rounded-full px-5 py-2 text-sm data-[state=active]:shadow-sm">
+              Students
+            </TabsTrigger>
+            <TabsTrigger value="personal" className="rounded-full px-5 py-2 text-sm data-[state=active]:shadow-sm">
+              Personal Info
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-            <Input className="pl-11" placeholder="Search by student name or code" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-
-          {loading && students.length === 0 ? (
-            <div className="space-y-3">
-              <div className="flex gap-4 border-b border-border/50 pb-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-6 bg-muted rounded flex-1 animate-pulse" />
-                ))}
-              </div>
-
-              {[1, 2, 3, 4].map((row) => (
-                <div key={row} className="flex gap-4 py-2 border-b border-border/20">
-                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
-                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
-                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
-                  <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+        {activeTab === "personal" ? (
+          profileStudent ? (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between gap-4 bg-card rounded-md p-5 border border-border/60">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-foreground truncate">{`${profileStudent.firstName} ${profileStudent.lastName}`}</h2>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {profileStudent.studentCode} • Admission No {profileStudent.admissionNo}
+                  </p>
                 </div>
-              ))}
-            </div>
-          ) : filteredStudents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-12 md:p-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
-                <Inbox className="size-6 stroke-[1.5]" />
+
+                <Button variant="outline" className="gap-2 shrink-0" onClick={() => setProfileStudent(null)}>
+                  <ArrowLeft className="size-4" />
+                  Back
+                </Button>
               </div>
 
-              <h3 className="text-lg font-bold text-foreground">{students.length === 0 ? "No students created yet." : "No students found."}</h3>
-              <p className="text-muted-foreground mt-1.5 max-w-sm">{students.length === 0 ? "Add your first student to get started." : `Try adjusting your search or filters.`}</p>
+              <ProfilePanel entity="student" mode="edit" personId={profileStudent.id} />
             </div>
           ) : (
-            <div className="relative w-full overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Student</TableHead>
-                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Student Code</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Admission No</TableHead>
-                    <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Date Of Birth</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
-                      <span className="md:block">Actions</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
+            <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-4">
+              <div className="relative w-full lg:w-96 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground" />
 
-                <TableBody className="divide-y divide-border/30">
+                <Input className="pl-11" placeholder="Search by student name or code" value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+
+              {loading && students.length === 0 ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="size-6 animate-spin text-primary" />
+                </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
+                    <Inbox className="size-6 stroke-[1.5]" />
+                  </div>
+
+                  <h3 className="text-lg font-bold text-foreground">{students.length === 0 ? "No students created yet." : "No students found."}</h3>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {filteredStudents.map((student) => (
-                    <TableRow key={student.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="py-4 align-middle">
-                        <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
-                          <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={`${student.firstName} ${student.lastName}`}>
-                            {`${student.firstName} ${student.lastName}`}
-                          </p>
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => setProfileStudent(student)}
+                      className="group flex items-center justify-between gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-foreground group-hover:text-primary">{`${student.firstName} ${student.lastName}`}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {student.studentCode} • {student.admissionNo}
+                        </p>
+                      </div>
 
-                          <p className="text-sm text-foreground/50 truncate md:hidden">{student.studentCode}</p>
-                        </div>
-                      </TableCell>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground/50 group-hover:text-primary/60" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        ) : (
+          <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-3">
+            <div className="relative w-full lg:w-96 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground" />
 
-                      <TableCell className="hidden md:table-cell">
-                        <span className="font-mono text-sm">{student.studentCode}</span>
-                      </TableCell>
+              <Input className="pl-11" placeholder="Search by student name or code" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
 
-                      <TableCell className="hidden md:table-cell">{student.admissionNo}</TableCell>
+            {loading && students.length === 0 ? (
+              <div className="space-y-3">
+                <div className="flex gap-4 border-b border-border/50 pb-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-6 bg-muted rounded flex-1 animate-pulse" />
+                  ))}
+                </div>
 
-                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
-                        <div className="flex items-center gap-1.5">
-                          <CalendarIcon className="size-5 text-muted-foreground/80" />
-                          <span className="text-sm">
-                            {new Date(student.dob).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </span>
-                        </div>
-                      </TableCell>
+                {[1, 2, 3, 4].map((row) => (
+                  <div key={row} className="flex gap-4 py-2 border-b border-border/20">
+                    <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                    <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                    <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                    <div className="h-8 bg-muted rounded flex-1 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 md:p-16 text-center">
+                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/75">
+                  <Inbox className="size-6 stroke-[1.5]" />
+                </div>
 
-                      <TableCell className="py-4 align-middle">
-                        <Badge
-                          className={
-                            student.status === "ACTIVE"
-                              ? "bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400"
-                              : student.status === "INACTIVE"
-                                ? "bg-gray-100 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300"
-                                : student.status === "GRADUATED"
-                                  ? "bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
-                                  : "bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400"
-                          }
-                        >
-                          {student.status}
-                        </Badge>
-                      </TableCell>
+                <h3 className="text-lg font-bold text-foreground">{students.length === 0 ? "No students created yet." : "No students found."}</h3>
+                <p className="text-muted-foreground mt-1.5 max-w-sm">{students.length === 0 ? "Add your first student to get started." : `Try adjusting your search or filters.`}</p>
+              </div>
+            ) : (
+              <div className="relative w-full overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50 dark:bg-muted/15 border-b border-border/60">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Student</TableHead>
+                      <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Student Code</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden md:table-cell">Admission No</TableHead>
+                      <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Date Of Birth</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                        <span className="md:block">Actions</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
 
-                      <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden md:table-cell">
-                        <div className="flex items-center gap-1.5">
-                          <CalendarIconTable className="size-5 text-muted-foreground/80" />
+                  <TableBody className="divide-y divide-border/30">
+                    {filteredStudents.map((student) => (
+                      <TableRow key={student.id} className="hover:bg-muted/20 transition-colors">
+                        <TableCell className="py-4 align-middle">
+                          <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
+                            <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={`${student.firstName} ${student.lastName}`}>
+                              {`${student.firstName} ${student.lastName}`}
+                            </p>
 
-                          <span className="text-sm">
-                            {new Date(student.createdAt).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </TableCell>
+                            <p className="text-sm text-foreground/50 truncate md:hidden">{student.studentCode}</p>
+                          </div>
+                        </TableCell>
 
-                      <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
-                        <div className="hidden md:flex justify-end gap-1">
-                          {!student.user && (
+                        <TableCell className="hidden md:table-cell">
+                          <span className="font-mono text-sm">{student.studentCode}</span>
+                        </TableCell>
+
+                        <TableCell className="hidden md:table-cell">{student.admissionNo}</TableCell>
+
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden lg:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarIcon className="size-5 text-muted-foreground/80" />
+                            <span className="text-sm">
+                              {new Date(student.dob).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="py-4 align-middle">
+                          <Badge
+                            className={
+                              student.status === "ACTIVE"
+                                ? "bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400"
+                                : student.status === "INACTIVE"
+                                  ? "bg-gray-100 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300"
+                                  : student.status === "GRADUATED"
+                                    ? "bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
+                                    : "bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400"
+                            }
+                          >
+                            {student.status}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="py-4 text-xs font-medium text-muted-foreground hidden md:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarIconTable className="size-5 text-muted-foreground/80" />
+
+                            <span className="text-sm">
+                              {new Date(student.createdAt).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                          <div className="hidden md:flex justify-end gap-1">
+                            {!student.user && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 rounded-lg text-muted-foreground hover:bg-emerald-300/10 hover:text-emerald-700 transition-all"
+                                title="Create login"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={() => openExistingLoginDialog(student)}
+                              >
+                                <KeyRound className="size-5" />
+                              </Button>
+                            )}
+
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-10 rounded-lg text-muted-foreground hover:bg-emerald-300/10 hover:text-emerald-700 transition-all"
-                              title="Create login"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                              title="Edit section"
                               onPointerDown={(e) => e.stopPropagation()}
-                              onClick={() => openExistingLoginDialog(student)}
+                              onClick={() => openEditDialog(student)}
                             >
-                              <KeyRound className="size-5" />
+                              <Pencil className="size-5" />
                             </Button>
-                          )}
 
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                            title="Edit section"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={() => openEditDialog(student)}
-                          >
-                            <Pencil className="size-5" />
-                          </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                              title="Delete section"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={() => openDeleteDialog(student)}
+                            >
+                              <Trash2 className="size-5" />
+                            </Button>
+                          </div>
 
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                            title="Delete section"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={() => openDeleteDialog(student)}
-                          >
-                            <Trash2 className="size-5" />
-                          </Button>
-                        </div>
+                          <div className="md:hidden flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
+                                  <MoreVertical className="size-5" />
+                                </Button>
+                              </DropdownMenuTrigger>
 
-                        <div className="md:hidden flex justify-end">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
-                                <MoreVertical className="size-5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(student)}>
-                                <Pencil className="mr-2 size-4" />
-                                Edit
-                              </DropdownMenuItem>
-
-                              {!student.user && (
-                                <DropdownMenuItem onClick={() => openExistingLoginDialog(student)}>
-                                  <KeyRound className="mr-2 size-4" />
-                                  Create login
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEditDialog(student)}>
+                                  <Pencil className="mr-2 size-4" />
+                                  Edit
                                 </DropdownMenuItem>
-                              )}
 
-                              <DropdownMenuItem onClick={() => openDeleteDialog(student)} className="text-destructive">
-                                <Trash2 className="mr-2 size-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
+                                {!student.user && (
+                                  <DropdownMenuItem onClick={() => openExistingLoginDialog(student)}>
+                                    <KeyRound className="mr-2 size-4" />
+                                    Create login
+                                  </DropdownMenuItem>
+                                )}
+
+                                <DropdownMenuItem onClick={() => openDeleteDialog(student)} className="text-destructive">
+                                  <Trash2 className="mr-2 size-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <Dialog
         open={editStudentOpen}
@@ -1322,9 +1403,7 @@ export default function StudentsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogTitle>Create Login</DialogTitle>
 
-          <DialogDescription>
-            Set the login for {loginStudent ? `${loginStudent.firstName} ${loginStudent.lastName}` : "this student"}. Parents use the same login.
-          </DialogDescription>
+          <DialogDescription>Set the login for {loginStudent ? `${loginStudent.firstName} ${loginStudent.lastName}` : "this student"}. Parents use the same login.</DialogDescription>
 
           <form onSubmit={handleCreateExistingLogin} className="space-y-5 mt-4">
             <Field>
@@ -1415,9 +1494,7 @@ export default function StudentsPage() {
           <DialogDescription>Share these login details with the student or parent. Log in with the username and the password you just set.</DialogDescription>
 
           <div className="space-y-3 mt-4">
-            {[
-              { label: "Username", value: createdCredentials?.userName ?? "" },
-            ].map((row) => (
+            {[{ label: "Username", value: createdCredentials?.userName ?? "" }].map((row) => (
               <div key={row.label} className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">{row.label}</p>
@@ -1449,7 +1526,8 @@ export default function StudentsPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete student?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center">
-              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingStudent && `${deletingStudent.firstName} ${deletingStudent.lastName}`}</span>
+              This action cannot be undone. This will permanently remove{" "}
+              <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingStudent && `${deletingStudent.firstName} ${deletingStudent.lastName}`}</span>
               {deletingStudent?.user ? " and their login" : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>

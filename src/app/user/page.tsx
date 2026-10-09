@@ -171,13 +171,7 @@ export default function UserManagementPage() {
       await deleteUser(id);
       setDeleteUserOpen(false);
       setDeletingUser(null);
-      toast.success(
-        deletingUser?.student
-          ? "Student deactivated successfully"
-          : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER")
-            ? "Teacher deactivated successfully"
-            : "User deleted successfully",
-      );
+      toast.success(deletingUser?.student ? "Student deactivated successfully" : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Teacher deactivated successfully" : "User deleted successfully");
     } catch {
       toast.error("Failed to delete user");
     }
@@ -198,7 +192,13 @@ export default function UserManagementPage() {
         users: users.filter((u) => {
           const needle = search.toLowerCase();
           const matchSearch =
-            !needle || u.email?.toLowerCase().includes(needle) || (u.phone ?? u.student?.phone ?? "").includes(needle) || (u.student?.email ?? "").toLowerCase().includes(needle) || u.name?.toLowerCase().includes(needle) || u.userName?.toLowerCase().includes(needle) || (u.userCode || "").toLowerCase().includes(needle);
+            !needle ||
+            u.email?.toLowerCase().includes(needle) ||
+            (u.phone ?? u.student?.phone ?? "").includes(needle) ||
+            (u.student?.email ?? "").toLowerCase().includes(needle) ||
+            u.name?.toLowerCase().includes(needle) ||
+            u.userName?.toLowerCase().includes(needle) ||
+            (u.userCode || "").toLowerCase().includes(needle);
           const matchRole = roleFilter === "all" || u.userRoles?.some((r) => r.role.name === roleFilter);
           return matchSearch && matchRole;
         }),
@@ -210,8 +210,8 @@ export default function UserManagementPage() {
     setEditingUser(user);
     setEditName(user.name || "");
     setEditUserName(user.userName || "");
-    setEditEmail(user.email || "");
-    setEditPhone(user.phone || "");
+    setEditEmail(user.email || user.student?.email || "");
+    setEditPhone(user.phone || user.student?.phone || "");
     setEditRole(user.userRoles?.[0]?.role?.name || "");
     setEditPassword("");
     setEditUserOpen(true);
@@ -726,12 +726,10 @@ export default function UserManagementPage() {
                     <span className="font-semibold text-foreground"> {deletingUser?.name}</span>.
                   </>
                 ) : (
-                 <span className="block w-full text-center">
-  <span className="font-semibold text-foreground">
-    {deletingUser?.name}
-  </span>
-  &rsquo;s profile is already deactivated.
-</span>
+                  <span className="block w-full text-center">
+                    <span className="font-semibold text-foreground">{deletingUser?.name}</span>
+                    &rsquo;s profile is already deactivated.
+                  </span>
                 )
               ) : (
                 <>
@@ -746,11 +744,7 @@ export default function UserManagementPage() {
             <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
             <AlertDialogAction
-              disabled={
-                deletingUser?.student
-                  ? !deletingUser.student.isActive
-                  : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") && !deletingUser?.teacher?.isActive
-              }
+              disabled={deletingUser?.student ? !deletingUser.student.isActive : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") && !deletingUser?.teacher?.isActive}
               onClick={() => {
                 if (deletingUser) {
                   handleDelete(deletingUser.id);
