@@ -343,6 +343,12 @@ export default function ReportCardsPage() {
     return studentEnrollments.filter((enrollment) => enrollment.sessionId === effectiveSessionId && enrollment.enrollmentStatus !== "DROPPED");
   }, [studentEnrollments, effectiveSessionId]);
 
+  const isGroupEnabledForClass = (classId: string, examGroupId: string) => {
+    const structure = classExamStructures.find((item) => item.classId === classId);
+    const weight = structure?.examGroupWeights.find((item) => item.examGroupId === examGroupId);
+    return (weight as { isEnabled?: boolean } | undefined)?.isEnabled !== false;
+  };
+
   const visibleReports = useMemo(() => {
     return (reportCards as ReportCard[])
       .filter((report) => {
@@ -393,7 +399,9 @@ export default function ReportCardsPage() {
 
     if (!generateExamGroupId) return 0;
 
-    return sessionEnrollments.filter((enrollment) => !keySet.has(`${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`)).length;
+    return sessionEnrollments.filter(
+      (enrollment) => isGroupEnabledForClass(enrollment.classId, generateExamGroupId) && !keySet.has(`${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`)
+    ).length;
   }, [reportCards, sessionEnrollments, effectiveSessionId, generateScope, generateExamGroupId]);
 
   const resetFilters = () => {
@@ -642,6 +650,8 @@ export default function ReportCardsPage() {
       const existingKeys = new Set((reportCards as ReportCard[]).map((report) => report.reportKey));
 
       const missingStudents = sessionEnrollments.filter((enrollment) => {
+        if (generateScope === "INDIVIDUAL" && !isGroupEnabledForClass(enrollment.classId, generateExamGroupId)) return false;
+
         const key = generateScope === "COMBINED" ? `${enrollment.studentId}:COMBINED:FINAL:${effectiveSessionId}` : `${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`;
 
         return !existingKeys.has(key);
@@ -976,7 +986,7 @@ export default function ReportCardsPage() {
   const [structureHasOptionalSubject, setStructureHasOptionalSubject] = useState(false);
   const [structureCombineExamGroups, setStructureCombineExamGroups] = useState(false);
   const [structureNotes, setStructureNotes] = useState("");
-  const [structureWeights, setStructureWeights] = useState<Record<string, { weightagePercent: string; includeInFinalResult: boolean }>>({});
+  const [structureWeights, setStructureWeights] = useState<Record<string, { weightagePercent: string; includeInFinalResult: boolean; isEnabled: boolean }>>({});
   const [savingStructure, setSavingStructure] = useState(false);
   const [structureDeleteOpen, setStructureDeleteOpen] = useState(false);
 
@@ -995,22 +1005,23 @@ export default function ReportCardsPage() {
     setStructureCombineExamGroups(existingStructure?.combineExamGroups ?? false);
     setStructureNotes(existingStructure?.notes ?? "");
 
-    const weightMap: Record<string, { weightagePercent: string; includeInFinalResult: boolean }> = {};
+    const weightMap: Record<string, { weightagePercent: string; includeInFinalResult: boolean; isEnabled: boolean }> = {};
     sortedExamGroupsAll.forEach((group) => {
       const existingWeight = existingStructure?.examGroupWeights.find((item) => item.examGroupId === group.id);
       weightMap[group.id] = {
         weightagePercent: existingWeight?.weightagePercent != null ? String(existingWeight.weightagePercent) : "",
         includeInFinalResult: existingWeight?.includeInFinalResult ?? true,
+        isEnabled: (existingWeight as { isEnabled?: boolean } | undefined)?.isEnabled ?? true,
       };
     });
     setStructureWeights(weightMap);
   }
 
-  const updateStructureWeight = (groupId: string, field: "weightagePercent" | "includeInFinalResult", value: string | boolean) => {
+  const updateStructureWeight = (groupId: string, field: "weightagePercent" | "includeInFinalResult" | "isEnabled", value: string | boolean) => {
     setStructureWeights((previous) => ({
       ...previous,
       [groupId]: {
-        ...(previous[groupId] ?? { weightagePercent: "", includeInFinalResult: true }),
+        ...(previous[groupId] ?? { weightagePercent: "", includeInFinalResult: true, isEnabled: true }),
         [field]: value,
       },
     }));
@@ -1023,15 +1034,16 @@ export default function ReportCardsPage() {
     }
 
     const weightItems = sortedExamGroupsAll.map((group) => {
-      const row = structureWeights[group.id] ?? { weightagePercent: "", includeInFinalResult: true };
+      const row = structureWeights[group.id] ?? { weightagePercent: "", includeInFinalResult: true, isEnabled: true };
       return {
         examGroupId: group.id,
-        weightagePercent: row.weightagePercent.trim() ? Number(row.weightagePercent) : undefined,
-        includeInFinalResult: row.includeInFinalResult,
+        weightagePercent: row.isEnabled && row.weightagePercent.trim() ? Number(row.weightagePercent) : undefined,
+        includeInFinalResult: row.isEnabled && row.includeInFinalResult,
+        isEnabled: row.isEnabled,
       };
     });
 
-    const totalWeight = weightItems.filter((item) => item.includeInFinalResult).reduce((sum, item) => sum + (item.weightagePercent ?? 0), 0);
+    const totalWeight = weightItems.filter((item) => item.isEnabled && item.includeInFinalResult).reduce((sum, item) => sum + (item.weightagePercent ?? 0), 0);
 
     if (totalWeight > 100) {
       toast.error(`Weightages that count toward the final result add up to ${totalWeight}%, which exceeds 100%`);
@@ -2195,19 +2207,24 @@ export default function ReportCardsPage() {
                         <table className="w-full min-w-125 text-sm">
                           <thead>
                             <tr className="border-b text-left">
-                              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Exam Group</th>
-                              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Weightage %</th>
+                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Exam Group</th>
+                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Held for this class</th>
+                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Weightage %</th>
                               <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Include in Final Result</th>
                             </tr>
                           </thead>
                           <tbody>
                             {sortedExamGroupsAll.map((group) => {
-                              const row = structureWeights[group.id] ?? { weightagePercent: "", includeInFinalResult: true };
-                              return (
-                                <tr key={group.id} className="border-b last:border-0">
-                                  <td className="px-3 py-2.5 font-medium">{group.name}</td>
-                                  <td className="px-3 py-2.5">
-                                    <Input
+                                                          const row = structureWeights[group.id] ?? { weightagePercent: "", includeInFinalResult: true, isEnabled: true };
+                            return (
+                              <tr key={group.id} className={cn("border-b last:border-0", !row.isEnabled && "opacity-50")}>
+                                <td className="px-3 py-2.5 font-medium">{group.name}</td>
+                                <td className="px-3 py-2.5">
+                                  <Switch checked={row.isEnabled} onCheckedChange={(value) => updateStructureWeight(group.id, "isEnabled", value)} />
+                                </td>
+                                <td className="px-3 py-2.5">
+                                  <Input
+                                    disabled={!row.isEnabled}
                                       type="number"
                                       min="0"
                                       max="100"
@@ -2218,7 +2235,7 @@ export default function ReportCardsPage() {
                                     />
                                   </td>
                                   <td className="px-3 py-2.5">
-                                    <Checkbox checked={row.includeInFinalResult} onCheckedChange={(value) => updateStructureWeight(group.id, "includeInFinalResult", Boolean(value))} />
+                                    <Checkbox disabled={!row.isEnabled} checked={row.isEnabled && row.includeInFinalResult} onCheckedChange={(value) => updateStructureWeight(group.id, "includeInFinalResult", Boolean(value))} />
                                   </td>
                                 </tr>
                               );

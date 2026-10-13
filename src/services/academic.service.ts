@@ -366,6 +366,7 @@ export interface ClassExamGroupWeightItem {
   examGroupId: string;
   weightagePercent?: number;
   includeInFinalResult?: boolean;
+  isEnabled?: boolean;
   displayOrder?: number;
 }
 
