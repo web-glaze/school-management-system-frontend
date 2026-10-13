@@ -276,6 +276,9 @@ export default function ReportCardsPage() {
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishingReport, setPublishingReport] = useState<ReportCard | null>(null);
 
+  const [publishAllOpen, setPublishAllOpen] = useState(false);
+  const [publishingAll, setPublishingAll] = useState(false);
+
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [unpublishingReport, setUnpublishingReport] = useState<ReportCard | null>(null);
 
@@ -372,6 +375,8 @@ export default function ReportCardsPage() {
   const generatedCount = useMemo(() => visibleReports.filter((report) => report.status === "GENERATED").length, [visibleReports]);
 
   const publishedCount = useMemo(() => visibleReports.filter((report) => report.status === "PUBLISHED").length, [visibleReports]);
+
+  const publishableReports = useMemo(() => visibleReports.filter((report) => report.status === "GENERATED"), [visibleReports]);
 
   const studentCount = useMemo(() => {
     return sessionEnrollments.length;
@@ -513,6 +518,32 @@ export default function ReportCardsPage() {
       const err = error as AxiosError<ApiErrorResponse>;
 
       toast.error(err.response?.data?.message || "Failed to publish report card");
+    }
+  };
+
+  const handlePublishAll = async () => {
+    if (!canPublish || publishableReports.length === 0) return;
+
+    setPublishingAll(true);
+
+    try {
+      const results = await Promise.allSettled(publishableReports.map((report) => publishReportCard(report.id)));
+      const succeeded = results.filter((result) => result.status === "fulfilled").length;
+      const failed = results.length - succeeded;
+
+      await fetchReportCards();
+
+      if (failed === 0) {
+        toast.success(`${succeeded} report card${succeeded === 1 ? "" : "s"} published`);
+      } else if (succeeded === 0) {
+        toast.error(`Failed to publish report cards (${failed} failed)`);
+      } else {
+        toast.success(`${succeeded} published, ${failed} failed`);
+      }
+
+      setPublishAllOpen(false);
+    } finally {
+      setPublishingAll(false);
     }
   };
 
@@ -1511,8 +1542,15 @@ export default function ReportCardsPage() {
               Reports tab
           ===================================================== */}
             <TabsContent value="reports" className="space-y-6 pt-6">
-              <div className="flex justify-end">
-                {canCreate && (
+                          <div className="flex flex-wrap justify-end gap-2">
+              {canPublish && publishableReports.length > 0 && (
+                <Button variant="outline" className="gap-2" onClick={() => setPublishAllOpen(true)}>
+                  <Send className="size-4" />
+                  Publish All ({publishableReports.length})
+                </Button>
+              )}
+
+              {canCreate && (
                   <Button className="gap-2" onClick={openGenerate}>
                     <Sparkles className="size-4" />
                     Generate Report Cards
@@ -2451,7 +2489,7 @@ export default function ReportCardsPage() {
                                   <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Obtained</th>
                                   <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Maximum</th>
                                   <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Percentage</th>
-                                  <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Status</th>
+                                  <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Grade</th>
                                 </>
                               )}
                             </tr>
@@ -2489,14 +2527,8 @@ export default function ReportCardsPage() {
                                       <td className="px-3 py-3 text-right">{String(subject.obtainedTotal ?? "—")}</td>
                                       <td className="px-3 py-3 text-right text-muted-foreground">{String(subject.maxTotal ?? "—")}</td>
                                       <td className="px-3 py-3 text-right font-semibold">{subject.percentage != null ? `${subject.percentage}%` : "—"}</td>
-                                      <td className="px-3 py-3 text-right">
-                                        {subject.incomplete ? (
-                                          <Badge variant="outline" className="text-[10px]">
-                                            Pending
-                                          </Badge>
-                                        ) : (
-                                          <span className="text-xs text-muted-foreground">—</span>
-                                        )}
+                                      <td className="px-3 py-3 text-right font-semibold">
+                                        {typeof subject.grade === "string" && subject.grade ? subject.grade : <span className="text-xs font-normal text-muted-foreground">—</span>}
                                       </td>
                                     </>
                                   )}
@@ -3048,6 +3080,38 @@ export default function ReportCardsPage() {
             <AlertDialogAction onClick={handlePublish} className="gap-2">
               <Send className="size-4" />
               Publish
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={publishAllOpen} onOpenChange={setPublishAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <Send className="size-6 text-green-600" />
+            </div>
+
+            <AlertDialogTitle className="text-center">Publish all report cards?</AlertDialogTitle>
+
+            <AlertDialogDescription className="text-center">
+              {publishableReports.length} generated report card{publishableReports.length === 1 ? "" : "s"} matching your current filters will become visible to parents.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={publishingAll}>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                handlePublishAll();
+              }}
+              disabled={publishingAll}
+              className="gap-2"
+            >
+              {publishingAll ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              Publish All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
