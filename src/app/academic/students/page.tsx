@@ -91,6 +91,7 @@ export default function StudentsPage() {
   const [deleteStudentOpen, setDeleteStudentOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -120,6 +121,16 @@ export default function StudentsPage() {
   // Personal info tab
   const [activeTab, setActiveTab] = useState<"students" | "personal">("students");
   const [profileStudent, setProfileStudent] = useState<Student | null>(null);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [leaveAction, setLeaveAction] = useState<(() => void) | null>(null);
+  const requestLeave = (action: () => void) => {
+    if (profileDirty) {
+      setLeaveAction(() => action);
+      return;
+    }
+
+    action();
+  };
 
   useEffect(() => {
     fetchStudents();
@@ -389,7 +400,7 @@ export default function StudentsPage() {
 
   const handleDelete = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
-    if (!deletingStudent) return;
+    if (!deletingStudent || !isDeleteConfirmed) return;
 
     try {
       setDeletingId(deletingStudent.id);
@@ -435,6 +446,7 @@ export default function StudentsPage() {
 
   const openDeleteDialog = (student: Student) => {
     setDeletingStudent(student);
+    setDeleteConfirmText("");
     setDeleteStudentOpen(true);
   };
 
@@ -455,6 +467,8 @@ export default function StudentsPage() {
       [field]: "",
     }));
   };
+
+  const isDeleteConfirmed = !!deletingStudent && deleteConfirmText.trim().toLowerCase() === deletingStudent.admissionNo.trim().toLowerCase();
 
   const filteredStudents = students.filter(
     (item) =>
@@ -753,7 +767,7 @@ export default function StudentsPage() {
           </Dialog>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "students" | "personal")}>
+        <Tabs value={activeTab} onValueChange={(value) => requestLeave(() => setActiveTab(value as "students" | "personal"))}>
           <TabsList className="rounded-full bg-muted/60 p-1">
             <TabsTrigger value="students" className="rounded-full px-5 py-2 text-sm data-[state=active]:shadow-sm">
               Students
@@ -775,13 +789,13 @@ export default function StudentsPage() {
                   </p>
                 </div>
 
-                <Button variant="outline" className="gap-2 shrink-0" onClick={() => setProfileStudent(null)}>
+                <Button variant="outline" className="gap-2 shrink-0" onClick={() => requestLeave(() => setProfileStudent(null))}>
                   <ArrowLeft className="size-4" />
                   Back
                 </Button>
               </div>
 
-              <ProfilePanel entity="student" mode="edit" personId={profileStudent.id} />
+              <ProfilePanel entity="student" mode="edit" personId={profileStudent.id} onDirtyChange={setProfileDirty} />
             </div>
           ) : (
             <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-4">
@@ -1293,7 +1307,6 @@ export default function StudentsPage() {
         onOpenChange={(open) => {
           setLoginDialogOpen(open);
 
-          // Closing with X or Escape returns to the student details.
           if (!open) {
             setAddStudentOpen(true);
             setPassword("");
@@ -1516,7 +1529,16 @@ export default function StudentsPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteStudentOpen} onOpenChange={setDeleteStudentOpen}>
+      <AlertDialog
+        open={deleteStudentOpen}
+        onOpenChange={(open) => {
+          if (deletingId) return;
+
+          setDeleteStudentOpen(open);
+
+          if (!open) setDeleteConfirmText("");
+        }}
+      >
         <AlertDialogContent className="sm:max-w-105">
           <AlertDialogHeader>
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
@@ -1528,14 +1550,37 @@ export default function StudentsPage() {
             <AlertDialogDescription className="text-center">
               This action cannot be undone. This will permanently remove{" "}
               <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingStudent && `${deletingStudent.firstName} ${deletingStudent.lastName}`}</span>
-              {deletingStudent?.user ? " and their login" : ""}
+              {deletingStudent?.user ? " and their login" : ""}.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <p className="font-semibold">Everything linked to this student will also be deleted:</p>
+
+              <ul className="mt-1.5 list-disc space-y-0.5 pl-5">
+                <li>Class enrollments and attendance</li>
+                <li>Exam marks and report cards</li>
+                <li>Assignment records</li>
+                <li>Personal information and custom fields</li>
+              </ul>
+
+              <p className="mt-2">To keep their history, set the status to Inactive from Edit instead.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">
+                Type <span className="font-mono font-semibold text-foreground">{deletingStudent?.admissionNo}</span> to confirm
+              </Label>
+
+              <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="Admission number" autoComplete="off" />
+            </div>
+          </div>
 
           <AlertDialogFooter className="mt-4">
             <AlertDialogCancel className="h-11">Cancel</AlertDialogCancel>
 
-            <AlertDialogAction onClick={handleDelete} disabled={!!deletingId} className="h-11 bg-destructive text-white hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleDelete} disabled={!!deletingId || !isDeleteConfirmed} className="h-11 bg-destructive text-white hover:bg-destructive/90">
               {deletingId ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
@@ -1547,6 +1592,37 @@ export default function StudentsPage() {
                   Delete student
                 </>
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Leaving the personal info with unsaved changes */}
+      <AlertDialog
+        open={!!leaveAction}
+        onOpenChange={(open) => {
+          if (!open) setLeaveAction(null);
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-105">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="w-full text-center text-xl">Discard unsaved changes?</AlertDialogTitle>
+
+            <AlertDialogDescription className="text-center">You have changes that are not saved yet. If you leave now, they will be lost.</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="h-11">Keep editing</AlertDialogCancel>
+
+            <AlertDialogAction
+              className="h-11"
+              onClick={() => {
+                const action = leaveAction;
+                setLeaveAction(null);
+                action?.();
+              }}
+            >
+              Discard changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

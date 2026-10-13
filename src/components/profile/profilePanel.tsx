@@ -420,17 +420,16 @@ function TemplateManager({ entity, open, onOpenChange }: { entity: ProfileEntity
 interface ProfilePanelProps {
   entity: ProfileEntity;
   mode: "edit" | "view";
-  // edit mode: whose profile to load and edit
   personId?: string;
-  // view mode: the data to show (the page fetches it), nothing can be changed
   sections?: PersonProfileSection[];
   loading?: boolean;
   canManageTemplate?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 type ConfirmTarget = { kind: "media"; id: string } | { kind: "field"; id: string; label: string } | null;
 
-export default function ProfilePanel({ entity, mode, personId, sections, loading = false, canManageTemplate = true }: ProfilePanelProps) {
+export default function ProfilePanel({ entity, mode, personId, sections, loading = false, canManageTemplate = true, onDirtyChange }: ProfilePanelProps) {
   const isEdit = mode === "edit";
 
   const { profile, profileLoading, fetchProfile, saveValues, createCustomField, updateCustomField, addMedia, removeMedia, clearProfile } = useProfileStore();
@@ -471,6 +470,27 @@ export default function ProfilePanel({ entity, mode, personId, sections, loading
 
     return Object.entries(edits).filter(([id, value]) => byId.has(id) && value !== (byId.get(id)?.value ?? ""));
   }, [edits, allFields]);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty.length > 0);
+  }, [dirty.length]);
+
+  useEffect(() => {
+    return () => onDirtyChange?.(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isEdit || dirty.length === 0) return;
+
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", warn);
+
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isEdit, dirty.length]);
 
   if (isEdit && !personId) return null;
 

@@ -1484,433 +1484,837 @@ export default function ReportCardsPage() {
         {isStudent ? (
           renderStudentReports()
         ) : (
-        <Tabs defaultValue="reports">
-          <TabsList className="grid w-full grid-cols-2 gap-1.5 sm:inline-flex sm:w-auto">
-            <TabsTrigger value="reports" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
-              <ClipboardList className="size-4 shrink-0" />
-              Report Cards
-            </TabsTrigger>
+          <Tabs defaultValue="reports">
+            <TabsList className="grid w-full grid-cols-2 gap-1.5 sm:inline-flex sm:w-auto">
+              <TabsTrigger value="reports" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
+                <ClipboardList className="size-4 shrink-0" />
+                Report Cards
+              </TabsTrigger>
 
-            <TabsTrigger value="grading" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
-              <Award className="size-4 shrink-0" />
-              Grading Schemes
-            </TabsTrigger>
+              <TabsTrigger value="grading" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
+                <Award className="size-4 shrink-0" />
+                Grading Schemes
+              </TabsTrigger>
 
-            <TabsTrigger value="structure" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
-              <Sliders className="size-4 shrink-0" />
-              Class Exam Structure
-            </TabsTrigger>
+              <TabsTrigger value="structure" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
+                <Sliders className="size-4 shrink-0" />
+                Class Exam Structure
+              </TabsTrigger>
 
-            <TabsTrigger value="templates" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
-              <LayoutTemplate className="size-4 shrink-0" />
-              Report Templates
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="templates" className="justify-center gap-1.5 whitespace-normal text-center text-xs leading-tight sm:whitespace-nowrap sm:text-sm">
+                <LayoutTemplate className="size-4 shrink-0" />
+                Report Templates
+              </TabsTrigger>
+            </TabsList>
 
-          {/* =====================================================
+            {/* =====================================================
               Reports tab
           ===================================================== */}
-          <TabsContent value="reports" className="space-y-6 pt-6">
-            <div className="flex justify-end">
-              {canCreate && (
-                <Button className="gap-2" onClick={openGenerate}>
-                  <Sparkles className="size-4" />
-                  Generate Report Cards
-                </Button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className="rounded-xl border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Students</span>
-                  <Users className="size-4 text-muted-foreground" />
-                </div>
-                <p className="mt-2 text-2xl font-bold">{studentCount}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Current session</p>
+            <TabsContent value="reports" className="space-y-6 pt-6">
+              <div className="flex justify-end">
+                {canCreate && (
+                  <Button className="gap-2" onClick={openGenerate}>
+                    <Sparkles className="size-4" />
+                    Generate Report Cards
+                  </Button>
+                )}
               </div>
 
-              <div className="rounded-xl border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Report Cards</span>
-                  <FileText className="size-4 text-muted-foreground" />
-                </div>
-                <p className="mt-2 text-2xl font-bold">{visibleReports.length}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Matching filters</p>
-              </div>
-
-              <div className="rounded-xl border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Generated</span>
-                  <CheckCircle2 className="size-4 text-blue-500" />
-                </div>
-                <p className="mt-2 text-2xl font-bold">{generatedCount}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Ready for review</p>
-              </div>
-
-              <div className="rounded-xl border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Published</span>
-                  <Send className="size-4 text-green-500" />
-                </div>
-                <p className="mt-2 text-2xl font-bold">{publishedCount}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Visible to parents</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border bg-card p-4 sm:p-5">
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px_auto]">
-                <div className="relative col-span-2 lg:col-span-1">
-                  <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search student, admission no., exam group..." className="h-10 pl-10" />
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Students</span>
+                    <Users className="size-4 text-muted-foreground" />
+                  </div>
+                  <p className="mt-2 text-2xl font-bold">{studentCount}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Current session</p>
                 </div>
 
-                <Select
-                  value={sessionFilter}
-                  onValueChange={(value) => {
-                    setSessionFilter(value);
-                    setExamGroupFilter("ALL");
-                  }}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Session" />
-                  </SelectTrigger>
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Report Cards</span>
+                    <FileText className="size-4 text-muted-foreground" />
+                  </div>
+                  <p className="mt-2 text-2xl font-bold">{visibleReports.length}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Matching filters</p>
+                </div>
 
-                  <SelectContent>
-                    <SelectItem value="ALL">All Sessions</SelectItem>
-                    {sessions.map((session) => (
-                      <SelectItem key={session.id} value={session.id}>
-                        {session.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Generated</span>
+                    <CheckCircle2 className="size-4 text-blue-500" />
+                  </div>
+                  <p className="mt-2 text-2xl font-bold">{generatedCount}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Ready for review</p>
+                </div>
 
-                <Select value={examGroupFilter} onValueChange={setExamGroupFilter}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Exam Group" />
-                  </SelectTrigger>
-
-                  <SelectContent>
-                    <SelectItem value="ALL">All Exam Groups</SelectItem>
-                    {sessionExamGroups.map((group) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        {group.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ReportCardScopeT | "ALL")}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-
-                  <SelectContent>
-                    {REPORT_SCOPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button type="button" variant="outline" className="h-10 gap-2" onClick={resetFilters}>
-                  <RefreshCw className="size-4" />
-                  Reset
-                </Button>
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Published</span>
+                    <Send className="size-4 text-green-500" />
+                  </div>
+                  <p className="mt-2 text-2xl font-bold">{publishedCount}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Visible to parents</p>
+                </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t pt-4">
-                {REPORT_STATUS_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setStatusFilter(option.value as ReportCardStatusT | "ALL")}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                      statusFilter === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl border bg-card">
-              <div className="border-b px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className="size-4 text-muted-foreground" />
-                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Report Cards</span>
-                      <span className="text-xs text-muted-foreground">({visibleReports.length})</span>
-                    </div>
-
-                    <p className="mt-1 text-xs text-muted-foreground">Computed automatically from exam marks</p>
+              <div className="rounded-xl border bg-card p-4 sm:p-5">
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px_auto]">
+                  <div className="relative col-span-2 lg:col-span-1">
+                    <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search student, admission no., exam group..." className="h-10 pl-10" />
                   </div>
 
-                  {canCreate && missingCount > 0 && (
-                    <Button type="button" variant="outline" size="sm" className="gap-2" onClick={openGenerate}>
-                      <Sparkles className="size-3.5" />
-                      {missingCount} missing
-                    </Button>
-                  )}
+                  <Select
+                    value={sessionFilter}
+                    onValueChange={(value) => {
+                      setSessionFilter(value);
+                      setExamGroupFilter("ALL");
+                    }}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Session" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="ALL">All Sessions</SelectItem>
+                      {sessions.map((session) => (
+                        <SelectItem key={session.id} value={session.id}>
+                          {session.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={examGroupFilter} onValueChange={setExamGroupFilter}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Exam Group" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="ALL">All Exam Groups</SelectItem>
+                      {sessionExamGroups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ReportCardScopeT | "ALL")}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {REPORT_SCOPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button type="button" variant="outline" className="h-10 gap-2" onClick={resetFilters}>
+                    <RefreshCw className="size-4" />
+                    Reset
+                  </Button>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t pt-4">
+                  {REPORT_STATUS_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setStatusFilter(option.value as ReportCardStatusT | "ALL")}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                        statusFilter === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {loading && !visibleReports.length ? (
-                <div className="flex min-h-60 items-center justify-center">
-                  <Loader2 className="size-7 animate-spin text-muted-foreground" />
-                </div>
-              ) : visibleReports.length === 0 ? (
-                <div className="p-12 text-center">
-                  <ClipboardList className="mx-auto size-9 text-muted-foreground" />
-                  <h3 className="mt-3 font-semibold">No report cards found</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Generate report cards for the selected academic session.</p>
-                  {canCreate && (
-                    <Button className="mt-5 gap-2" onClick={openGenerate}>
-                      <Sparkles className="size-4" />
-                      Generate Report Cards
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {visibleReports.map((report) => (
-                    <div key={report.id} className="group flex cursor-pointer items-center gap-4 p-4 transition-colors hover:bg-muted/20 sm:px-6" onClick={() => openReport(report)}>
-                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <UserRound className="size-5" />
+              <div className="rounded-xl border bg-card">
+                <div className="border-b px-4 py-4 sm:px-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="size-4 text-muted-foreground" />
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Report Cards</span>
+                        <span className="text-xs text-muted-foreground">({visibleReports.length})</span>
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-semibold">{studentName(report.student)}</p>
-                          <Badge className={cn("border-0 text-[11px]", statusClass(report.status))}>{statusLabel(report.status)}</Badge>
-                          <Badge variant="outline" className="text-[11px]">
-                            {scopeLabel(report.scope)}
-                          </Badge>
+                      <p className="mt-1 text-xs text-muted-foreground">Computed automatically from exam marks</p>
+                    </div>
+
+                    {canCreate && missingCount > 0 && (
+                      <Button type="button" variant="outline" size="sm" className="gap-2" onClick={openGenerate}>
+                        <Sparkles className="size-3.5" />
+                        {missingCount} missing
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {loading && !visibleReports.length ? (
+                  <div className="flex min-h-60 items-center justify-center">
+                    <Loader2 className="size-7 animate-spin text-muted-foreground" />
+                  </div>
+                ) : visibleReports.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <ClipboardList className="mx-auto size-9 text-muted-foreground" />
+                    <h3 className="mt-3 font-semibold">No report cards found</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">Generate report cards for the selected academic session.</p>
+                    {canCreate && (
+                      <Button className="mt-5 gap-2" onClick={openGenerate}>
+                        <Sparkles className="size-4" />
+                        Generate Report Cards
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {visibleReports.map((report) => (
+                      <div key={report.id} className="group flex cursor-pointer items-center gap-4 p-4 transition-colors hover:bg-muted/20 sm:px-6" onClick={() => openReport(report)}>
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <UserRound className="size-5" />
                         </div>
 
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
-                          Admission No. {report.student.admissionNo}
-                          <span className="mx-1.5">•</span>
-                          {report.enrollment.class?.name ?? "Class"}
-                          <span className="mx-1.5">•</span>
-                          {report.enrollment.section?.name ?? "Section"}
-                          <span className="mx-1.5">•</span>
-                          {report.scope === "INDIVIDUAL" ? (report.examGroup?.name ?? "Exam") : "Final Report"}
-                        </p>
-                      </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-semibold">{studentName(report.student)}</p>
+                            <Badge className={cn("border-0 text-[11px]", statusClass(report.status))}>{statusLabel(report.status)}</Badge>
+                            <Badge variant="outline" className="text-[11px]">
+                              {scopeLabel(report.scope)}
+                            </Badge>
+                          </div>
 
-                      <div className="hidden shrink-0 text-right md:block">
-                        <p className="text-xs text-muted-foreground">Generated at</p>
-                        <p className="mt-1 text-sm font-medium">{report.generatedAt ? format(new Date(report.generatedAt), "dd MMM yyyy") : "—"}</p>
-                      </div>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            Admission No. {report.student.admissionNo}
+                            <span className="mx-1.5">•</span>
+                            {report.enrollment.class?.name ?? "Class"}
+                            <span className="mx-1.5">•</span>
+                            {report.enrollment.section?.name ?? "Section"}
+                            <span className="mx-1.5">•</span>
+                            {report.scope === "INDIVIDUAL" ? (report.examGroup?.name ?? "Exam") : "Final Report"}
+                          </p>
+                        </div>
 
-                      <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
-                        <div className="hidden items-center gap-1 md:flex">
-                          <button
-                            type="button"
-                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                            aria-label="Open report card"
-                            title="Open report card"
-                            onClick={() => openReport(report)}
-                          >
-                            <FileText className="size-4" />
-                          </button>
+                        <div className="hidden shrink-0 text-right md:block">
+                          <p className="text-xs text-muted-foreground">Generated at</p>
+                          <p className="mt-1 text-sm font-medium">{report.generatedAt ? format(new Date(report.generatedAt), "dd MMM yyyy") : "—"}</p>
+                        </div>
 
-                          {canUpdate && (
+                        <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
+                          <div className="hidden items-center gap-1 md:flex">
                             <button
                               type="button"
                               className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                              aria-label="Edit teacher remarks"
-                              title="Edit teacher remarks"
-                              onClick={() => openRemarks(report)}
+                              aria-label="Open report card"
+                              title="Open report card"
+                              onClick={() => openReport(report)}
                             >
-                              <MessageSquareText className="size-4" />
+                              <FileText className="size-4" />
                             </button>
-                          )}
 
-                          {canCreate && (
+                            {canUpdate && (
+                              <button
+                                type="button"
+                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                aria-label="Edit teacher remarks"
+                                title="Edit teacher remarks"
+                                onClick={() => openRemarks(report)}
+                              >
+                                <MessageSquareText className="size-4" />
+                              </button>
+                            )}
+
+                            {canCreate && (
+                              <button
+                                type="button"
+                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary disabled:opacity-50"
+                                aria-label="Refresh with latest marks"
+                                title="Refresh with latest marks"
+                                onClick={() => handleRefresh(report)}
+                                disabled={refreshingReportId === report.id}
+                              >
+                                {refreshingReportId === report.id ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                              </button>
+                            )}
+
+                            {canPublish && report.status !== "PUBLISHED" && (
+                              <button
+                                type="button"
+                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-green-600"
+                                aria-label="Publish report card"
+                                title="Publish report card"
+                                onClick={() => openPublish(report)}
+                              >
+                                <Send className="size-4" />
+                              </button>
+                            )}
+
+                            {canPublish && report.status === "PUBLISHED" && (
+                              <button
+                                type="button"
+                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-amber-600"
+                                aria-label="Unpublish report card"
+                                title="Unpublish report card"
+                                onClick={() => openUnpublish(report)}
+                              >
+                                <Undo2 className="size-4" />
+                              </button>
+                            )}
+
+                            {report.pdfUrl && (
+                              <a
+                                href={report.pdfUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                aria-label="Download PDF"
+                                title="Download PDF"
+                              >
+                                <Download className="size-4" />
+                              </a>
+                            )}
+
+                            {canDelete && (
+                              <button
+                                type="button"
+                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                                aria-label="Delete report card"
+                                title="Delete report card"
+                                onClick={() => openDeleteReport(report)}
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="md:hidden">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button type="button" className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" aria-label="Report card actions">
+                                  <MoreVertical className="size-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openReport(report)}>
+                                  <FileText className="mr-2 size-4" />
+                                  View report
+                                </DropdownMenuItem>
+
+                                {canUpdate && (
+                                  <DropdownMenuItem onClick={() => openRemarks(report)}>
+                                    <MessageSquareText className="mr-2 size-4" />
+                                    Teacher remarks
+                                  </DropdownMenuItem>
+                                )}
+
+                                {canCreate && (
+                                  <DropdownMenuItem onClick={() => handleRefresh(report)} disabled={refreshingReportId === report.id}>
+                                    <RefreshCw className="mr-2 size-4" />
+                                    Refresh with latest marks
+                                  </DropdownMenuItem>
+                                )}
+
+                                {canPublish && report.status !== "PUBLISHED" && (
+                                  <DropdownMenuItem onClick={() => openPublish(report)}>
+                                    <Send className="mr-2 size-4" />
+                                    Publish
+                                  </DropdownMenuItem>
+                                )}
+
+                                {canPublish && report.status === "PUBLISHED" && (
+                                  <DropdownMenuItem onClick={() => openUnpublish(report)}>
+                                    <Undo2 className="mr-2 size-4" />
+                                    Unpublish
+                                  </DropdownMenuItem>
+                                )}
+
+                                {report.pdfUrl && (
+                                  <DropdownMenuItem asChild>
+                                    <a href={report.pdfUrl} target="_blank" rel="noreferrer">
+                                      <Download className="mr-2 size-4" />
+                                      Download PDF
+                                    </a>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {canDelete && (
+                                  <DropdownMenuItem onClick={() => openDeleteReport(report)} className="text-destructive">
+                                    <Trash2 className="mr-2 size-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* =====================================================
+              Grading Schemes tab
+          ===================================================== */}
+            <TabsContent value="grading" className="space-y-4 pt-6">
+              <div className="rounded-xl border bg-card">
+                <div className="border-b px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Configured Grading Schemes</p>
+                </div>
+
+                <div className="divide-y">
+                  {gradingSchemes.map((scheme) => (
+                    <div key={scheme.id} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{scheme.name}</p>
+                            {!scheme.isActive && (
+                              <Badge variant="outline" className="text-[10px]">
+                                Inactive
+                              </Badge>
+                            )}
+                          </div>
+                          {scheme.description && <p className="mt-1 text-sm text-muted-foreground">{scheme.description}</p>}
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setExpandedSchemeId(expandedSchemeId === scheme.id ? null : scheme.id)}>
+                            <Award className="size-3.5" />
+                            {expandedSchemeId === scheme.id ? "Hide grades" : "Manage grades"}
+                          </Button>
+
+                          {canManageGrading && (
                             <button
                               type="button"
-                              className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary disabled:opacity-50"
-                              aria-label="Refresh with latest marks"
-                              title="Refresh with latest marks"
-                              onClick={() => handleRefresh(report)}
-                              disabled={refreshingReportId === report.id}
-                            >
-                              {refreshingReportId === report.id ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                            </button>
-                          )}
-
-                          {canPublish && report.status !== "PUBLISHED" && (
-                            <button
-                              type="button"
-                              className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-green-600"
-                              aria-label="Publish report card"
-                              title="Publish report card"
-                              onClick={() => openPublish(report)}
-                            >
-                              <Send className="size-4" />
-                            </button>
-                          )}
-
-                          {canPublish && report.status === "PUBLISHED" && (
-                            <button
-                              type="button"
-                              className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-amber-600"
-                              aria-label="Unpublish report card"
-                              title="Unpublish report card"
-                              onClick={() => openUnpublish(report)}
-                            >
-                              <Undo2 className="size-4" />
-                            </button>
-                          )}
-
-                          {report.pdfUrl && (
-                            <a
-                              href={report.pdfUrl}
-                              target="_blank"
-                              rel="noreferrer"
+                              aria-label="Edit scheme"
+                              onClick={() => openEditScheme(scheme)}
                               className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                              aria-label="Download PDF"
-                              title="Download PDF"
                             >
-                              <Download className="size-4" />
-                            </a>
+                              <Pencil className="size-4" />
+                            </button>
                           )}
 
-                          {canDelete && (
+                          {canDeleteGrading && (
                             <button
                               type="button"
+                              aria-label="Delete scheme"
+                              onClick={() => openDeleteScheme(scheme)}
                               className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                              aria-label="Delete report card"
-                              title="Delete report card"
-                              onClick={() => openDeleteReport(report)}
                             >
                               <Trash2 className="size-4" />
                             </button>
                           )}
                         </div>
-
-                        <div className="md:hidden">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button type="button" className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" aria-label="Report card actions">
-                                <MoreVertical className="size-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openReport(report)}>
-                                <FileText className="mr-2 size-4" />
-                                View report
-                              </DropdownMenuItem>
-
-                              {canUpdate && (
-                                <DropdownMenuItem onClick={() => openRemarks(report)}>
-                                  <MessageSquareText className="mr-2 size-4" />
-                                  Teacher remarks
-                                </DropdownMenuItem>
-                              )}
-
-                              {canCreate && (
-                                <DropdownMenuItem onClick={() => handleRefresh(report)} disabled={refreshingReportId === report.id}>
-                                  <RefreshCw className="mr-2 size-4" />
-                                  Refresh with latest marks
-                                </DropdownMenuItem>
-                              )}
-
-                              {canPublish && report.status !== "PUBLISHED" && (
-                                <DropdownMenuItem onClick={() => openPublish(report)}>
-                                  <Send className="mr-2 size-4" />
-                                  Publish
-                                </DropdownMenuItem>
-                              )}
-
-                              {canPublish && report.status === "PUBLISHED" && (
-                                <DropdownMenuItem onClick={() => openUnpublish(report)}>
-                                  <Undo2 className="mr-2 size-4" />
-                                  Unpublish
-                                </DropdownMenuItem>
-                              )}
-
-                              {report.pdfUrl && (
-                                <DropdownMenuItem asChild>
-                                  <a href={report.pdfUrl} target="_blank" rel="noreferrer">
-                                    <Download className="mr-2 size-4" />
-                                    Download PDF
-                                  </a>
-                                </DropdownMenuItem>
-                              )}
-
-                              {canDelete && (
-                                <DropdownMenuItem onClick={() => openDeleteReport(report)} className="text-destructive">
-                                  <Trash2 className="mr-2 size-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
                       </div>
+
+                      {expandedSchemeId === scheme.id && (
+                        <div className="mt-4 rounded-lg border">
+                          <div className="divide-y">
+                            {[...scheme.bands]
+                              .sort((a, b) => a.displayOrder - b.displayOrder)
+                              .map((band) => (
+                                <div key={band.id} className="flex items-center gap-3 px-4 py-2.5">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium">
+                                      {band.grade}
+                                      <span className="ml-2 text-xs text-muted-foreground">
+                                        {band.minPercentage}% – {band.maxPercentage}%
+                                      </span>
+                                    </p>
+                                    {band.remark && <p className="text-xs text-muted-foreground">{band.remark}</p>}
+                                  </div>
+
+                                  {canManageGrading && (
+                                    <button
+                                      type="button"
+                                      aria-label="Edit grade band"
+                                      onClick={() => openEditBand(scheme.id, band)}
+                                      className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                    >
+                                      <Pencil className="size-3.5" />
+                                    </button>
+                                  )}
+
+                                  {canDeleteGrading && (
+                                    <button
+                                      type="button"
+                                      aria-label="Delete grade band"
+                                      onClick={() => openDeleteBand(scheme.id, band)}
+                                      className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+
+                            {scheme.bands.length === 0 && <p className="px-4 py-4 text-sm text-muted-foreground">No grade bands added yet.</p>}
+                          </div>
+
+                          {canManageGrading && (
+                            <form
+                              onSubmit={handleSaveBand}
+                              className="border-t p-4"
+                              onFocus={() => {
+                                if (bandSchemeId !== scheme.id) resetBandForm(scheme.id);
+                              }}
+                            >
+                              <div className="mb-3 flex items-center justify-between">
+                                <p className="text-xs font-semibold text-muted-foreground">{editingBand && bandSchemeId === scheme.id ? "Edit Grade Band" : "Add Grade Band"}</p>
+                                {editingBand && bandSchemeId === scheme.id && (
+                                  <Button type="button" variant="ghost" size="sm" onClick={() => resetBandForm(scheme.id)}>
+                                    Cancel edit
+                                  </Button>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                                <Input placeholder="Grade (e.g. A1)" value={bandSchemeId === scheme.id ? bandGrade : ""} onChange={(e) => setBandGrade(e.target.value)} className="h-10" />
+                                <Input placeholder="Min %" type="number" min="0" max="100" value={bandSchemeId === scheme.id ? bandMin : ""} onChange={(e) => setBandMin(e.target.value)} className="h-10" />
+                                <Input placeholder="Max %" type="number" min="0" max="100" value={bandSchemeId === scheme.id ? bandMax : ""} onChange={(e) => setBandMax(e.target.value)} className="h-10" />
+                                <Input placeholder="Remark (optional)" value={bandSchemeId === scheme.id ? bandRemark : ""} onChange={(e) => setBandRemark(e.target.value)} className="h-10" />
+                                <Input placeholder="Order" type="number" min="1" value={bandSchemeId === scheme.id ? bandDisplayOrder : "1"} onChange={(e) => setBandDisplayOrder(e.target.value)} className="h-10" />
+                              </div>
+
+                              <div className="mt-3 flex justify-end">
+                                <Button type="submit" size="sm" className="gap-1.5">
+                                  {editingBand && bandSchemeId === scheme.id ? (
+                                    <>
+                                      <Pencil className="size-3.5" />
+                                      Update Band
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="size-3.5" />
+                                      Add Band
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </form>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
 
-          {/* =====================================================
-              Grading Schemes tab
-          ===================================================== */}
-          <TabsContent value="grading" className="space-y-4 pt-6">
-            <div className="rounded-xl border bg-card">
-              <div className="border-b px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Configured Grading Schemes</p>
+                  {gradingSchemes.length === 0 && (
+                    <div className="p-8 text-center">
+                      <Award className="mx-auto size-7 text-muted-foreground" />
+                      <p className="mt-2 text-sm font-medium">No grading schemes yet</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Add your school&apos;s grading scales below — e.g. CBSE 9-point, CIE A-G.</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="divide-y">
-                {gradingSchemes.map((scheme) => (
-                  <div key={scheme.id} className="p-4">
-                    <div className="flex items-start justify-between gap-3">
+              {canManageGrading && (
+                <form onSubmit={handleSaveScheme} className="rounded-xl border bg-card p-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">{editingScheme ? "Edit Grading Scheme" : "Add Grading Scheme"}</p>
+                      <p className="text-xs text-muted-foreground">Create the scheme first, then add its grade bands above.</p>
+                    </div>
+                    {editingScheme && (
+                      <Button type="button" variant="ghost" size="sm" onClick={resetSchemeForm}>
+                        Cancel edit
+                      </Button>
+                    )}
+                  </div>
+
+                  <FieldGroup>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field>
+                        <Label>Name</Label>
+                        <Input value={schemeName} onChange={(e) => setSchemeName(e.target.value)} placeholder="e.g. CBSE 9-Point Scale" className="h-11" />
+                      </Field>
+
+                      <Field>
+                        <Label>Active</Label>
+                        <div className="mt-3">
+                          <Switch checked={schemeIsActive} onCheckedChange={setSchemeIsActive} />
+                        </div>
+                      </Field>
+                    </div>
+
+                    <Field>
+                      <Label>Description</Label>
+                      <Textarea value={schemeDescription} onChange={(e) => setSchemeDescription(e.target.value)} placeholder="Optional" rows={2} />
+                    </Field>
+                  </FieldGroup>
+
+                  <div className="mt-4 flex justify-end">
+                    <Button type="submit" disabled={loading || !schemeName.trim()} className="min-w-32.5">
+                      {editingScheme ? (
+                        <>
+                          <Pencil className="mr-2 size-4" />
+                          Update
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="mr-2 size-4" />
+                          Add Scheme
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </TabsContent>
+
+            {/* =====================================================
+              Class Exam Structure tab
+          ===================================================== */}
+            <TabsContent value="structure" className="space-y-4 pt-6">
+              <div className="rounded-xl border bg-card p-4 sm:p-6">
+                <Field>
+                  <Label>Class</Label>
+                  <Select value={structureClassId} onValueChange={setStructureClassId}>
+                    <SelectTrigger className="h-11 w-full sm:w-80">
+                      <SelectValue placeholder="Select a class to configure" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sortedClasses.map((item: AcademicClass) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name} ({item.board})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+
+              {structureClassId && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border bg-card p-4 sm:p-6">
+                    <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{existingStructure ? "Result Configuration" : "New Result Configuration"}</p>
+
+                    <FieldGroup>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <Field>
+                          <Label>Grading Scheme</Label>
+                          <Select value={structureGradingSchemeId || "NONE"} onValueChange={(value) => setStructureGradingSchemeId(value === "NONE" ? "" : value)}>
+                            <SelectTrigger className="h-11 w-full">
+                              <SelectValue placeholder="No grading scheme" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NONE">No grading scheme</SelectItem>
+                              {gradingSchemes.map((scheme) => (
+                                <SelectItem key={scheme.id} value={scheme.id}>
+                                  {scheme.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+
+                        <Field>
+                          <Label>Optional Subject Allowed</Label>
+                          <div className="mt-3">
+                            <Switch checked={structureHasOptionalSubject} onCheckedChange={setStructureHasOptionalSubject} />
+                          </div>
+                        </Field>
+                      </div>
+
+                      <Field>
+                        <Label>Combine Exam Groups Into a Final Report</Label>
+                        <div className="mt-3">
+                          <Switch checked={structureCombineExamGroups} onCheckedChange={setStructureCombineExamGroups} />
+                        </div>
+                        <p className="mt-1.5 text-xs text-muted-foreground">On = CBSE-style (e.g. Term 1 + Term 2 combine). Off = CIE-style (each exam group stands alone).</p>
+                      </Field>
+
+                      <Field>
+                        <Label>Notes</Label>
+                        <Textarea value={structureNotes} onChange={(e) => setStructureNotes(e.target.value)} placeholder="Optional internal notes about this class's result structure" rows={2} />
+                      </Field>
+                    </FieldGroup>
+                  </div>
+
+                  <div className="rounded-xl border bg-card p-4 sm:p-6">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Exam Group Weightages</p>
+                    <p className="mb-4 text-xs text-muted-foreground">
+                      Set how much each exam group counts toward this class&apos;s final result (e.g. UT 10% + Mid-Term 30% + End-Term 60%). Leave &quot;Include&quot; off for a group that only produces its own standalone
+                      report.
+                    </p>
+
+                    {sortedExamGroupsAll.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No exam groups configured yet — create them from the Exams page first.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-125 text-sm">
+                          <thead>
+                            <tr className="border-b text-left">
+                              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Exam Group</th>
+                              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Weightage %</th>
+                              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Include in Final Result</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedExamGroupsAll.map((group) => {
+                              const row = structureWeights[group.id] ?? { weightagePercent: "", includeInFinalResult: true };
+                              return (
+                                <tr key={group.id} className="border-b last:border-0">
+                                  <td className="px-3 py-2.5 font-medium">{group.name}</td>
+                                  <td className="px-3 py-2.5">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      value={row.weightagePercent}
+                                      onChange={(e) => updateStructureWeight(group.id, "weightagePercent", e.target.value)}
+                                      className="h-9 w-24"
+                                      placeholder="0"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2.5">
+                                    <Checkbox checked={row.includeInFinalResult} onCheckedChange={(value) => updateStructureWeight(group.id, "includeInFinalResult", Boolean(value))} />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {canManageStructure && (
+                    <div className="flex items-center justify-between gap-3">
+                      {existingStructure && canDeleteStructure ? (
+                        <Button type="button" variant="outline" className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setStructureDeleteOpen(true)}>
+                          <Trash2 className="size-4" />
+                          Delete Structure
+                        </Button>
+                      ) : (
+                        <span />
+                      )}
+
+                      <Button type="button" onClick={handleSaveStructure} disabled={savingStructure} className="min-w-40 gap-2">
+                        {savingStructure ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="size-4" />
+                            Save Structure
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* =====================================================
+              Report Card Templates tab
+          ===================================================== */}
+            <TabsContent value="templates" className="space-y-4 pt-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Select value={templateClassFilter} onValueChange={setTemplateClassFilter}>
+                  <SelectTrigger className="h-10 w-full sm:w-64">
+                    <SelectValue placeholder="All Classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Classes</SelectItem>
+                    {sortedClasses.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {canManageTemplates && (
+                  <Button className="gap-2" onClick={openAddTemplate}>
+                    <Plus className="size-4" />
+                    Add Template
+                  </Button>
+                )}
+              </div>
+
+              <div className="rounded-xl border bg-card">
+                <div className="divide-y">
+                  {visibleTemplates.map((template) => (
+                    <div key={template.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold">{scheme.name}</p>
-                          {!scheme.isActive && (
+                          <p className="font-semibold">{template.name}</p>
+                          <Badge variant="outline" className="text-[11px]">
+                            {template.reportScope === "COMBINED" ? "Final Report" : "Individual"}
+                          </Badge>
+                          {!template.isActive && (
                             <Badge variant="outline" className="text-[10px]">
                               Inactive
                             </Badge>
                           )}
                         </div>
-                        {scheme.description && <p className="mt-1 text-sm text-muted-foreground">{scheme.description}</p>}
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {template.class.name}
+                          <span className="mx-1.5">•</span>
+                          {template.reportScope === "INDIVIDUAL" ? (template.examGroup?.name ?? "Exam Group") : "Combined result"}
+                          <span className="mx-1.5">•</span>
+                          {template.sections.length} section{template.sections.length === 1 ? "" : "s"}
+                          <span className="mx-1.5">•</span>
+                          {template.remarkFields.length} remark{template.remarkFields.length === 1 ? "" : "s"}
+                          <span className="mx-1.5">•</span>
+                          {template.coScholasticRows.length} co-scholastic row{template.coScholasticRows.length === 1 ? "" : "s"}
+                        </p>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setExpandedSchemeId(expandedSchemeId === scheme.id ? null : scheme.id)}>
-                          <Award className="size-3.5" />
-                          {expandedSchemeId === scheme.id ? "Hide grades" : "Manage grades"}
-                        </Button>
+                      <div className="flex shrink-0 flex-wrap items-center gap-1">
+                        {canManageTemplates && (
+                          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openSectionsManager(template)}>
+                            <LayoutTemplate className="size-3.5" />
+                            Sections
+                          </Button>
+                        )}
 
-                        {canManageGrading && (
+                        {canManageTemplates && (
+                          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openRemarkFieldsManager(template)}>
+                            <MessageSquareText className="size-3.5" />
+                            Remarks
+                          </Button>
+                        )}
+
+                        {canManageTemplates && (
+                          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openCoScholasticManager(template)}>
+                            <Award className="size-3.5" />
+                            Co-Scholastic
+                          </Button>
+                        )}
+
+                        {canManageTemplates && (
                           <button
                             type="button"
-                            aria-label="Edit scheme"
-                            onClick={() => openEditScheme(scheme)}
+                            aria-label="Edit template"
+                            onClick={() => openEditTemplate(template)}
                             className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
                           >
                             <Pencil className="size-4" />
                           </button>
                         )}
 
-                        {canDeleteGrading && (
+                        {canDeleteTemplates && (
                           <button
                             type="button"
-                            aria-label="Delete scheme"
-                            onClick={() => openDeleteScheme(scheme)}
+                            aria-label="Delete template"
+                            onClick={() => openDeleteTemplate(template)}
                             className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
                           >
                             <Trash2 className="size-4" />
@@ -1918,423 +2322,19 @@ export default function ReportCardsPage() {
                         )}
                       </div>
                     </div>
-
-                    {expandedSchemeId === scheme.id && (
-                      <div className="mt-4 rounded-lg border">
-                        <div className="divide-y">
-                          {[...scheme.bands]
-                            .sort((a, b) => a.displayOrder - b.displayOrder)
-                            .map((band) => (
-                              <div key={band.id} className="flex items-center gap-3 px-4 py-2.5">
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium">
-                                    {band.grade}
-                                    <span className="ml-2 text-xs text-muted-foreground">
-                                      {band.minPercentage}% – {band.maxPercentage}%
-                                    </span>
-                                  </p>
-                                  {band.remark && <p className="text-xs text-muted-foreground">{band.remark}</p>}
-                                </div>
-
-                                {canManageGrading && (
-                                  <button
-                                    type="button"
-                                    aria-label="Edit grade band"
-                                    onClick={() => openEditBand(scheme.id, band)}
-                                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                                  >
-                                    <Pencil className="size-3.5" />
-                                  </button>
-                                )}
-
-                                {canDeleteGrading && (
-                                  <button
-                                    type="button"
-                                    aria-label="Delete grade band"
-                                    onClick={() => openDeleteBand(scheme.id, band)}
-                                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-
-                          {scheme.bands.length === 0 && <p className="px-4 py-4 text-sm text-muted-foreground">No grade bands added yet.</p>}
-                        </div>
-
-                        {canManageGrading && (
-                          <form
-                            onSubmit={handleSaveBand}
-                            className="border-t p-4"
-                            onFocus={() => {
-                              if (bandSchemeId !== scheme.id) resetBandForm(scheme.id);
-                            }}
-                          >
-                            <div className="mb-3 flex items-center justify-between">
-                              <p className="text-xs font-semibold text-muted-foreground">{editingBand && bandSchemeId === scheme.id ? "Edit Grade Band" : "Add Grade Band"}</p>
-                              {editingBand && bandSchemeId === scheme.id && (
-                                <Button type="button" variant="ghost" size="sm" onClick={() => resetBandForm(scheme.id)}>
-                                  Cancel edit
-                                </Button>
-                              )}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                              <Input placeholder="Grade (e.g. A1)" value={bandSchemeId === scheme.id ? bandGrade : ""} onChange={(e) => setBandGrade(e.target.value)} className="h-10" />
-                              <Input placeholder="Min %" type="number" min="0" max="100" value={bandSchemeId === scheme.id ? bandMin : ""} onChange={(e) => setBandMin(e.target.value)} className="h-10" />
-                              <Input placeholder="Max %" type="number" min="0" max="100" value={bandSchemeId === scheme.id ? bandMax : ""} onChange={(e) => setBandMax(e.target.value)} className="h-10" />
-                              <Input placeholder="Remark (optional)" value={bandSchemeId === scheme.id ? bandRemark : ""} onChange={(e) => setBandRemark(e.target.value)} className="h-10" />
-                              <Input placeholder="Order" type="number" min="1" value={bandSchemeId === scheme.id ? bandDisplayOrder : "1"} onChange={(e) => setBandDisplayOrder(e.target.value)} className="h-10" />
-                            </div>
-
-                            <div className="mt-3 flex justify-end">
-                              <Button type="submit" size="sm" className="gap-1.5">
-                                {editingBand && bandSchemeId === scheme.id ? (
-                                  <>
-                                    <Pencil className="size-3.5" />
-                                    Update Band
-                                  </>
-                                ) : (
-                                  <>
-                                    <Plus className="size-3.5" />
-                                    Add Band
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </form>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {gradingSchemes.length === 0 && (
-                  <div className="p-8 text-center">
-                    <Award className="mx-auto size-7 text-muted-foreground" />
-                    <p className="mt-2 text-sm font-medium">No grading schemes yet</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Add your school&apos;s grading scales below — e.g. CBSE 9-point, CIE A-G.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {canManageGrading && (
-              <form onSubmit={handleSaveScheme} className="rounded-xl border bg-card p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">{editingScheme ? "Edit Grading Scheme" : "Add Grading Scheme"}</p>
-                    <p className="text-xs text-muted-foreground">Create the scheme first, then add its grade bands above.</p>
-                  </div>
-                  {editingScheme && (
-                    <Button type="button" variant="ghost" size="sm" onClick={resetSchemeForm}>
-                      Cancel edit
-                    </Button>
-                  )}
-                </div>
-
-                <FieldGroup>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field>
-                      <Label>Name</Label>
-                      <Input value={schemeName} onChange={(e) => setSchemeName(e.target.value)} placeholder="e.g. CBSE 9-Point Scale" className="h-11" />
-                    </Field>
-
-                    <Field>
-                      <Label>Active</Label>
-                      <div className="mt-3">
-                        <Switch checked={schemeIsActive} onCheckedChange={setSchemeIsActive} />
-                      </div>
-                    </Field>
-                  </div>
-
-                  <Field>
-                    <Label>Description</Label>
-                    <Textarea value={schemeDescription} onChange={(e) => setSchemeDescription(e.target.value)} placeholder="Optional" rows={2} />
-                  </Field>
-                </FieldGroup>
-
-                <div className="mt-4 flex justify-end">
-                  <Button type="submit" disabled={loading || !schemeName.trim()} className="min-w-32.5">
-                    {editingScheme ? (
-                      <>
-                        <Pencil className="mr-2 size-4" />
-                        Update
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="mr-2 size-4" />
-                        Add Scheme
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </TabsContent>
-
-          {/* =====================================================
-              Class Exam Structure tab
-          ===================================================== */}
-          <TabsContent value="structure" className="space-y-4 pt-6">
-            <div className="rounded-xl border bg-card p-4 sm:p-6">
-              <Field>
-                <Label>Class</Label>
-                <Select value={structureClassId} onValueChange={setStructureClassId}>
-                  <SelectTrigger className="h-11 w-full sm:w-80">
-                    <SelectValue placeholder="Select a class to configure" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sortedClasses.map((item: AcademicClass) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.name} ({item.board})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
-
-            {structureClassId && (
-              <div className="space-y-4">
-                <div className="rounded-xl border bg-card p-4 sm:p-6">
-                  <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{existingStructure ? "Result Configuration" : "New Result Configuration"}</p>
-
-                  <FieldGroup>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <Label>Grading Scheme</Label>
-                        <Select value={structureGradingSchemeId || "NONE"} onValueChange={(value) => setStructureGradingSchemeId(value === "NONE" ? "" : value)}>
-                          <SelectTrigger className="h-11 w-full">
-                            <SelectValue placeholder="No grading scheme" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="NONE">No grading scheme</SelectItem>
-                            {gradingSchemes.map((scheme) => (
-                              <SelectItem key={scheme.id} value={scheme.id}>
-                                {scheme.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-
-                      <Field>
-                        <Label>Optional Subject Allowed</Label>
-                        <div className="mt-3">
-                          <Switch checked={structureHasOptionalSubject} onCheckedChange={setStructureHasOptionalSubject} />
-                        </div>
-                      </Field>
-                    </div>
-
-                    <Field>
-                      <Label>Combine Exam Groups Into a Final Report</Label>
-                      <div className="mt-3">
-                        <Switch checked={structureCombineExamGroups} onCheckedChange={setStructureCombineExamGroups} />
-                      </div>
-                      <p className="mt-1.5 text-xs text-muted-foreground">On = CBSE-style (e.g. Term 1 + Term 2 combine). Off = CIE-style (each exam group stands alone).</p>
-                    </Field>
-
-                    <Field>
-                      <Label>Notes</Label>
-                      <Textarea value={structureNotes} onChange={(e) => setStructureNotes(e.target.value)} placeholder="Optional internal notes about this class's result structure" rows={2} />
-                    </Field>
-                  </FieldGroup>
-                </div>
-
-                <div className="rounded-xl border bg-card p-4 sm:p-6">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Exam Group Weightages</p>
-                  <p className="mb-4 text-xs text-muted-foreground">
-                    Set how much each exam group counts toward this class&apos;s final result (e.g. UT 10% + Mid-Term 30% + End-Term 60%). Leave &quot;Include&quot; off for a group that only produces its own standalone
-                    report.
-                  </p>
-
-                  {sortedExamGroupsAll.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No exam groups configured yet — create them from the Exams page first.</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-125 text-sm">
-                        <thead>
-                          <tr className="border-b text-left">
-                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Exam Group</th>
-                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Weightage %</th>
-                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Include in Final Result</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedExamGroupsAll.map((group) => {
-                            const row = structureWeights[group.id] ?? { weightagePercent: "", includeInFinalResult: true };
-                            return (
-                              <tr key={group.id} className="border-b last:border-0">
-                                <td className="px-3 py-2.5 font-medium">{group.name}</td>
-                                <td className="px-3 py-2.5">
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    value={row.weightagePercent}
-                                    onChange={(e) => updateStructureWeight(group.id, "weightagePercent", e.target.value)}
-                                    className="h-9 w-24"
-                                    placeholder="0"
-                                  />
-                                </td>
-                                <td className="px-3 py-2.5">
-                                  <Checkbox checked={row.includeInFinalResult} onCheckedChange={(value) => updateStructureWeight(group.id, "includeInFinalResult", Boolean(value))} />
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                {canManageStructure && (
-                  <div className="flex items-center justify-between gap-3">
-                    {existingStructure && canDeleteStructure ? (
-                      <Button type="button" variant="outline" className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setStructureDeleteOpen(true)}>
-                        <Trash2 className="size-4" />
-                        Delete Structure
-                      </Button>
-                    ) : (
-                      <span />
-                    )}
-
-                    <Button type="button" onClick={handleSaveStructure} disabled={savingStructure} className="min-w-40 gap-2">
-                      {savingStructure ? (
-                        <>
-                          <Loader2 className="size-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="size-4" />
-                          Save Structure
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* =====================================================
-              Report Card Templates tab
-          ===================================================== */}
-          <TabsContent value="templates" className="space-y-4 pt-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Select value={templateClassFilter} onValueChange={setTemplateClassFilter}>
-                <SelectTrigger className="h-10 w-full sm:w-64">
-                  <SelectValue placeholder="All Classes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Classes</SelectItem>
-                  {sortedClasses.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
 
-              {canManageTemplates && (
-                <Button className="gap-2" onClick={openAddTemplate}>
-                  <Plus className="size-4" />
-                  Add Template
-                </Button>
-              )}
-            </div>
-
-            <div className="rounded-xl border bg-card">
-              <div className="divide-y">
-                {visibleTemplates.map((template) => (
-                  <div key={template.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold">{template.name}</p>
-                        <Badge variant="outline" className="text-[11px]">
-                          {template.reportScope === "COMBINED" ? "Final Report" : "Individual"}
-                        </Badge>
-                        {!template.isActive && (
-                          <Badge variant="outline" className="text-[10px]">
-                            Inactive
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {template.class.name}
-                        <span className="mx-1.5">•</span>
-                        {template.reportScope === "INDIVIDUAL" ? (template.examGroup?.name ?? "Exam Group") : "Combined result"}
-                        <span className="mx-1.5">•</span>
-                        {template.sections.length} section{template.sections.length === 1 ? "" : "s"}
-                        <span className="mx-1.5">•</span>
-                        {template.remarkFields.length} remark{template.remarkFields.length === 1 ? "" : "s"}
-                        <span className="mx-1.5">•</span>
-                        {template.coScholasticRows.length} co-scholastic row{template.coScholasticRows.length === 1 ? "" : "s"}
-                      </p>
+                  {visibleTemplates.length === 0 && (
+                    <div className="p-8 text-center">
+                      <LayoutTemplate className="mx-auto size-7 text-muted-foreground" />
+                      <p className="mt-2 text-sm font-medium">No report card templates yet</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Add a template to control which sections and graphs show for a class&apos;s report card.</p>
                     </div>
-
-                    <div className="flex shrink-0 flex-wrap items-center gap-1">
-                      {canManageTemplates && (
-                        <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openSectionsManager(template)}>
-                          <LayoutTemplate className="size-3.5" />
-                          Sections
-                        </Button>
-                      )}
-
-                      {canManageTemplates && (
-                        <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openRemarkFieldsManager(template)}>
-                          <MessageSquareText className="size-3.5" />
-                          Remarks
-                        </Button>
-                      )}
-
-                      {canManageTemplates && (
-                        <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openCoScholasticManager(template)}>
-                          <Award className="size-3.5" />
-                          Co-Scholastic
-                        </Button>
-                      )}
-
-                      {canManageTemplates && (
-                        <button
-                          type="button"
-                          aria-label="Edit template"
-                          onClick={() => openEditTemplate(template)}
-                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                      )}
-
-                      {canDeleteTemplates && (
-                        <button
-                          type="button"
-                          aria-label="Delete template"
-                          onClick={() => openDeleteTemplate(template)}
-                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {visibleTemplates.length === 0 && (
-                  <div className="p-8 text-center">
-                    <LayoutTemplate className="mx-auto size-7 text-muted-foreground" />
-                    <p className="mt-2 text-sm font-medium">No report card templates yet</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Add a template to control which sections and graphs show for a class&apos;s report card.</p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
 
@@ -2529,11 +2529,11 @@ export default function ReportCardsPage() {
                       if (history.length > 1) {
                         const subjectNames = Array.from(new Set(history.flatMap((entry) => readArray(entry.subjects).map((item) => String(readObject(item).subjectName ?? "")))));
 
-                        const colors = ["fill-primary", "fill-primary/60", "fill-primary/40", "fill-primary/25", "fill-primary/15"];
+                        const opacities = [1, 0.7, 0.5, 0.35, 0.22];
                         const seriesCount = history.length;
-                        const barWidth = 16;
+                        const barWidth = 26;
                         const barGap = 4;
-                        const groupGap = 34;
+                        const groupGap = 28;
                         const groupWidth = seriesCount * barWidth + (seriesCount - 1) * barGap;
                         const chartWidth = Math.max(subjectNames.length * (groupWidth + groupGap) + 20, 320);
                         const baseline = 150;
@@ -2544,7 +2544,7 @@ export default function ReportCardsPage() {
                             <div className="flex flex-wrap gap-3">
                               {history.map((entry, i) => (
                                 <div key={String(entry.examGroupId ?? i)} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <span className={cn("inline-block size-2.5 rounded-sm", colors[i % colors.length])} />
+                                  <span className="inline-block size-2.5 rounded-sm bg-primary" style={{ opacity: opacities[i % opacities.length] }} />
                                   {String(entry.examGroupName ?? "")}
                                 </div>
                               ))}
@@ -2563,12 +2563,21 @@ export default function ReportCardsPage() {
                                       const subjectPoint = readArray(entry.subjects)
                                         .map((item) => readObject(item))
                                         .find((item) => String(item.subjectName ?? "") === subjectName);
-                                      const value = Number(subjectPoint?.percentage ?? 0);
-                                      const barHeight = Math.max((Math.min(value, 100) / 100) * maxBarHeight, 2);
+                                      const raw = subjectPoint?.percentage;
+                                      const hasValue = raw != null && Number.isFinite(Number(raw));
+                                      const value = hasValue ? Number(raw) : 0;
+                                      const barHeight = hasValue ? Math.max((Math.min(value, 100) / 100) * maxBarHeight, 2) : 0;
                                       const x = groupX + seriesIndex * (barWidth + barGap);
                                       const y = baseline - barHeight;
 
-                                      return <rect key={seriesIndex} x={x} y={y} width={barWidth} height={barHeight} rx={3} className={colors[seriesIndex % colors.length]} />;
+                                      return (
+                                        <g key={seriesIndex}>
+                                          {hasValue && <rect x={x} y={y} width={barWidth} height={barHeight} rx={3} className="fill-primary" fillOpacity={opacities[seriesIndex % opacities.length]} />}
+                                          <text x={x + barWidth / 2} y={y - 4} textAnchor="middle" fontSize="9" className="fill-foreground font-medium">
+                                            {hasValue ? `${Math.round(value)}%` : "–"}
+                                          </text>
+                                        </g>
+                                      );
                                     })}
                                     <text x={groupX + groupWidth / 2} y={baseline + 16} textAnchor="middle" fontSize="10" className="fill-muted-foreground">
                                       {label}

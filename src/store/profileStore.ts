@@ -12,6 +12,8 @@ import {
   UploadedMedia,
 } from "@/services/profile.service";
 
+let profileRequestId = 0;
+
 interface ProfileStore {
   templates: Record<ProfileEntity, TemplateSection[]>;
   profile: PersonProfileSection[];
@@ -86,17 +88,24 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   // ======================
 
   fetchProfile: async (entity, id, silent = false) => {
+    const requestId = ++profileRequestId;
+
     try {
       if (!silent) set({ profileLoading: true });
 
       const response = await profileService.getProfile(entity, id);
 
+      // A newer request started (or the panel was closed) while this one was running.
+      if (requestId !== profileRequestId) return;
+
       set({ profile: response.data.data ?? [] });
     } catch (error) {
+      if (requestId !== profileRequestId) return;
+
       console.error("Failed to fetch profile", error);
       throw error;
     } finally {
-      if (!silent) set({ profileLoading: false });
+      if (!silent && requestId === profileRequestId) set({ profileLoading: false });
     }
   },
 
@@ -125,5 +134,8 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
     await get().fetchProfile(entity, id, true);
   },
 
-  clearProfile: () => set({ profile: [] }),
+  clearProfile: () => {
+    profileRequestId++;
+    set({ profile: [], profileLoading: false });
+  },
 }));

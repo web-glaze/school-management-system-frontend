@@ -82,9 +82,18 @@ export default function TeachersPage() {
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const [generatingUsername, setGeneratingUsername] = useState(false);
 
-  // Personal info tab
   const [activeTab, setActiveTab] = useState<"teachers" | "personal">("teachers");
   const [profileTeacher, setProfileTeacher] = useState<Teacher | null>(null);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [leaveAction, setLeaveAction] = useState<(() => void) | null>(null);
+  const requestLeave = (action: () => void) => {
+    if (profileDirty) {
+      setLeaveAction(() => action);
+      return;
+    }
+
+    action();
+  };
 
   useEffect(() => {
     fetchTeachers();
@@ -573,7 +582,7 @@ export default function TeachersPage() {
           </Dialog>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "teachers" | "personal")}>
+        <Tabs value={activeTab} onValueChange={(value) => requestLeave(() => setActiveTab(value as "teachers" | "personal"))}>
           <TabsList className="rounded-full bg-muted/60 p-1">
             <TabsTrigger value="teachers" className="rounded-full px-5 py-2 text-sm data-[state=active]:shadow-sm">
               Teachers
@@ -595,13 +604,13 @@ export default function TeachersPage() {
                   </p>
                 </div>
 
-                <Button variant="outline" className="gap-2 shrink-0" onClick={() => setProfileTeacher(null)}>
+                <Button variant="outline" className="gap-2 shrink-0" onClick={() => requestLeave(() => setProfileTeacher(null))}>
                   <ArrowLeft className="size-4" />
                   Back
                 </Button>
               </div>
 
-              <ProfilePanel entity="teacher" mode="edit" personId={profileTeacher.id} />
+              <ProfilePanel entity="teacher" mode="edit" personId={profileTeacher.id} onDirtyChange={setProfileDirty} />
             </div>
           ) : (
             <div className="bg-card rounded-md p-5 md:p-6 border border-border/60 space-y-4">
@@ -990,6 +999,37 @@ export default function TeachersPage() {
                   Deactivate Teacher
                 </>
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Leaving the personal info with unsaved changes */}
+      <AlertDialog
+        open={!!leaveAction}
+        onOpenChange={(open) => {
+          if (!open) setLeaveAction(null);
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-105">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="w-full text-center text-xl">Discard unsaved changes?</AlertDialogTitle>
+
+            <AlertDialogDescription className="text-center">You have changes that are not saved yet. If you leave now, they will be lost.</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="h-11">Keep editing</AlertDialogCancel>
+
+            <AlertDialogAction
+              className="h-11"
+              onClick={() => {
+                const action = leaveAction;
+                setLeaveAction(null);
+                action?.();
+              }}
+            >
+              Discard changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
