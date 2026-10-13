@@ -1060,11 +1060,18 @@ export default function ReportCardsPage() {
     setSavingStructure(true);
 
     try {
-      if (existingStructure) {
-        await updateClassExamStructure(existingStructure.id, payload);
+      let currentStructure = existingStructure;
+
+      if (!currentStructure) {
+        await fetchClassExamStructures();
+        currentStructure = useAcademicStore.getState().classExamStructures.find((structure) => structure.classId === structureClassId) ?? null;
+      }
+
+      if (currentStructure) {
+        await updateClassExamStructure(currentStructure.id, payload);
 
         if (weightItems.length > 0) {
-          await replaceClassExamGroupWeights(existingStructure.id, weightItems);
+          await replaceClassExamGroupWeights(currentStructure.id, weightItems);
         }
       } else {
         await createClassExamStructure({ classId: structureClassId, ...payload });
