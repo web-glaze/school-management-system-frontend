@@ -1369,9 +1369,7 @@ export default function ExamsPage() {
                       <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold">{shiftLabel(schedule.shift)}</span>
                     </div>
 
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(schedule.examDate), "EEE, dd MMM yyyy")}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{format(new Date(schedule.examDate), "EEE, dd MMM yyyy")}</p>
 
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="size-3.5" />
@@ -1910,7 +1908,11 @@ export default function ExamsPage() {
   return (
     <DashboardLayout>
       {detailExam ? (
-        isStudent ? renderStudentDetail() : renderDetailPage()
+        isStudent ? (
+          renderStudentDetail()
+        ) : (
+          renderDetailPage()
+        )
       ) : (
         <div className="space-y-8">
           <div className="flex flex-col gap-4 mb-6 sm:mb-10">
@@ -1961,21 +1963,21 @@ export default function ExamsPage() {
               </div>
 
               {!isStudent && (
-              <Select value={sessionFilter} onValueChange={setSessionFilter}>
-                <SelectTrigger className="h-10 w-full lg:w-60">
-                  <SelectValue placeholder="All Sessions" />
-                </SelectTrigger>
+                <Select value={sessionFilter} onValueChange={setSessionFilter}>
+                  <SelectTrigger className="h-10 w-full lg:w-60">
+                    <SelectValue placeholder="All Sessions" />
+                  </SelectTrigger>
 
-                <SelectContent>
-                  <SelectItem value="ALL">All Sessions</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Sessions</SelectItem>
 
-                  {sessions.map((session) => (
-                    <SelectItem key={session.id} value={session.id}>
-                      {session.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {sessions.map((session) => (
+                      <SelectItem key={session.id} value={session.id}>
+                        {session.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
 
               <div className="flex flex-wrap items-center gap-1.5">
@@ -2220,6 +2222,7 @@ export default function ExamsPage() {
                         <Calendar
                           mode="single"
                           selected={addStartDate ? new Date(addStartDate) : undefined}
+                          defaultMonth={addStartDate ? new Date(addStartDate) : undefined}
                           onSelect={(date) => {
                             if (!date) return;
 
@@ -2254,6 +2257,7 @@ export default function ExamsPage() {
                         <Calendar
                           mode="single"
                           selected={addEndDate ? new Date(addEndDate) : undefined}
+                          defaultMonth={addEndDate ? new Date(addEndDate) : addStartDate ? new Date(addStartDate) : undefined}
                           disabled={
                             addStartDate
                               ? {
@@ -2417,6 +2421,7 @@ export default function ExamsPage() {
                         <Calendar
                           mode="single"
                           selected={editStartDate ? new Date(editStartDate) : undefined}
+                          defaultMonth={editStartDate ? new Date(editStartDate) : undefined}
                           onSelect={(date) => {
                             if (!date) return;
 
@@ -2451,6 +2456,7 @@ export default function ExamsPage() {
                         <Calendar
                           mode="single"
                           selected={editEndDate ? new Date(editEndDate) : undefined}
+                          defaultMonth={editEndDate ? new Date(editEndDate) : editStartDate ? new Date(editStartDate) : undefined}
                           disabled={
                             editStartDate
                               ? {
@@ -2619,6 +2625,7 @@ export default function ExamsPage() {
                       <Calendar
                         mode="single"
                         selected={scheduleExamDate ? new Date(scheduleExamDate) : undefined}
+                        defaultMonth={scheduleExamDate ? new Date(scheduleExamDate) : detailExam ? new Date(detailExam.startDate) : undefined}
                         disabled={
                           detailExam
                             ? {
