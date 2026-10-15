@@ -223,27 +223,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       isActive: pathname.startsWith("/academic/assignments"),
     },
 
-    permissions.includes("exam.read") && {
-      title: "Exams",
-      url: "/academic/exams",
-      icon: ClipboardList,
-      isActive: pathname.startsWith("/academic/exams"),
-    },
-
-    permissions.includes("marks.read") && {
-      title: "Exam Marks",
-      url: "/academic/exam-mark",
-      icon: ClipboardCheck,
-      isActive: pathname.startsWith("/academic/exam-mark"),
-    },
-
-    permissions.includes("reportcard.read") && {
-      title: "Report Cards",
-      url: "/academic/report-card",
-      icon: SwatchBook,
-      isActive: pathname.startsWith("/academic/report-card"),
-    },
-
     permissions.includes("teacher-assignment.read") && {
       title: "Teacher Assisgnment",
       url: "/academic/teacher-assignment",
@@ -263,6 +242,27 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       url: "/academic/timetables",
       icon: CalendarDays,
       isActive: pathname.startsWith("/academic/timetables"),
+    },
+
+    permissions.includes("exam.read") && {
+      title: "Exams",
+      url: "/academic/exams",
+      icon: ClipboardList,
+      isActive: pathname.startsWith("/academic/exams"),
+    },
+  
+    permissions.includes("marks.read") && {
+      title: "Exam Marks",
+      url: "/academic/exam-mark",
+      icon: ClipboardCheck,
+      isActive: pathname.startsWith("/academic/exam-mark"),
+    },
+  
+    permissions.includes("reportcard.read") && {
+      title: "Report Cards",
+      url: "/academic/report-card",
+      icon: SwatchBook,
+      isActive: pathname.startsWith("/academic/report-card"),
     },
   ].filter(Boolean);
 
