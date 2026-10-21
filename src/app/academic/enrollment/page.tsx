@@ -66,7 +66,7 @@ export default function StudentEnrollmentsPage() {
     sections,
     studentEnrollments,
 
-    fetchStudents,
+    fetchStudentsLookup: fetchStudents,
     fetchSessions,
     fetchClasses,
     fetchSections,

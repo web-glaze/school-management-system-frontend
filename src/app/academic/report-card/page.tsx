@@ -14,10 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import {
-  Activity,
   Award,
   ArrowLeft,
-  BookOpen,
   CheckCircle2,
   ClipboardList,
   Download,
@@ -30,6 +28,7 @@ import {
   MoreVertical,
   Pencil,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   Send,
@@ -60,6 +59,7 @@ import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import ReportCardSheet, { printReportCardSheet } from "@/components/report-card/ReportCardSheet";
 
 type ReportCardScopeT = "INDIVIDUAL" | "COMBINED";
 type ReportCardStatusT = "DRAFT" | "GENERATED" | "PUBLISHED";
@@ -190,7 +190,7 @@ export default function ReportCardsPage() {
     fetchGradingSchemes,
     fetchClassExamStructures,
     fetchReportCardTemplates,
-    fetchStudents,
+    fetchStudentsLookup: fetchStudents,
     fetchStudentEnrollments,
     fetchReportCards,
 
@@ -399,9 +399,8 @@ export default function ReportCardsPage() {
 
     if (!generateExamGroupId) return 0;
 
-    return sessionEnrollments.filter(
-      (enrollment) => isGroupEnabledForClass(enrollment.classId, generateExamGroupId) && !keySet.has(`${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`)
-    ).length;
+    return sessionEnrollments.filter((enrollment) => isGroupEnabledForClass(enrollment.classId, generateExamGroupId) && !keySet.has(`${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`))
+      .length;
   }, [reportCards, sessionEnrollments, effectiveSessionId, generateScope, generateExamGroupId]);
 
   const resetFilters = () => {
@@ -694,11 +693,12 @@ export default function ReportCardsPage() {
     }
   };
 
-  const data = readObject(selectedReport?.reportData);
-  const overall = readObject(data.overall);
-  const isCombined = selectedReport?.scope === "COMBINED";
-  const subjects = readArray(data.subjects);
-  const combinedGroups = isCombined ? readArray(data.groups) : [];
+  const selectedGradeBands = useMemo(() => {
+    if (!selectedReport) return [];
+    const structure = classExamStructures.find((item) => item.classId === selectedReport.enrollment.classId);
+    const scheme = gradingSchemes.find((item) => item.id === structure?.gradingSchemeId);
+    return scheme?.bands ?? [];
+  }, [selectedReport, classExamStructures, gradingSchemes]);
 
   // ---------------------------------------------------------
   // Manual marks entry (CBSE) - Practical/Assessment/etc. values a
@@ -1561,15 +1561,15 @@ export default function ReportCardsPage() {
               Reports tab
           ===================================================== */}
             <TabsContent value="reports" className="space-y-6 pt-6">
-                          <div className="flex flex-wrap justify-end gap-2">
-              {canPublish && publishableReports.length > 0 && (
-                <Button variant="outline" className="gap-2" onClick={() => setPublishAllOpen(true)}>
-                  <Send className="size-4" />
-                  Publish All ({publishableReports.length})
-                </Button>
-              )}
+              <div className="flex flex-wrap justify-end gap-2">
+                {canPublish && publishableReports.length > 0 && (
+                  <Button variant="outline" className="gap-2" onClick={() => setPublishAllOpen(true)}>
+                    <Send className="size-4" />
+                    Publish All ({publishableReports.length})
+                  </Button>
+                )}
 
-              {canCreate && (
+                {canCreate && (
                   <Button className="gap-2" onClick={openGenerate}>
                     <Sparkles className="size-4" />
                     Generate Report Cards
@@ -2214,24 +2214,24 @@ export default function ReportCardsPage() {
                         <table className="w-full min-w-125 text-sm">
                           <thead>
                             <tr className="border-b text-left">
-                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Exam Group</th>
-                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Held for this class</th>
-                            <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Weightage %</th>
+                              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Exam Group</th>
+                              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Held for this class</th>
+                              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Weightage %</th>
                               <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Include in Final Result</th>
                             </tr>
                           </thead>
                           <tbody>
                             {sortedExamGroupsAll.map((group) => {
-                                                          const row = structureWeights[group.id] ?? { weightagePercent: "", includeInFinalResult: true, isEnabled: true };
-                            return (
-                              <tr key={group.id} className={cn("border-b last:border-0", !row.isEnabled && "opacity-50")}>
-                                <td className="px-3 py-2.5 font-medium">{group.name}</td>
-                                <td className="px-3 py-2.5">
-                                  <Switch checked={row.isEnabled} onCheckedChange={(value) => updateStructureWeight(group.id, "isEnabled", value)} />
-                                </td>
-                                <td className="px-3 py-2.5">
-                                  <Input
-                                    disabled={!row.isEnabled}
+                              const row = structureWeights[group.id] ?? { weightagePercent: "", includeInFinalResult: true, isEnabled: true };
+                              return (
+                                <tr key={group.id} className={cn("border-b last:border-0", !row.isEnabled && "opacity-50")}>
+                                  <td className="px-3 py-2.5 font-medium">{group.name}</td>
+                                  <td className="px-3 py-2.5">
+                                    <Switch checked={row.isEnabled} onCheckedChange={(value) => updateStructureWeight(group.id, "isEnabled", value)} />
+                                  </td>
+                                  <td className="px-3 py-2.5">
+                                    <Input
+                                      disabled={!row.isEnabled}
                                       type="number"
                                       min="0"
                                       max="100"
@@ -2242,7 +2242,11 @@ export default function ReportCardsPage() {
                                     />
                                   </td>
                                   <td className="px-3 py-2.5">
-                                    <Checkbox disabled={!row.isEnabled} checked={row.isEnabled && row.includeInFinalResult} onCheckedChange={(value) => updateStructureWeight(group.id, "includeInFinalResult", Boolean(value))} />
+                                    <Checkbox
+                                      disabled={!row.isEnabled}
+                                      checked={row.isEnabled && row.includeInFinalResult}
+                                      onCheckedChange={(value) => updateStructureWeight(group.id, "includeInFinalResult", Boolean(value))}
+                                    />
                                   </td>
                                 </tr>
                               );
@@ -2405,7 +2409,7 @@ export default function ReportCardsPage() {
       ===================================================== */}
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden p-0 sm:max-w-190">
+        <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden p-0 sm:max-w-[880px]">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-start gap-3">
               <button type="button" onClick={() => setDetailOpen(false)} className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted">
@@ -2429,346 +2433,8 @@ export default function ReportCardsPage() {
               </div>
             </div>
           </div>
-
-          <div className="flex-1 overflow-y-auto p-6">
-            {selectedReport && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-lg border bg-muted/20 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Admission No.</p>
-                    <p className="mt-1 font-semibold">{selectedReport.student.admissionNo}</p>
-                  </div>
-
-                  <div className="rounded-lg border bg-muted/20 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Class</p>
-                    <p className="mt-1 font-semibold">{selectedReport.enrollment.class?.name ?? "—"}</p>
-                  </div>
-
-                  <div className="rounded-lg border bg-muted/20 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Section</p>
-                    <p className="mt-1 font-semibold">{selectedReport.enrollment.section?.name ?? "—"}</p>
-                  </div>
-
-                  <div className="rounded-lg border bg-muted/20 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Session</p>
-                    <p className="mt-1 font-semibold">{selectedReport.session.name}</p>
-                  </div>
-                </div>
-
-                {isCombined && combinedGroups.length > 0 && (
-                  <div className="rounded-xl border">
-                    <div className="border-b px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Activity className="size-4 text-muted-foreground" />
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contributing Exam Groups</p>
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto p-4">
-                      <table className="w-full min-w-100 text-sm">
-                        <thead>
-                          <tr className="border-b text-left">
-                            <th className="px-3 py-3 text-xs font-semibold text-muted-foreground">Exam Group</th>
-                            <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Weightage</th>
-                            <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Achieved</th>
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {combinedGroups.map((item, index) => {
-                            const group = readObject(item);
-                            return (
-                              <tr key={`${String(group.examGroupName ?? "group")}-${index}`} className="border-b last:border-0">
-                                <td className="px-3 py-3 font-medium">{String(group.examGroupName ?? "—")}</td>
-                                <td className="px-3 py-3 text-right text-muted-foreground">{group.weightagePercent != null ? `${group.weightagePercent}%` : "—"}</td>
-                                <td className="px-3 py-3 text-right font-semibold">{group.percentage != null ? `${group.percentage}%` : "—"}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                <div className="rounded-xl border">
-                  <div className="border-b px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Activity className="size-4 text-muted-foreground" />
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Academic Performance</p>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    {subjects.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-135 text-sm">
-                          <thead>
-                            <tr className="border-b text-left">
-                              <th className="px-3 py-3 text-xs font-semibold text-muted-foreground">Subject</th>
-                              {isCombined ? (
-                                <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Weighted %</th>
-                              ) : (
-                                <>
-                                  <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Obtained</th>
-                                  <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Maximum</th>
-                                  <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Percentage</th>
-                                  <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">Grade</th>
-                                </>
-                              )}
-                            </tr>
-                          </thead>
-
-                          <tbody>
-                            {subjects.map((item, index) => {
-                              const subject = readObject(item);
-                              const components = readArray(subject.components);
-
-                              return (
-                                <tr key={`${String(subject.subjectName ?? "subject")}-${index}`} className="border-b last:border-0">
-                                  <td className="px-3 py-3">
-                                    <div className="font-medium">{String(subject.subjectName ?? "—")}</div>
-
-                                    {!isCombined && components.length > 0 && (
-                                      <div className="mt-0.5 text-xs text-muted-foreground">
-                                        {components
-                                          .map((componentItem) => {
-                                            const component = readObject(componentItem);
-                                            const value = component.isAbsent ? "Absent" : (component.marksObtained ?? "—");
-                                            const tag = component.source === "MANUAL" ? " (manual)" : "";
-
-                                            return `${String(component.name ?? "")} ${value}/${String(component.maximumMarks ?? "—")}${tag}`;
-                                          })
-                                          .join(" • ")}
-                                      </div>
-                                    )}
-                                  </td>
-
-                                  {isCombined ? (
-                                    <td className="px-3 py-3 text-right font-semibold">{subject.weightedPercentage != null ? `${subject.weightedPercentage}%` : "—"}</td>
-                                  ) : (
-                                    <>
-                                      <td className="px-3 py-3 text-right">{String(subject.obtainedTotal ?? "—")}</td>
-                                      <td className="px-3 py-3 text-right text-muted-foreground">{String(subject.maxTotal ?? "—")}</td>
-                                      <td className="px-3 py-3 text-right font-semibold">{subject.percentage != null ? `${subject.percentage}%` : "—"}</td>
-                                      <td className="px-3 py-3 text-right font-semibold">
-                                        {typeof subject.grade === "string" && subject.grade ? subject.grade : <span className="text-xs font-normal text-muted-foreground">—</span>}
-                                      </td>
-                                    </>
-                                  )}
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed p-8 text-center">
-                        <BookOpen className="mx-auto size-7 text-muted-foreground" />
-                        <p className="mt-2 text-sm font-medium">Performance data will appear automatically</p>
-                        <p className="mt-1 text-xs text-muted-foreground">This report card is ready to use once the academic marks data has been entered.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {selectedReport.template?.showPerformanceGraph && subjects.length > 0 && (
-                  <div className="rounded-xl border p-4">
-                    <div className="mb-4 flex items-center gap-2">
-                      <Activity className="size-4 text-muted-foreground" />
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Performance Graph</p>
-                    </div>
-
-                    {(() => {
-                      const history = !isCombined ? readArray(data.history).map((entry) => readObject(entry)) : [];
-
-                      if (history.length > 1) {
-                        const subjectNames = Array.from(new Set(history.flatMap((entry) => readArray(entry.subjects).map((item) => String(readObject(item).subjectName ?? "")))));
-
-                        const opacities = [1, 0.7, 0.5, 0.35, 0.22];
-                        const seriesCount = history.length;
-                        const barWidth = 26;
-                        const barGap = 4;
-                        const groupGap = 28;
-                        const groupWidth = seriesCount * barWidth + (seriesCount - 1) * barGap;
-                        const chartWidth = Math.max(subjectNames.length * (groupWidth + groupGap) + 20, 320);
-                        const baseline = 150;
-                        const maxBarHeight = 130;
-
-                        return (
-                          <div className="space-y-3">
-                            <div className="flex flex-wrap gap-3">
-                              {history.map((entry, i) => (
-                                <div key={String(entry.examGroupId ?? i)} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <span className="inline-block size-2.5 rounded-sm bg-primary" style={{ opacity: opacities[i % opacities.length] }} />
-                                  {String(entry.examGroupName ?? "")}
-                                </div>
-                              ))}
-                            </div>
-
-                            <svg viewBox={`0 0 ${chartWidth} 190`} className="w-full" style={{ maxHeight: 220 }}>
-                              <line x1="0" y1={baseline} x2={chartWidth} y2={baseline} stroke="currentColor" strokeOpacity="0.15" />
-
-                              {subjectNames.map((subjectName, groupIndex) => {
-                                const groupX = groupIndex * (groupWidth + groupGap) + 20;
-                                const label = subjectName.length > 9 ? `${subjectName.slice(0, 8)}…` : subjectName;
-
-                                return (
-                                  <g key={`${subjectName}-${groupIndex}`}>
-                                    {history.map((entry, seriesIndex) => {
-                                      const subjectPoint = readArray(entry.subjects)
-                                        .map((item) => readObject(item))
-                                        .find((item) => String(item.subjectName ?? "") === subjectName);
-                                      const raw = subjectPoint?.percentage;
-                                      const hasValue = raw != null && Number.isFinite(Number(raw));
-                                      const value = hasValue ? Number(raw) : 0;
-                                      const barHeight = hasValue ? Math.max((Math.min(value, 100) / 100) * maxBarHeight, 2) : 0;
-                                      const x = groupX + seriesIndex * (barWidth + barGap);
-                                      const y = baseline - barHeight;
-
-                                      return (
-                                        <g key={seriesIndex}>
-                                          {hasValue && <rect x={x} y={y} width={barWidth} height={barHeight} rx={3} className="fill-primary" fillOpacity={opacities[seriesIndex % opacities.length]} />}
-                                          <text x={x + barWidth / 2} y={y - 4} textAnchor="middle" fontSize="9" className="fill-foreground font-medium">
-                                            {hasValue ? `${Math.round(value)}%` : "–"}
-                                          </text>
-                                        </g>
-                                      );
-                                    })}
-                                    <text x={groupX + groupWidth / 2} y={baseline + 16} textAnchor="middle" fontSize="10" className="fill-muted-foreground">
-                                      {label}
-                                    </text>
-                                  </g>
-                                );
-                              })}
-                            </svg>
-                          </div>
-                        );
-                      }
-
-                      const graphData = subjects.map((item) => {
-                        const subject = readObject(item);
-                        const rawValue = isCombined ? subject.weightedPercentage : subject.percentage;
-                        const value = Number(rawValue ?? 0);
-
-                        return { name: String(subject.subjectName ?? ""), value: Number.isFinite(value) ? value : 0 };
-                      });
-
-                      const barWidth = 36;
-                      const gap = 34;
-                      const chartWidth = Math.max(graphData.length * (barWidth + gap) + 20, 300);
-                      const baseline = 150;
-                      const maxBarHeight = 130;
-
-                      return (
-                        <svg viewBox={`0 0 ${chartWidth} 190`} className="w-full" style={{ maxHeight: 220 }}>
-                          <line x1="0" y1={baseline} x2={chartWidth} y2={baseline} stroke="currentColor" strokeOpacity="0.15" />
-
-                          {graphData.map((d, i) => {
-                            const x = i * (barWidth + gap) + 20;
-                            const barHeight = Math.max((Math.min(d.value, 100) / 100) * maxBarHeight, 2);
-                            const y = baseline - barHeight;
-                            const label = d.name.length > 9 ? `${d.name.slice(0, 8)}…` : d.name;
-
-                            return (
-                              <g key={`${d.name}-${i}`}>
-                                <rect x={x} y={y} width={barWidth} height={barHeight} rx={4} className="fill-primary" opacity={0.85} />
-                                <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="11" className="fill-foreground font-medium">
-                                  {d.value}%
-                                </text>
-                                <text x={x + barWidth / 2} y={baseline + 16} textAnchor="middle" fontSize="10" className="fill-muted-foreground">
-                                  {label}
-                                </text>
-                              </g>
-                            );
-                          })}
-                        </svg>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {selectedReport.template?.showOverallGrade !== false && (
-                  <div className="rounded-xl border p-4">
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="size-4 text-muted-foreground" />
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overall Result</p>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-end gap-8">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Percentage</p>
-                        <p className="mt-1 text-2xl font-bold">{overall.percentage != null ? `${overall.percentage}%` : "—"}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">Grade</p>
-                        <p className="mt-1 text-2xl font-bold">{String(overall.grade ?? "—")}</p>
-                      </div>
-
-                      {overall.remark != null && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">Remark</p>
-                          <p className="mt-1 text-sm font-medium">{String(overall.remark)}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {selectedReport.template?.coScholasticRows && selectedReport.template.coScholasticRows.length > 0 && (
-                  <div className="rounded-xl border">
-                    <div className="flex items-center justify-between border-b px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Award className="size-4 text-muted-foreground" />
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Co-Scholastic</p>
-                      </div>
-
-                      {canUpdate && (
-                        <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => openCoScholasticGrading(selectedReport)}>
-                          <Pencil className="size-3.5" />
-                          Grade
-                        </Button>
-                      )}
-                    </div>
-
-                    <div className="divide-y">
-                      {[...selectedReport.template.coScholasticRows]
-                        .sort((a, b) => a.displayOrder - b.displayOrder)
-                        .map((row) => (
-                          <div key={row.id} className="flex items-center justify-between px-4 py-2.5">
-                            <p className="text-sm">{row.label}</p>
-                            <p className="text-sm font-semibold">{selectedReport.coScholasticMarks?.[row.label] || "—"}</p>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="rounded-xl border">
-                  <div className="border-b px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <MessageSquareText className="size-4 text-muted-foreground" />
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Remarks</p>
-                    </div>
-                  </div>
-
-                  <div className="divide-y">
-                    {getRemarkFieldsForReport(selectedReport).map((field) => {
-                      const value = readObject(selectedReport.teacherRemarks)[field.key];
-                      const text = typeof value === "string" ? value.trim() : "";
-
-                      return (
-                        <div key={field.key} className="p-4">
-                          <p className="text-xs font-semibold text-muted-foreground">{field.label}</p>
-                          <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{text || "No remarks added yet."}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="flex-1 overflow-auto bg-muted/30 p-4">
+            {selectedReport && <ReportCardSheet report={selectedReport} remarkFields={getRemarkFieldsForReport(selectedReport)} gradeBands={selectedGradeBands} />}
           </div>
 
           <DialogFooter className="shrink-0 border-t px-6 py-4">
@@ -2791,6 +2457,13 @@ export default function ReportCardsPage() {
                 <Button type="button" variant="outline" className="gap-2" onClick={() => openManualMarks(selectedReport)}>
                   <ListChecks className="size-4" />
                   Manual Marks
+                </Button>
+              )}
+
+              {selectedReport && (
+                <Button type="button" variant="outline" className="gap-2" onClick={() => printReportCardSheet()}>
+                  <Printer className="size-4" />
+                  Print / Save PDF
                 </Button>
               )}
 

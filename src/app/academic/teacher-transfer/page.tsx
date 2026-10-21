@@ -139,7 +139,7 @@ function groupSlotsByDay(slots: TimetableConflict["availableSlots"]) {
 }
 
 export default function TeacherTransferPage() {
-  const { teachers, subjectAllocations, teacherAssignments, teacherTransfers, loading, fetchTeachers, fetchSubjectAllocations, fetchTeacherAssignments, fetchTeacherTransfers } = useAcademicStore();
+  const { teachers, subjectAllocations, teacherAssignments, teacherTransfers, loading, fetchTeachersLookup: fetchTeachers, fetchSubjectAllocations, fetchTeacherAssignments, fetchTeacherTransfers } = useAcademicStore();
   const authorized = usePermission("teacher-transfer.read");
   const canTransfer = usePermission("teacher-transfer.create");
   const [step, setStep] = useState(0);

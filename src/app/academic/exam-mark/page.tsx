@@ -34,7 +34,7 @@ export default function ExamMarksPage() {
     examMarks,
 
     fetchExams,
-    fetchStudents,
+    fetchStudentsLookup: fetchStudents,
     fetchStudentEnrollments,
     fetchExamMarks,
 

@@ -725,11 +725,13 @@ interface AcademicStore {
   updateSubject: (id: string, data: UpdateSubjectPayload) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
 
+  fetchTeachersLookup: () => Promise<void>;
   fetchTeachers: () => Promise<void>;
   createTeacher: (data: CreateTeacherPayload) => Promise<void>;
   updateTeacher: (id: string, data: UpdateTeacherPayload) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
 
+  fetchStudentsLookup: () => Promise<void>;
   fetchStudents: () => Promise<void>;
   createStudent: (data: CreateStudentPayload) => Promise<StudentCredentials | null>;
   createStudentLogin: (id: string, data: { userName: string; password: string }) => Promise<StudentCredentials | null>;
@@ -1174,6 +1176,15 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   // Teachers
   // ======================
 
+  fetchTeachersLookup: async () => {
+    try {
+      const response = await academicService.teachers.getLookup();
+      set({ teachers: response.data.data ?? [] });
+    } catch (error) {
+      console.error("Failed to fetch teachers lookup", error);
+    }
+  },
+
   fetchTeachers: async () => {
     try {
       set({ loading: true });
@@ -1225,6 +1236,15 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   // ======================
   // Students
   // ======================
+
+  fetchStudentsLookup: async () => {
+    try {
+      const response = await academicService.students.getLookup();
+      set({ students: response.data.data ?? [] });
+    } catch (error) {
+      console.error("Failed to fetch students lookup", error);
+    }
+  },
 
   fetchStudents: async () => {
     try {

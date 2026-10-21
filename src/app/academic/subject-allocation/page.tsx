@@ -69,7 +69,7 @@ export default function SubjectAllocationPage() {
     fetchClasses,
     fetchSections,
     fetchSubjects,
-    fetchTeachers,
+    fetchTeachersLookup: fetchTeachers,
     fetchSubjectAllocations,
 
     createSubjectAllocation,

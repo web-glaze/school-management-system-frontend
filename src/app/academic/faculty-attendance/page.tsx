@@ -312,7 +312,7 @@ export default function FacultyAttendancePage() {
     facultyAttendances,
 
     fetchSessions,
-    fetchTeachers,
+    fetchTeachersLookup: fetchTeachers,
     fetchFacultyAttendances,
 
     createFacultyAttendance,

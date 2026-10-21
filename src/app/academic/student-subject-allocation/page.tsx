@@ -42,7 +42,7 @@ export default function StudentSubjectAllocationPage() {
     fetchClasses,
     fetchSections,
     fetchSubjects,
-    fetchStudents,
+    fetchStudentsLookup: fetchStudents,
     fetchStudentEnrollments,
     fetchSubjectAllocations,
     fetchStudentSubjectAllocations,

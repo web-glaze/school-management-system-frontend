@@ -62,7 +62,7 @@ export default function TeacherAssignmentPage() {
     fetchSessions,
     fetchClasses,
     fetchSections,
-    fetchTeachers,
+    fetchTeachersLookup: fetchTeachers,
     fetchTeacherAssignments,
 
     createTeacherAssignment,

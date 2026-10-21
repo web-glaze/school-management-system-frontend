@@ -586,6 +586,8 @@ export const academicService = {
   teachers: {
     getAll: () => apiClient.get("/academic/teachers"),
 
+    getLookup: () => apiClient.get("/academic/teachers/lookup"),
+
     getById: (id: string) => apiClient.get(`/academic/teachers/${id}`),
 
     generateUsername: (name: string, email?: string, phone?: string) =>
@@ -608,6 +610,8 @@ export const academicService = {
 
   students: {
     getAll: () => apiClient.get("/academic/students"),
+
+    getLookup: () => apiClient.get("/academic/students/lookup"),
 
     getById: (id: string) => apiClient.get(`/academic/students/${id}`),
 
