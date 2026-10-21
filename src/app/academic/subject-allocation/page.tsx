@@ -16,7 +16,7 @@ import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAcademicStore } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 
 type ApiErrorResponse = {
   message?: string;
@@ -78,6 +78,9 @@ export default function SubjectAllocationPage() {
   } = useAcademicStore();
 
   const authorized = usePermission("subject-allocation.read");
+  const canCreate = useHasPermission("subject-allocation.create");
+  const canUpdate = useHasPermission("subject-allocation.update");
+  const canDelete = useHasPermission("subject-allocation.delete");
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all");
@@ -302,12 +305,12 @@ export default function SubjectAllocationPage() {
             }
           }}
         >
-          <DialogTrigger asChild>
+          {canCreate && (<DialogTrigger asChild>
             <Button className="gap-2 px-5">
               <Plus className="size-4" />
               New Allocation
             </Button>
-          </DialogTrigger>
+          </DialogTrigger>)}
 
           <DialogContent className="sm:max-w-125 p-0 overflow-hidden">
             <div className="border-b px-6 py-5">
@@ -810,7 +813,7 @@ export default function SubjectAllocationPage() {
                   <TableHead className="hidden md:table-cell w-36 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Class</TableHead>
                   <TableHead className="hidden md:table-cell w-36 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Section</TableHead>
                   <TableHead className="hidden md:table-cell w-60 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Created At</TableHead>
-                  <TableHead className="w-16 font-bold text-xs uppercase tracking-wider py-4 pr-4 text-right text-foreground/80">Actions</TableHead>
+                  {(canUpdate || canDelete) && (<TableHead className="w-16 font-bold text-xs uppercase tracking-wider py-4 pr-4 text-right text-foreground/80">Actions</TableHead>)}
                 </TableRow>
               </TableHeader>
 
@@ -849,15 +852,15 @@ export default function SubjectAllocationPage() {
                       </div>
                     </TableCell>
 
-                    <TableCell className="w-16 py-4 pr-4 text-right align-top">
+                    {(canUpdate || canDelete) && (<TableCell className="w-16 py-4 pr-4 text-right align-top">
                       <div className="hidden md:flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(allocation)}>
+                        {canUpdate && (<Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(allocation)}>
                           <Pencil className="size-5" />
-                        </Button>
+                        </Button>)}
 
-                        <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => openDeleteDialog(allocation)}>
+                        {canDelete && (<Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => openDeleteDialog(allocation)}>
                           <Trash2 className="size-5" />
-                        </Button>
+                        </Button>)}
                       </div>
 
                       <div className="md:hidden flex justify-end">
@@ -869,19 +872,19 @@ export default function SubjectAllocationPage() {
                           </DropdownMenuTrigger>
 
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(allocation)}>
+                            {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(allocation)}>
                               <Pencil className="mr-2 size-4" />
                               Edit
-                            </DropdownMenuItem>
+                            </DropdownMenuItem>)}
 
-                            <DropdownMenuItem onClick={() => openDeleteDialog(allocation)} className="text-destructive">
+                            {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(allocation)} className="text-destructive">
                               <Trash2 className="mr-2 size-4" />
                               Delete
-                            </DropdownMenuItem>
+                            </DropdownMenuItem>)}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                    </TableCell>
+                    </TableCell>)}
                   </TableRow>
                 ))}
               </TableBody>

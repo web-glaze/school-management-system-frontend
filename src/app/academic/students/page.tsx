@@ -12,7 +12,7 @@ import { ArrowLeft, CalendarDays, Calendar as CalendarIconTable, CalendarIcon, C
 import { useAcademicStore, type StudentCredentials } from "@/store/academicStore";
 import { academicService } from "@/services/academic.service";
 import { Badge } from "@/components/ui/badge";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useEffect, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { toast } from "sonner";
@@ -451,6 +451,9 @@ export default function StudentsPage() {
   };
 
   const authorized = usePermission("student.read");
+  const canCreate = useHasPermission("student.create");
+  const canUpdate = useHasPermission("student.update");
+  const canDelete = useHasPermission("student.delete");
 
   if (authorized === null) return null;
 
@@ -507,12 +510,12 @@ export default function StudentsPage() {
               }
             }}
           >
-            <DialogTrigger asChild>
+            {canCreate && (<DialogTrigger asChild>
               <Button className="gap-2 px-5">
                 <Plus className="size-4" />
                 Add Student
               </Button>
-            </DialogTrigger>
+            </DialogTrigger>)}
 
             <DialogContent className="sm:max-w-3xl w-[95vw] p-0 overflow-hidden max-h-[80vh] flex flex-col gap-0">
               {/* Header */}
@@ -885,9 +888,9 @@ export default function StudentsPage() {
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Date Of Birth</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
-                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                      {(canCreate || canUpdate || canDelete) && (<TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <span className="md:block">Actions</span>
-                      </TableHead>
+                      </TableHead>)}
                     </TableRow>
                   </TableHeader>
 
@@ -955,9 +958,9 @@ export default function StudentsPage() {
                           </div>
                         </TableCell>
 
-                        <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                        {(canCreate || canUpdate || canDelete) && (<TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                           <div className="hidden md:flex justify-end gap-1">
-                            {!student.user && (
+                            {!student.user && canCreate && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -970,7 +973,7 @@ export default function StudentsPage() {
                               </Button>
                             )}
 
-                            <Button
+                            {canUpdate && (<Button
                               variant="ghost"
                               size="icon"
                               className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
@@ -979,9 +982,9 @@ export default function StudentsPage() {
                               onClick={() => openEditDialog(student)}
                             >
                               <Pencil className="size-5" />
-                            </Button>
+                            </Button>)}
 
-                            <Button
+                            {canDelete && (<Button
                               variant="ghost"
                               size="icon"
                               className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
@@ -990,7 +993,7 @@ export default function StudentsPage() {
                               onClick={() => openDeleteDialog(student)}
                             >
                               <Trash2 className="size-5" />
-                            </Button>
+                            </Button>)}
                           </div>
 
                           <div className="md:hidden flex justify-end">
@@ -1002,10 +1005,10 @@ export default function StudentsPage() {
                               </DropdownMenuTrigger>
 
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditDialog(student)}>
+                                {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(student)}>
                                   <Pencil className="mr-2 size-4" />
                                   Edit
-                                </DropdownMenuItem>
+                                </DropdownMenuItem>)}
 
                                 {!student.user && (
                                   <DropdownMenuItem onClick={() => openExistingLoginDialog(student)}>
@@ -1014,14 +1017,14 @@ export default function StudentsPage() {
                                   </DropdownMenuItem>
                                 )}
 
-                                <DropdownMenuItem onClick={() => openDeleteDialog(student)} className="text-destructive">
+                                {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(student)} className="text-destructive">
                                   <Trash2 className="mr-2 size-4" />
                                   Delete
-                                </DropdownMenuItem>
+                                </DropdownMenuItem>)}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        </TableCell>
+                        </TableCell>)}
                       </TableRow>
                     ))}
                   </TableBody>

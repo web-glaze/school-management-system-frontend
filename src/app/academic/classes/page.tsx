@@ -13,7 +13,7 @@ import { CalendarDays, Calendar, Inbox, Loader2, Pencil, Plus, Search, Trash2, M
 import { useAcademicStore } from "@/store/academicStore";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useEffect, useRef, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { toast } from "sonner";
@@ -237,6 +237,9 @@ export default function ClassesPage() {
   };
 
   const authorized = usePermission("class.read");
+  const canCreate = useHasPermission("class.create");
+  const canUpdate = useHasPermission("class.update");
+  const canDelete = useHasPermission("class.delete");
 
   if (authorized === null) {
     return null;
@@ -260,7 +263,7 @@ export default function ClassesPage() {
 
   const filteredClasses = orderedClasses.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()) || item.classCode.toLowerCase().includes(search.toLowerCase()));
 
-  const dragEnabled = search.trim() === "";
+  const dragEnabled = search.trim() === "" && canUpdate;
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -303,12 +306,12 @@ export default function ClassesPage() {
             <p className="text-muted-foreground">Manage classes</p>
           </div>
           <Dialog open={addClassOpen} onOpenChange={setAddClassOpen}>
-            <DialogTrigger asChild>
+            {canCreate && (<DialogTrigger asChild>
               <Button className="gap-2 px-5">
                 <Plus className="size-4" />
                 Add Class
               </Button>
-            </DialogTrigger>
+            </DialogTrigger>)}
 
             <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
               <div className="border-b px-6 py-5">
@@ -446,13 +449,13 @@ export default function ClassesPage() {
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden sm:table-cell">Board</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
-                      <TableHead
+                      {(canUpdate || canDelete) && (<TableHead
                         className={`font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 bg-gray-50 dark:bg-muted/15 ${
                           isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0"
                         }`}
                       >
                         <span className="md:block">Actions</span>
-                      </TableHead>
+                      </TableHead>)}
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border/30">
@@ -502,13 +505,13 @@ export default function ClassesPage() {
                                 </div>
                               </TableCell>
 
-                              <TableCell
+                              {(canUpdate || canDelete) && (<TableCell
                                 className={`py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card ${
                                   isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0"
                                 }`}
                               >
                                 <div className="hidden md:flex justify-end gap-1">
-                                  <Button
+                                  {canUpdate && (<Button
                                     variant="ghost"
                                     size="icon"
                                     className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
@@ -517,9 +520,9 @@ export default function ClassesPage() {
                                     onClick={() => openEditDialog(classItem)}
                                   >
                                     <Pencil className="size-5" />
-                                  </Button>
+                                  </Button>)}
 
-                                  <Button
+                                  {canUpdate && (<Button
                                     variant="ghost"
                                     size="icon"
                                     className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
@@ -528,7 +531,7 @@ export default function ClassesPage() {
                                     onClick={() => openDeleteDialog(classItem)}
                                   >
                                     <Trash2 className="size-5" />
-                                  </Button>
+                                  </Button>)}
                                 </div>
 
                                 <div className="md:hidden flex justify-end">
@@ -540,19 +543,19 @@ export default function ClassesPage() {
                                     </DropdownMenuTrigger>
 
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => openEditDialog(classItem)}>
+                                      {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(classItem)}>
                                         <Pencil className="mr-2 size-4" />
                                         Edit
-                                      </DropdownMenuItem>
+                                      </DropdownMenuItem>)}
 
-                                      <DropdownMenuItem onClick={() => openDeleteDialog(classItem)} className="text-destructive">
+                                      {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(classItem)} className="text-destructive">
                                         <Trash2 className="mr-2 size-4" />
                                         Delete
-                                      </DropdownMenuItem>
+                                      </DropdownMenuItem>)}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </div>
-                              </TableCell>
+                              </TableCell>)}
                             </>
                           )}
                         </SortableRow>

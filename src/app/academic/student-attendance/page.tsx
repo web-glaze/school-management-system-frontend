@@ -30,7 +30,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useAcademicStore, StudentAttendance, SubjectAttendance, StudentEnrollment } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useStudentScope } from "@/hooks/useStudentScope";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -148,6 +148,9 @@ export default function StudentAttendancePage() {
   } = useAcademicStore();
 
   const authorized = usePermission("student-attendance.read");
+  const canCreate = useHasPermission("student-attendance.create");
+  const canUpdate = useHasPermission("student-attendance.update");
+  const canDelete = useHasPermission("student-attendance.delete");
 
   // Student / parent logins get a read-only view of their own child only.
   const { ready: scopeReady, isStudent } = useStudentScope();
@@ -618,9 +621,9 @@ export default function StudentAttendancePage() {
                         {record ? (
                           <button
                             type="button"
-                            onClick={() => handleCellClick(enrollment.id, dateStr, kind, subjectAllocationId)}
+                            disabled={!canUpdate} onClick={() => handleCellClick(enrollment.id, dateStr, kind, subjectAllocationId)}
                             title={record.remarks || undefined}
-                            className={cn("w-full max-w-32 rounded-md px-2 py-2 text-center text-xs font-semibold transition-colors hover:opacity-80", statusBadgeClass(record.status))}
+                            className={cn("w-full max-w-32 rounded-md px-2 py-2 text-center text-xs font-semibold transition-colors hover:opacity-80 disabled:pointer-events-none", statusBadgeClass(record.status))}
                           >
                             <p>{statusLabel(record.status)}</p>
                             {record.remarks && <p className="mt-0.5 truncate font-normal opacity-80 text-[10px]">{record.remarks}</p>}
@@ -628,8 +631,8 @@ export default function StudentAttendancePage() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => handleCellClick(enrollment.id, dateStr, kind, subjectAllocationId)}
-                            className="w-full rounded-md px-2 py-2 text-center text-xs font-medium text-muted-foreground/50 border border-dashed border-border hover:bg-muted/40 transition-colors"
+                            disabled={!canCreate} onClick={() => handleCellClick(enrollment.id, dateStr, kind, subjectAllocationId)}
+                            className="w-full rounded-md px-2 py-2 text-center text-xs font-medium text-muted-foreground/50 border border-dashed border-border hover:bg-muted/40 transition-colors disabled:pointer-events-none"
                           >
                             Not marked
                           </button>
@@ -864,7 +867,7 @@ export default function StudentAttendancePage() {
                 </button>
               </div>
 
-              {!isTeacherView && (
+              {!isTeacherView && canCreate && (
                 <Button className="gap-2 px-5 hidden sm:flex" onClick={() => setAddOpen(true)}>
                   <Plus className="size-4" />
                   Add Entry
@@ -1431,12 +1434,12 @@ export default function StudentAttendancePage() {
                           <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground" title={r.remarks || undefined}>
                             {r.remarks}
                           </p>
-                          <button type="button" onClick={() => openEditDialog(r)} className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary">
+                          {canUpdate && (<button type="button" onClick={() => openEditDialog(r)} className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary">
                             <Pencil className="size-3.5" />
-                          </button>
-                          <button type="button" onClick={() => openDeleteDialog(r)} className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive">
+                          </button>)}
+                          {canDelete && (<button type="button" onClick={() => openDeleteDialog(r)} className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive">
                             <Trash2 className="size-3.5" />
-                          </button>
+                          </button>)}
                         </div>
                       ))}
 

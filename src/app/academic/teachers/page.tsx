@@ -13,7 +13,7 @@ import { useAcademicStore } from "@/store/academicStore";
 import { academicService } from "@/services/academic.service";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useEffect, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { toast } from "sonner";
@@ -305,6 +305,9 @@ export default function TeachersPage() {
   };
 
   const authorized = usePermission("teacher.read");
+  const canCreate = useHasPermission("teacher.create");
+  const canUpdate = useHasPermission("teacher.update");
+  const canDelete = useHasPermission("teacher.delete");
 
   if (authorized === null) {
     return null;
@@ -362,12 +365,12 @@ export default function TeachersPage() {
               }
             }}
           >
-            <DialogTrigger asChild>
+            {canCreate && (<DialogTrigger asChild>
               <Button className="gap-2 px-5">
                 <Plus className="size-4" />
                 Add Teacher
               </Button>
-            </DialogTrigger>
+            </DialogTrigger>)}
 
             <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
               <div className="border-b px-6 py-5">
@@ -703,9 +706,9 @@ export default function TeachersPage() {
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Joining Date</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                    {(canUpdate || canDelete) && (<TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                       <span className="md:block">Actions</span>
-                    </TableHead>
+                    </TableHead>)}
                   </TableRow>
                 </TableHeader>
 
@@ -757,9 +760,9 @@ export default function TeachersPage() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                      {(canUpdate || canDelete) && (<TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <div className="hidden md:flex justify-end gap-1">
-                          <Button
+                          {canUpdate && (<Button
                             variant="ghost"
                             size="icon"
                             className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
@@ -768,9 +771,9 @@ export default function TeachersPage() {
                             onClick={() => openEditDialog(teacher)}
                           >
                             <Pencil className="size-5" />
-                          </Button>
+                          </Button>)}
 
-                          <Button
+                          {canDelete && (<Button
                             variant="ghost"
                             size="icon"
                             className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
@@ -779,7 +782,7 @@ export default function TeachersPage() {
                             onClick={() => openDeleteDialog(teacher)}
                           >
                             <Trash2 className="size-5" />
-                          </Button>
+                          </Button>)}
                         </div>
 
                         <div className="md:hidden flex justify-end">
@@ -791,19 +794,19 @@ export default function TeachersPage() {
                             </DropdownMenuTrigger>
 
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(teacher)}>
+                              {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(teacher)}>
                                 <Pencil className="mr-2 size-4" />
                                 Edit
-                              </DropdownMenuItem>
+                              </DropdownMenuItem>)}
 
-                              <DropdownMenuItem onClick={() => openDeleteDialog(teacher)} className="text-destructive">
+                              {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(teacher)} className="text-destructive">
                                 <Trash2 className="mr-2 size-4" />
                                 Delete
-                              </DropdownMenuItem>
+                              </DropdownMenuItem>)}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      </TableCell>
+                      </TableCell>)}
                     </TableRow>
                   ))}
                 </TableBody>

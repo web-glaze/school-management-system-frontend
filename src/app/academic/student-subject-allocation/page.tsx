@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAcademicStore, StudentSubjectAllocation } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 
 type ApiErrorResponse = {
   message?: string;
@@ -53,6 +53,9 @@ export default function StudentSubjectAllocationPage() {
   } = useAcademicStore();
 
   const authorized = usePermission("student-subject-allocation.read");
+  const canCreate = useHasPermission("student-subject-allocation.create");
+  const canUpdate = useHasPermission("student-subject-allocation.update");
+  const canDelete = useHasPermission("student-subject-allocation.delete");
 
   const [search, setSearch] = useState("");
 
@@ -277,12 +280,12 @@ export default function StudentSubjectAllocationPage() {
             }
           }}
         >
-          <DialogTrigger asChild>
+          {canCreate && (<DialogTrigger asChild>
             <Button className="gap-2 px-5">
               <Plus className="size-4" />
               New Allocation
             </Button>
-          </DialogTrigger>
+          </DialogTrigger>)}
 
           <DialogContent className="sm:max-w-125 p-0 overflow-hidden">
             <div className="border-b px-6 py-5">
@@ -729,9 +732,9 @@ export default function StudentSubjectAllocationPage() {
                   <TableHead className="hidden md:table-cell w-36 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Class</TableHead>
                   <TableHead className="hidden md:table-cell w-36 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Section</TableHead>
                   <TableHead className="hidden md:table-cell w-60 font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Created At</TableHead>
-                  <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                  {(canUpdate || canDelete) && (<TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                     <span className="md:block">Actions</span>
-                  </TableHead>
+                  </TableHead>)}
                 </TableRow>
               </TableHeader>
 
@@ -767,9 +770,9 @@ export default function StudentSubjectAllocationPage() {
                       </div>
                     </TableCell>
 
-                    <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                    {(canUpdate || canDelete) && (<TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                       <div className="hidden md:flex justify-end gap-1">
-                        <Button
+                        {canUpdate && (<Button
                           variant="ghost"
                           size="icon"
                           className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
@@ -778,9 +781,9 @@ export default function StudentSubjectAllocationPage() {
                           onClick={() => openEditDialog(allocation)}
                         >
                           <Pencil className="size-5" />
-                        </Button>
+                        </Button>)}
 
-                        <Button
+                        {canDelete && (<Button
                           variant="ghost"
                           size="icon"
                           className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
@@ -789,7 +792,7 @@ export default function StudentSubjectAllocationPage() {
                           onClick={() => openDeleteDialog(allocation)}
                         >
                           <Trash2 className="size-5" />
-                        </Button>
+                        </Button>)}
                       </div>
 
                       <div className="md:hidden flex justify-end">
@@ -801,19 +804,19 @@ export default function StudentSubjectAllocationPage() {
                           </DropdownMenuTrigger>
 
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(allocation)}>
+                            {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(allocation)}>
                               <Pencil className="mr-2 size-4" />
                               Edit
-                            </DropdownMenuItem>
+                            </DropdownMenuItem>)}
 
-                            <DropdownMenuItem onClick={() => openDeleteDialog(allocation)} className="text-destructive">
+                            {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(allocation)} className="text-destructive">
                               <Trash2 className="mr-2 size-4" />
                               Delete
-                            </DropdownMenuItem>
+                            </DropdownMenuItem>)}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                    </TableCell>
+                    </TableCell>)}
                   </TableRow>
                 ))}
               </TableBody>

@@ -16,7 +16,7 @@ import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAcademicStore, Timetable } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useStudentScope } from "@/hooks/useStudentScope";
 
 type ApiErrorResponse = {
@@ -127,6 +127,9 @@ export default function TimetablePage() {
   } = useAcademicStore();
 
   const authorized = usePermission("timetable.read");
+  const canCreate = useHasPermission("timetable.create");
+  const canUpdate = useHasPermission("timetable.update");
+  const canDelete = useHasPermission("timetable.delete");
   const { ready: scopeReady, isStudent } = useStudentScope();
 
   // ── Current user / teacher context ────────────────────────────────────
@@ -459,7 +462,7 @@ export default function TimetablePage() {
     const entry = cellMap[`${day}-${period}`];
 
     if (!entry) {
-      return (
+      if (!canCreate) { return <div className="h-20 w-full rounded-xl border border-dashed border-border/40" />; } return (
         <button
           type="button"
           onClick={() => openCreateDialog(day, period)}
@@ -489,22 +492,22 @@ export default function TimetablePage() {
           </span>
         </div>
 
-        <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-          <button
+        {(canUpdate || canDelete) && (<div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+          {canUpdate && (<button
             type="button"
             onClick={() => openEditDialog(entry)}
             className="flex size-6 items-center justify-center rounded-md bg-background/80 text-muted-foreground shadow-sm hover:bg-background hover:text-primary"
           >
             <Pencil className="size-3" />
-          </button>
-          <button
+          </button>)}
+          {canDelete && (<button
             type="button"
             onClick={() => openDeleteDialog(entry)}
             className="flex size-6 items-center justify-center rounded-md bg-background/80 text-muted-foreground shadow-sm hover:bg-background hover:text-destructive"
           >
             <Trash2 className="size-3" />
-          </button>
-        </div>
+          </button>)}
+        </div>)}
       </div>
     );
   }
@@ -519,7 +522,7 @@ export default function TimetablePage() {
     const entry = cellMap[`${mobileDay}-${period}`];
 
     if (!entry) {
-      return (
+      if (!canCreate) { return ( <div className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border px-4 py-3.5 text-muted-foreground/60"> <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">P{period}</span> <span className="text-sm font-medium">Not scheduled</span> </div> ); } return (
         <button
           type="button"
           onClick={() => openCreateDialog(mobileDay, period)}
@@ -548,14 +551,14 @@ export default function TimetablePage() {
           </div>
         </div>
 
-        <div className="flex shrink-0 gap-1">
-          <button type="button" onClick={() => openEditDialog(entry)} className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background">
+        {(canUpdate || canDelete) && (<div className="flex shrink-0 gap-1">
+          {canUpdate && (<button type="button" onClick={() => openEditDialog(entry)} className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background">
             <Pencil className="size-3.5" />
-          </button>
-          <button type="button" onClick={() => openDeleteDialog(entry)} className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background">
+          </button>)}
+          {canDelete && (<button type="button" onClick={() => openDeleteDialog(entry)} className="flex size-8 items-center justify-center rounded-lg bg-background/70 text-muted-foreground active:bg-background">
             <Trash2 className="size-3.5 text-destructive" />
-          </button>
-        </div>
+          </button>)}
+        </div>)}
       </div>
     );
   }
@@ -843,12 +846,12 @@ export default function TimetablePage() {
             <span className="hidden sm:inline">Days &amp; Periods</span>
           </Button>
 
-          <div className="flex-1 sm:flex-none">
+          {canCreate && (<div className="flex-1 sm:flex-none">
             <Button className="w-full gap-2 px-3 sm:w-auto sm:px-5" disabled={!viewSelected} onClick={() => openCreateDialog()}>
               <Plus className="size-4" />
               Add Period
             </Button>
-          </div>
+          </div>)}
         </div>
       </div>
 

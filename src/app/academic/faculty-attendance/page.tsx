@@ -35,7 +35,7 @@ import {
   X,
 } from "lucide-react";
 import { useAcademicStore, FacultyAttendance } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
@@ -321,7 +321,14 @@ export default function FacultyAttendancePage() {
   } = useAcademicStore();
 
   const authorized = usePermission("faculty-attendance.read");
+  const canCreate = useHasPermission("faculty-attendance.create");
+  const canUpdate = useHasPermission("faculty-attendance.update");
+  const canDelete = useHasPermission("faculty-attendance.delete");
+  const canMark = canCreate || canUpdate;
   const [viewMode, setViewMode] = useState<"mark" | "records">("mark");
+  useEffect(() => {
+    if (authorized !== null && !canMark) setViewMode("records");
+  }, [authorized, canMark]);
   const [regSessionId, setRegSessionId] = useState("");
   const [regDesignation, setRegDesignation] = useState("all");
   const [regDate, setRegDate] = useState(todayStr());
@@ -687,7 +694,7 @@ export default function FacultyAttendancePage() {
             {/* Desktop controls */}
             <div className="hidden sm:flex items-center gap-3">
               <div className="inline-flex rounded-lg border p-1 bg-muted/40">
-                <button
+                {canMark && (<button
                   onClick={() => setViewMode("mark")}
                   className={cn(
                     "flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors",
@@ -696,7 +703,7 @@ export default function FacultyAttendancePage() {
                 >
                   <ClipboardList className="size-4" />
                   Mark Attendance
-                </button>
+                </button>)}
 
                 <button
                   onClick={() => setViewMode("records")}
@@ -710,10 +717,10 @@ export default function FacultyAttendancePage() {
                 </button>
               </div>
 
-              <Button className="gap-2 px-5" onClick={() => setAddOpen(true)}>
+              {canCreate && (<Button className="gap-2 px-5" onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" />
                 Add Entry
-              </Button>
+              </Button>)}
             </div>
           </div>
 
@@ -743,9 +750,9 @@ export default function FacultyAttendancePage() {
               </button>
             </div>
 
-            <Button size="icon" className="size-10 shrink-0" onClick={() => setAddOpen(true)} aria-label="Add Entry">
+            {canCreate && (<Button size="icon" className="size-10 shrink-0" onClick={() => setAddOpen(true)} aria-label="Add Entry">
               <Plus className="size-5" />
-            </Button>
+            </Button>)}
           </div>
 
           <Dialog
@@ -1478,7 +1485,7 @@ export default function FacultyAttendancePage() {
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Date</TableHead>
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Timing</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Status</TableHead>
-                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-right text-foreground/80 min-w-12.5">Actions</TableHead>
+                      {(canUpdate || canDelete) && (<TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-6 text-right text-foreground/80 min-w-12.5">Actions</TableHead>)}
                     </TableRow>
                   </TableHeader>
 
@@ -1534,20 +1541,20 @@ export default function FacultyAttendancePage() {
                           <Badge className={statusBadgeClass(attendance.status)}>{STATUS_OPTIONS.find((o) => o.value === attendance.status)?.label ?? attendance.status}</Badge>
                         </TableCell>
 
-                        <TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
+                        {(canUpdate || canDelete) && (<TableCell className="py-4 pr-6 text-right align-top max-w-12.5">
                           <div className="hidden md:flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(attendance)}>
+                            {canUpdate && (<Button variant="ghost" size="icon" className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all" onClick={() => openEditDialog(attendance)}>
                               <Pencil className="size-5" />
-                            </Button>
+                            </Button>)}
 
-                            <Button
+                            {canDelete && (<Button
                               variant="ghost"
                               size="icon"
                               className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
                               onClick={() => openDeleteDialog(attendance)}
                             >
                               <Trash2 className="size-5" />
-                            </Button>
+                            </Button>)}
                           </div>
 
                           <div className="md:hidden flex justify-end">
@@ -1559,19 +1566,19 @@ export default function FacultyAttendancePage() {
                               </DropdownMenuTrigger>
 
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditDialog(attendance)}>
+                                {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(attendance)}>
                                   <Pencil className="mr-2 size-4" />
                                   Edit
-                                </DropdownMenuItem>
+                                </DropdownMenuItem>)}
 
-                                <DropdownMenuItem onClick={() => openDeleteDialog(attendance)} className="text-destructive">
+                                {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(attendance)} className="text-destructive">
                                   <Trash2 className="mr-2 size-4" />
                                   Delete
-                                </DropdownMenuItem>
+                                </DropdownMenuItem>)}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        </TableCell>
+                        </TableCell>)}
                       </TableRow>
                     ))}
                   </TableBody>

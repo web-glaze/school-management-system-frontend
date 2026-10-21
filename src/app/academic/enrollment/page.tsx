@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Calendar, Check, ChevronDown, GraduationCap, Inbox, Loader2, MoreVertical, Pencil, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { useAcademicStore } from "@/store/academicStore";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
@@ -78,6 +78,9 @@ export default function StudentEnrollmentsPage() {
   } = useAcademicStore();
 
   const authorized = usePermission("student-enrollment.read");
+  const canCreate = useHasPermission("student-enrollment.create");
+  const canUpdate = useHasPermission("student-enrollment.update");
+  const canDelete = useHasPermission("student-enrollment.delete");
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all");
@@ -275,12 +278,12 @@ export default function StudentEnrollmentsPage() {
               }
             }}
           >
-            <DialogTrigger asChild>
+            {canCreate && (<DialogTrigger asChild>
               <Button className="gap-2 px-5">
                 <Plus className="size-4" />
                 New Enrollment
               </Button>
-            </DialogTrigger>
+            </DialogTrigger>)}
 
             <DialogContent className="sm:max-w-125 p-0 overflow-hidden">
               <div className="border-b px-6 py-5">
@@ -796,9 +799,9 @@ export default function StudentEnrollmentsPage() {
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Section</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30">Created At</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                    {(canUpdate || canDelete) && (<TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                       <span className="md:block">Actions</span>
-                    </TableHead>
+                    </TableHead>)}
                   </TableRow>
                 </TableHeader>
 
@@ -857,9 +860,9 @@ export default function StudentEnrollmentsPage() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                      {(canUpdate || canDelete) && (<TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
                         <div className="hidden md:flex justify-end gap-1">
-                          <Button
+                          {canUpdate && (<Button
                             variant="ghost"
                             size="icon"
                             className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
@@ -868,9 +871,9 @@ export default function StudentEnrollmentsPage() {
                             onClick={() => openEditDialog(enrollment)}
                           >
                             <Pencil className="size-5" />
-                          </Button>
+                          </Button>)}
 
-                          <Button
+                          {canDelete && (<Button
                             variant="ghost"
                             size="icon"
                             className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
@@ -879,7 +882,7 @@ export default function StudentEnrollmentsPage() {
                             onClick={() => openDeleteDialog(enrollment)}
                           >
                             <Trash2 className="size-5" />
-                          </Button>
+                          </Button>)}
                         </div>
 
                         <div className="md:hidden flex justify-end">
@@ -891,19 +894,19 @@ export default function StudentEnrollmentsPage() {
                             </DropdownMenuTrigger>
 
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(enrollment)}>
+                              {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(enrollment)}>
                                 <Pencil className="mr-2 size-4" />
                                 Edit
-                              </DropdownMenuItem>
+                              </DropdownMenuItem>)}
 
-                              <DropdownMenuItem onClick={() => openDeleteDialog(enrollment)} className="text-destructive">
+                              {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(enrollment)} className="text-destructive">
                                 <Trash2 className="mr-2 size-4" />
                                 Delete
-                              </DropdownMenuItem>
+                              </DropdownMenuItem>)}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      </TableCell>
+                      </TableCell>)}
                     </TableRow>
                   ))}
                 </TableBody>
