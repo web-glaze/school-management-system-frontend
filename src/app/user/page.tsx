@@ -60,11 +60,6 @@ export default function UserManagementPage() {
     fetchRolesAndPermissions().catch(() => {});
   }, [fetchUsers, fetchRolesAndPermissions]);
 
-  // Set default role when roles load
-  const defaultRole = useMemo(() => {
-    return roles.find((r) => !["SUPER_ADMIN", "ADMIN", "STUDENT"].includes(r.name))?.name ?? "";
-  }, [roles]);
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -345,14 +340,14 @@ export default function UserManagementPage() {
                   <Field>
                     <Label htmlFor="role">Role</Label>
                     <Select
-                      value={role || defaultRole}
+                      value={role}
                       onValueChange={(value) => {
                         setRole(value);
                         clearError("role");
                       }}
                     >
-                      <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Select Role" />
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Choose a role" />
                       </SelectTrigger>
 
                       <SelectContent>
