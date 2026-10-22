@@ -177,6 +177,7 @@ export default function ReportCardsPage() {
     exams,
     examGroups,
     classes,
+    sections,
     gradingSchemes,
     classExamStructures,
     reportCardTemplates,
@@ -187,6 +188,7 @@ export default function ReportCardsPage() {
     fetchExams,
     fetchExamGroups,
     fetchClasses,
+    fetchSections,
     fetchGradingSchemes,
     fetchClassExamStructures,
     fetchReportCardTemplates,
@@ -255,6 +257,8 @@ export default function ReportCardsPage() {
   const [scopeFilter, setScopeFilter] = useState<ReportCardScopeT | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<ReportCardStatusT | "ALL">("ALL");
   const [examGroupFilter, setExamGroupFilter] = useState("ALL");
+  const [classFilter, setClassFilter] = useState("ALL");
+  const [sectionFilter, setSectionFilter] = useState("ALL");
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
@@ -290,6 +294,8 @@ export default function ReportCardsPage() {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [generateScope, setGenerateScope] = useState<ReportCardScopeT>("INDIVIDUAL");
   const [generateExamGroupId, setGenerateExamGroupId] = useState("");
+  const [generateClassId, setGenerateClassId] = useState("ALL");
+  const [generateSectionId, setGenerateSectionId] = useState("ALL");
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
@@ -305,6 +311,7 @@ export default function ReportCardsPage() {
     fetchExams();
     fetchExamGroups();
     fetchClasses();
+    fetchSections();
     fetchGradingSchemes();
     fetchClassExamStructures();
     fetchReportCardTemplates();
@@ -343,6 +350,16 @@ export default function ReportCardsPage() {
     return studentEnrollments.filter((enrollment) => enrollment.sessionId === effectiveSessionId && enrollment.enrollmentStatus !== "DROPPED");
   }, [studentEnrollments, effectiveSessionId]);
 
+  // Only offer sections that actually have students in the chosen class
+  const sectionOptions = useMemo(() => {
+    return sections.filter((section) => classFilter === "ALL" || sessionEnrollments.some((enrollment) => enrollment.classId === classFilter && enrollment.sectionId === section.id));
+  }, [sections, classFilter, sessionEnrollments]);
+
+  // Students of this session narrowed by the class / section filters
+  const filteredEnrollments = useMemo(() => {
+    return sessionEnrollments.filter((enrollment) => (classFilter === "ALL" || enrollment.classId === classFilter) && (sectionFilter === "ALL" || enrollment.sectionId === sectionFilter));
+  }, [sessionEnrollments, classFilter, sectionFilter]);
+
   const isGroupEnabledForClass = (classId: string, examGroupId: string) => {
     const structure = classExamStructures.find((item) => item.classId === classId);
     const weight = structure?.examGroupWeights.find((item) => item.examGroupId === examGroupId);
@@ -368,7 +385,11 @@ export default function ReportCardsPage() {
 
         const matchesExamGroup = examGroupFilter === "ALL" || (report.scope === "INDIVIDUAL" && report.examGroupId === examGroupFilter);
 
-        return matchesSearch && matchesSession && matchesScope && matchesStatus && matchesExamGroup;
+        const matchesClass = classFilter === "ALL" || report.enrollment.classId === classFilter;
+
+        const matchesSection = sectionFilter === "ALL" || report.enrollment.sectionId === sectionFilter;
+
+        return matchesSearch && matchesSession && matchesScope && matchesStatus && matchesExamGroup && matchesClass && matchesSection;
       })
       .sort((a, b) => {
         const first = new Date(a.generatedAt ?? a.createdAt).getTime();
@@ -376,7 +397,7 @@ export default function ReportCardsPage() {
 
         return second - first;
       });
-  }, [reportCards, search, sessionFilter, scopeFilter, statusFilter, examGroupFilter]);
+  }, [reportCards, search, sessionFilter, scopeFilter, statusFilter, examGroupFilter, classFilter, sectionFilter]);
 
   const generatedCount = useMemo(() => visibleReports.filter((report) => report.status === "GENERATED").length, [visibleReports]);
 
@@ -385,8 +406,17 @@ export default function ReportCardsPage() {
   const publishableReports = useMemo(() => visibleReports.filter((report) => report.status === "GENERATED"), [visibleReports]);
 
   const studentCount = useMemo(() => {
-    return sessionEnrollments.length;
-  }, [sessionEnrollments]);
+    return filteredEnrollments.length;
+  }, [filteredEnrollments]);
+
+  // Students the Generate dialog will create report cards for
+  const generateEnrollments = useMemo(() => {
+    return sessionEnrollments.filter((enrollment) => (generateClassId === "ALL" || enrollment.classId === generateClassId) && (generateSectionId === "ALL" || enrollment.sectionId === generateSectionId));
+  }, [sessionEnrollments, generateClassId, generateSectionId]);
+
+  const generateSectionOptions = useMemo(() => {
+    return sections.filter((section) => generateClassId === "ALL" || sessionEnrollments.some((enrollment) => enrollment.classId === generateClassId && enrollment.sectionId === section.id));
+  }, [sections, generateClassId, sessionEnrollments]);
 
   const missingCount = useMemo(() => {
     if (!effectiveSessionId) return 0;
@@ -394,20 +424,22 @@ export default function ReportCardsPage() {
     const keySet = new Set((reportCards as ReportCard[]).map((report) => report.reportKey));
 
     if (generateScope === "COMBINED") {
-      return sessionEnrollments.filter((enrollment) => !keySet.has(`${enrollment.studentId}:COMBINED:FINAL:${effectiveSessionId}`)).length;
+      return generateEnrollments.filter((enrollment) => !keySet.has(`${enrollment.studentId}:COMBINED:FINAL:${effectiveSessionId}`)).length;
     }
 
     if (!generateExamGroupId) return 0;
 
-    return sessionEnrollments.filter((enrollment) => isGroupEnabledForClass(enrollment.classId, generateExamGroupId) && !keySet.has(`${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`))
+    return generateEnrollments.filter((enrollment) => isGroupEnabledForClass(enrollment.classId, generateExamGroupId) && !keySet.has(`${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`))
       .length;
-  }, [reportCards, sessionEnrollments, effectiveSessionId, generateScope, generateExamGroupId]);
+  }, [reportCards, generateEnrollments, effectiveSessionId, generateScope, generateExamGroupId]);
 
   const resetFilters = () => {
     setSearch("");
     setSessionFilter("ALL");
     setScopeFilter("ALL");
     setStatusFilter("ALL");
+    setClassFilter("ALL");
+    setSectionFilter("ALL");
     setExamGroupFilter("ALL");
   };
 
@@ -632,6 +664,8 @@ export default function ReportCardsPage() {
   const openGenerate = () => {
     setGenerateScope("INDIVIDUAL");
     setGenerateExamGroupId(sessionExamGroups[0]?.id ?? "");
+    setGenerateClassId(classFilter);
+    setGenerateSectionId(sectionFilter);
     setGenerateOpen(true);
   };
 
@@ -648,7 +682,7 @@ export default function ReportCardsPage() {
     try {
       const existingKeys = new Set((reportCards as ReportCard[]).map((report) => report.reportKey));
 
-      const missingStudents = sessionEnrollments.filter((enrollment) => {
+      const missingStudents = generateEnrollments.filter((enrollment) => {
         if (generateScope === "INDIVIDUAL" && !isGroupEnabledForClass(enrollment.classId, generateExamGroupId)) return false;
 
         const key = generateScope === "COMBINED" ? `${enrollment.studentId}:COMBINED:FINAL:${effectiveSessionId}` : `${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`;
@@ -1676,6 +1710,44 @@ export default function ReportCardsPage() {
                     <RefreshCw className="size-4" />
                     Reset
                   </Button>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-[180px_180px]">
+                  <Select
+                    value={classFilter}
+                    onValueChange={(value) => {
+                      setClassFilter(value);
+                      setSectionFilter("ALL");
+                    }}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Class" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="ALL">All Classes</SelectItem>
+                      {sortedClasses.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={sectionFilter} onValueChange={setSectionFilter}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Section" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="ALL">All Sections</SelectItem>
+                      {sectionOptions.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t pt-4">
@@ -2718,6 +2790,52 @@ export default function ReportCardsPage() {
                 {sessionExamGroups.length === 0 && <p className="mt-1 text-xs text-muted-foreground">Create an exam for this session on the Exams page first.</p>}
               </Field>
             )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field>
+                <Label>Class</Label>
+
+                <Select
+                  value={generateClassId}
+                  onValueChange={(value) => {
+                    setGenerateClassId(value);
+                    setGenerateSectionId("ALL");
+                  }}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="All classes" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="ALL">All Classes</SelectItem>
+                    {sortedClasses.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field>
+                <Label>Section</Label>
+
+                <Select value={generateSectionId} onValueChange={setGenerateSectionId}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="All sections" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="ALL">All Sections</SelectItem>
+                    {generateSectionOptions.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
 
             <div className="rounded-xl border bg-muted/20 p-4">
               <div className="flex items-start gap-3">

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ClipboardCheck, Search, Save, RotateCcw, ShieldAlert } from "lucide-react";
 import { useAcademicStore, Exam, ExamSchedule, ExamSubjectComponent } from "@/store/academicStore";
 import { usePermission } from "@/hooks/usePermission";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { cn } from "@/lib/utils";
@@ -32,11 +32,13 @@ export default function ExamMarksPage() {
     exams,
     studentEnrollments,
     examMarks,
+    teacherAssignments,
 
     fetchExams,
     fetchStudentsLookup: fetchStudents,
     fetchStudentEnrollments,
     fetchExamMarks,
+    fetchTeacherAssignments,
 
     createExamMark,
     updateExamMark,
@@ -53,22 +55,67 @@ export default function ExamMarksPage() {
   const [marks, setMarks] = useState<Record<string, MarkEntry>>({});
   const [saving, setSaving] = useState(false);
 
+  const [myTeacherId, setMyTeacherId] = useState<string | null>(null);
+  const [userChecked, setUserChecked] = useState(false);
+
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      const parsed: { teacherId?: string | null } | null = stored ? JSON.parse(stored) : null;
+      setMyTeacherId(parsed?.teacherId ?? null);
+    } catch {
+      setMyTeacherId(null);
+    } finally {
+      setUserChecked(true);
+    }
+  }, []);
+
+  const isTeacherView = Boolean(myTeacherId);
+
+  useEffect(() => {
+    if (!userChecked) return;
+
     fetchExams();
     fetchStudents();
     fetchStudentEnrollments();
     fetchExamMarks();
-  }, []);
+
+    if (myTeacherId) fetchTeacherAssignments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userChecked, myTeacherId]);
+
+  // Classes (section) this teacher is the class teacher of
+  const myHomerooms = useMemo(() => teacherAssignments.filter((assignment) => assignment.teacherId === myTeacherId), [teacherAssignments, myTeacherId]);
+
+  // A teacher can open a schedule for their own subject, or for any subject of the class they are class teacher of
+  const canAccessSchedule = useCallback(
+    (schedule: ExamSchedule) => {
+      if (!isTeacherView) return true;
+
+      const allocation = schedule.subjectAllocation;
+
+      if (allocation.teacherId === myTeacherId) return true;
+
+      return myHomerooms.some((homeroom) => homeroom.sessionId === allocation.sessionId && homeroom.classId === allocation.classId && homeroom.sectionId === allocation.sectionId);
+    },
+    [isTeacherView, myTeacherId, myHomerooms]
+  );
+
+  const visibleExams = useMemo(() => {
+    if (!isTeacherView) return exams;
+
+    return exams.filter((exam) => exam.schedules.some(canAccessSchedule));
+  }, [exams, isTeacherView, canAccessSchedule]);
 
   const selectedExam = useMemo<Exam | null>(() => {
-    return exams.find((exam) => exam.id === examId) ?? null;
-  }, [exams, examId]);
+    return visibleExams.find((exam) => exam.id === examId) ?? null;
+  }, [visibleExams, examId]);
 
   const schedules = useMemo(() => {
     if (!selectedExam) return [];
 
-    return [...selectedExam.schedules].sort((a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime());
-  }, [selectedExam]);
+    return selectedExam.schedules.filter(canAccessSchedule).sort((a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime());
+  }, [selectedExam, canAccessSchedule]);
 
   const selectedSchedule = useMemo<ExamSchedule | null>(() => {
     return schedules.find((schedule) => schedule.id === scheduleId) ?? null;
@@ -358,7 +405,7 @@ export default function ExamMarksPage() {
           <div>
             <h1 className="text-xl font-bold text-foreground sm:text-2xl">Marks Entry</h1>
 
-            <p className="text-sm text-muted-foreground sm:text-base">Enter and manage student examination marks</p>
+            <p className="text-sm text-muted-foreground sm:text-base">{isTeacherView ? "Enter and review marks for your subjects and your class" : "Enter and manage student examination marks"}</p>
           </div>
         </div>
 
@@ -384,7 +431,7 @@ export default function ExamMarksPage() {
                   </SelectTrigger>
 
                   <SelectContent>
-                    {exams.map((exam) => (
+                    {visibleExams.map((exam) => (
                       <SelectItem key={exam.id} value={exam.id}>
                         {exam.name}
                       </SelectItem>
@@ -395,7 +442,9 @@ export default function ExamMarksPage() {
 
               <div>
                 <label htmlFor="schedule-select" className="mb-2 flex items-center gap-2 text-sm font-medium">
-                  <span className={cn("flex size-5 items-center justify-center rounded-full text-[11px] font-semibold", examId ? "bg-primary text-primary-foreground" : "bg-muted-foreground/30 text-muted-foreground")}>2</span>
+                  <span className={cn("flex size-5 items-center justify-center rounded-full text-[11px] font-semibold", examId ? "bg-primary text-primary-foreground" : "bg-muted-foreground/30 text-muted-foreground")}>
+                    2
+                  </span>
                   Exam Schedule
                 </label>
 
@@ -549,7 +598,11 @@ export default function ExamMarksPage() {
 
               <h3 className="mt-3 font-semibold">Select an exam schedule</h3>
 
-              <p className="mt-1 text-sm text-muted-foreground">Select an examination and subject schedule to enter student marks.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {isTeacherView && visibleExams.length === 0
+                  ? "No exam schedules are assigned to you yet. You can enter marks for the subjects you teach and for every subject of the class you are class teacher of."
+                  : "Select an examination and subject schedule to enter student marks."}
+              </p>
             </div>
           ) : !selectedComponent ? (
             <div className="p-12 text-center">
