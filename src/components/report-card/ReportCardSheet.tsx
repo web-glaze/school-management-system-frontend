@@ -1,14 +1,9 @@
 "use client";
 
-
 import type { CSSProperties, SyntheticEvent } from "react";
 import { format } from "date-fns";
 export const REPORT_ASSETS = {
-  schoolLogo: "/report-card/school-logo.png", 
-  boardLogo: "/report-card/board-logo.png", 
-  backgroundPage1: "/report-card/bg-page1.png", 
-  backgroundPage2: "/report-card/bg-page2.png", 
-  signClassTeacher: "/report-card/sign-class-teacher.png",
+  schoolLogo: "/report-card/school-logo.png",
   signVicePrincipal: "/report-card/sign-vice-principal.png",
   signPrincipal: "/report-card/sign-principal.png",
 };
@@ -29,9 +24,9 @@ const SHOW_OVERALL = false;
 const SHEET_ID = "report-card-sheet";
 const PAGE_W = 794;
 const PAGE_H = 1122;
-const SERIF = `"Times New Roman", Times, serif`;
-const GEORGIA = `Georgia, "Times New Roman", serif`;
-const SANS = `Verdana, Tahoma, "DejaVu Sans", sans-serif`;
+const SERIF = "inherit";
+const GEORGIA = "inherit";
+const SANS = "inherit";
 
 type GradeBandLike = { grade: string; minPercentage: number | string; maxPercentage: number | string; displayOrder: number | string };
 
@@ -41,7 +36,7 @@ export interface ReportCardSheetProps {
     reportData?: Record<string, unknown>;
     teacherRemarks?: Record<string, unknown>;
     coScholasticMarks?: Record<string, string>;
-    student: { firstName: string; lastName: string; admissionNo: string; dateOfBirth?: string | Date | null };
+    student: { firstName: string; lastName: string; admissionNo: string; dob?: string | Date | null };
     session: { name: string };
     enrollment: { class?: { name: string } | null; section?: { name: string } | null };
     examGroup?: { name: string } | null;
@@ -143,32 +138,18 @@ const td: CSSProperties = {
    small pieces
 --------------------------------------------------------------------- */
 
-function InfoBand({
-  name,
-  admissionNo,
-  attendance,
-  dob,
-  classSection,
-  top,
-}: {
-  name: string;
-  admissionNo: string;
-  attendance: string;
-  dob: string;
-  classSection?: string;
-  top: boolean;
-}) {
+function InfoBand({ name, admissionNo, attendance, dob, classSection, top }: { name: string; admissionNo: string; attendance: string; dob: string; classSection?: string; top: boolean }) {
   const grid: CSSProperties = {
     display: "grid",
-    gridTemplateColumns: "110px 150px 104px 100px 100px 1fr",
-    padding: "12px 0 12px 66px",
+    gridTemplateColumns: "88px 132px 92px 84px 92px 1fr",
+    padding: "12px 12px 12px 66px",
     borderTop: top ? `2px solid ${GREEN}` : undefined,
     borderBottom: `2px solid ${GREEN}`,
     fontSize: 11.5,
     lineHeight: "18px",
   };
   const label: CSSProperties = { fontWeight: 700, whiteSpace: "nowrap" };
-  const value: CSSProperties = { whiteSpace: "nowrap" };
+  const value: CSSProperties = { paddingRight: 8, minWidth: 0, overflowWrap: "anywhere" };
 
   return (
     <div style={grid}>
@@ -326,7 +307,7 @@ export default function ReportCardSheet({ report, remarkFields, gradeBands = [] 
 
   const name = `${report.student.firstName} ${report.student.lastName}`.trim();
   const attendance = sectionOn("ATTENDANCE") ? readAttendance(data) : "—";
-  const dob = formatDob(report.student.dateOfBirth);
+  const dob = formatDob(report.student.dob);
   const classSection = [report.enrollment.class?.name, report.enrollment.section?.name].filter(Boolean).join(" - ") || "—";
 
   let title = "FINAL REPORT";
@@ -414,7 +395,6 @@ export default function ReportCardSheet({ report, remarkFields, gradeBands = [] 
   const coRows = [...(report.template?.coScholasticRows ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
 
   const signatures = [
-    { label: "Class Teacher", src: REPORT_ASSETS.signClassTeacher },
     { label: "Vice Principal", src: REPORT_ASSETS.signVicePrincipal },
     { label: "Principal", src: REPORT_ASSETS.signPrincipal },
   ];
@@ -426,16 +406,14 @@ export default function ReportCardSheet({ report, remarkFields, gradeBands = [] 
         <div
           style={{
             ...frameBase,
-            backgroundImage: `url(${REPORT_ASSETS.backgroundPage1}), ${PAGE1_GRADIENT}`,
+            backgroundImage: PAGE1_GRADIENT,
           }}
         >
           {/* header */}
           <div style={{ position: "relative", textAlign: "center", paddingTop: 44 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={REPORT_ASSETS.schoolLogo} alt="School logo" onError={hideOnError} style={{ height: 145, display: "inline-block" }} />
-            <div style={{ fontFamily: GEORGIA, fontSize: 11.5, fontWeight: 600, marginTop: 8 }}>{REPORT_SCHOOL.address}</div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={REPORT_ASSETS.boardLogo} alt="Board logo" onError={hideOnError} style={{ position: "absolute", right: 56, top: 60, height: 100 }} />
+            <img src={REPORT_ASSETS.schoolLogo} alt="School logo" onError={hideOnError} style={{ height: 115, display: "inline-block" }} />
+            <div style={{ fontFamily: GEORGIA, fontSize: 11.5, fontWeight: 600, marginTop: 8, paddingLeft: 14 }}>{REPORT_SCHOOL.address}</div>
           </div>
 
           {/* title */}
@@ -587,7 +565,7 @@ export default function ReportCardSheet({ report, remarkFields, gradeBands = [] 
 
       {/* =================================================== PAGE 2 */}
       <div className="rc-page" style={{ ...pageStyle, boxShadow: "0 1px 6px rgba(0,0,0,0.25)" }}>
-        <div style={{ ...frameBase, backgroundImage: `url(${REPORT_ASSETS.backgroundPage2})` }}>
+        <div style={{ ...frameBase, backgroundImage: PAGE1_GRADIENT }}>
           <div style={{ paddingTop: 30 }}>
             <InfoBand name={name} admissionNo={report.student.admissionNo} attendance={attendance} dob={dob} top={false} />
           </div>
@@ -639,11 +617,11 @@ export default function ReportCardSheet({ report, remarkFields, gradeBands = [] 
           )}
 
           {/* signatures */}
-          <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "24px 48px 18px" }}>
+          <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-around", alignItems: "flex-end", padding: "24px 48px 18px" }}>
             {signatures.map((item) => (
               <div key={item.label} style={{ textAlign: "center", minWidth: 110 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.src} alt="" onError={hideOnError} style={{ height: 54, display: "block", margin: "0 auto 2px" }} />
+                {item.src ? <img src={item.src} alt="" onError={hideOnError} style={{ height: 54, display: "block", margin: "0 auto 2px" }} /> : <div style={{ height: 54 }} />}
                 <div style={{ fontSize: 15 }}>{item.label}</div>
               </div>
             ))}
@@ -658,40 +636,44 @@ export default function ReportCardSheet({ report, remarkFields, gradeBands = [] 
    Print / Save as PDF — prints exactly what is on screen, 2 x A4 pages
 --------------------------------------------------------------------- */
 
-export function printReportCardSheet() {
+export function printReportCardSheet(fileName = "Report Card") {
   const sheet = document.getElementById(SHEET_ID);
   if (!sheet) return;
 
-  const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-    .map((node) => node.outerHTML)
-    .join("\n");
+  const PRINT_ID = "report-card-print-root";
 
-  const iframe = document.createElement("iframe");
-  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-  document.body.appendChild(iframe);
+  // Print from the page itself so the font is exactly the same as on screen
+  const clone = sheet.cloneNode(true) as HTMLElement;
+  clone.id = PRINT_ID;
+  clone.innerHTML = clone.innerHTML.replace(/rc-grad-/g, "rc-print-grad-");
+  clone.style.display = "none";
+  document.body.appendChild(clone);
 
-  const win = iframe.contentWindow;
-  const doc = win?.document;
-  if (!win || !doc) {
-    iframe.remove();
-    return;
-  }
+  const style = document.createElement("style");
+  style.textContent = `
+    @page { size: A4; margin: 0; }
+    @media print {
+      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: visible !important; height: auto !important; }
+      body > *:not(#${PRINT_ID}) { display: none !important; }
+      #${PRINT_ID} { display: block !important; width: ${PAGE_W}px; margin: 0 !important; }
+      #${PRINT_ID} .rc-page { margin: 0 !important; box-shadow: none !important; break-inside: avoid; }
+      #${PRINT_ID} .rc-page:first-child { break-after: page; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  `;
+  document.head.appendChild(style);
 
-  doc.open();
-  doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Report Card</title><base href="${document.baseURI}">${styles}
-<style>
-  @page { size: A4; margin: 0; }
-  html, body { margin: 0; padding: 0; background: #fff; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  #${SHEET_ID} { margin: 0 !important; }
-  #${SHEET_ID} .rc-page { margin: 0 !important; box-shadow: none !important; break-inside: avoid; }
-  #${SHEET_ID} .rc-page:first-child { break-after: page; }
-</style></head><body>${sheet.outerHTML}</body></html>`);
-  doc.close();
+  // The browser uses the page title as the default PDF file name
+  const previousTitle = document.title;
+  document.title = fileName;
 
-  setTimeout(() => {
-    win.focus();
-    win.print();
-    setTimeout(() => iframe.remove(), 1500);
-  }, 700);
+  const cleanup = () => {
+    window.removeEventListener("afterprint", cleanup);
+    document.title = previousTitle;
+    clone.remove();
+    style.remove();
+  };
+  window.addEventListener("afterprint", cleanup);
+
+  setTimeout(() => window.print(), 300);
 }

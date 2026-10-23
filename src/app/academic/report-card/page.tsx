@@ -433,6 +433,10 @@ export default function ReportCardsPage() {
       .length;
   }, [reportCards, generateEnrollments, effectiveSessionId, generateScope, generateExamGroupId]);
 
+  const hasActiveFilters = search.trim() !== "" || sessionFilter !== "ALL" || examGroupFilter !== "ALL" || scopeFilter !== "ALL" || classFilter !== "ALL" || sectionFilter !== "ALL" || statusFilter !== "ALL";
+
+  const activeFilterClass = "border-sky-400 bg-sky-50 text-sky-700 ring-1 ring-sky-200 dark:bg-sky-950/30 dark:text-sky-300";
+
   const resetFilters = () => {
     setSearch("");
     setSessionFilter("ALL");
@@ -1650,10 +1654,10 @@ export default function ReportCardsPage() {
               </div>
 
               <div className="rounded-xl border bg-card p-4 sm:p-5">
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px_auto]">
-                  <div className="relative col-span-2 lg:col-span-1">
-                    <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search student, admission no., exam group..." className="h-10 pl-10" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search student or admission no." className="h-9 pl-9 text-sm" />
                   </div>
 
                   <Select
@@ -1663,7 +1667,7 @@ export default function ReportCardsPage() {
                       setExamGroupFilter("ALL");
                     }}
                   >
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className={cn("h-9 min-w-32 text-sm", sessionFilter !== "ALL" && activeFilterClass)}>
                       <SelectValue placeholder="Session" />
                     </SelectTrigger>
 
@@ -1678,7 +1682,7 @@ export default function ReportCardsPage() {
                   </Select>
 
                   <Select value={examGroupFilter} onValueChange={setExamGroupFilter}>
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className={cn("h-9 min-w-32 text-sm", examGroupFilter !== "ALL" && activeFilterClass)}>
                       <SelectValue placeholder="Exam Group" />
                     </SelectTrigger>
 
@@ -1693,7 +1697,7 @@ export default function ReportCardsPage() {
                   </Select>
 
                   <Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ReportCardScopeT | "ALL")}>
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className={cn("h-9 min-w-28 text-sm", scopeFilter !== "ALL" && activeFilterClass)}>
                       <SelectValue />
                     </SelectTrigger>
 
@@ -1706,13 +1710,6 @@ export default function ReportCardsPage() {
                     </SelectContent>
                   </Select>
 
-                  <Button type="button" variant="outline" className="h-10 gap-2" onClick={resetFilters}>
-                    <RefreshCw className="size-4" />
-                    Reset
-                  </Button>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-[180px_180px]">
                   <Select
                     value={classFilter}
                     onValueChange={(value) => {
@@ -1720,7 +1717,7 @@ export default function ReportCardsPage() {
                       setSectionFilter("ALL");
                     }}
                   >
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className={cn("h-9 min-w-28 text-sm", classFilter !== "ALL" && activeFilterClass)}>
                       <SelectValue placeholder="Class" />
                     </SelectTrigger>
 
@@ -1735,7 +1732,7 @@ export default function ReportCardsPage() {
                   </Select>
 
                   <Select value={sectionFilter} onValueChange={setSectionFilter}>
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className={cn("h-9 min-w-28 text-sm", sectionFilter !== "ALL" && activeFilterClass)}>
                       <SelectValue placeholder="Section" />
                     </SelectTrigger>
 
@@ -1748,6 +1745,13 @@ export default function ReportCardsPage() {
                       ))}
                     </SelectContent>
                   </Select>
+
+                  {hasActiveFilters && (
+                    <Button type="button" variant="outline" size="sm" className="ml-auto h-9 gap-2" onClick={resetFilters}>
+                      <RefreshCw className="size-3.5" />
+                      Reset
+                    </Button>
+                  )}
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t pt-4">
@@ -2533,7 +2537,12 @@ export default function ReportCardsPage() {
               )}
 
               {selectedReport && (
-                <Button type="button" variant="outline" className="gap-2" onClick={() => printReportCardSheet()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => printReportCardSheet(`${studentName(selectedReport.student)} - ${selectedReport.scope === "COMBINED" ? "Final" : (selectedReport.examGroup?.name ?? "Exam")} Report Card`)}
+                >
                   <Printer className="size-4" />
                   Print / Save PDF
                 </Button>
