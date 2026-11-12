@@ -454,7 +454,7 @@ export default function GatepassConfigurationPage() {
     setSaving(true);
 
     try {
-      const response = await apiClient.post("/gate-config/request-types", {
+      const response = await apiClient.post("/gatepass/configuration/request-types", {
         code: requestTypeForm.code.trim(),
         name: requestTypeForm.name.trim(),
         appliesTo: requestTypeForm.appliesTo,
@@ -487,7 +487,7 @@ export default function GatepassConfigurationPage() {
     setSaving(true);
 
     try {
-      const response = await apiClient.post("/gate-config/gates", {
+      const response = await apiClient.post("/gatepass/configuration/gates", {
         name: gateForm.name.trim(),
         location: gateForm.location.trim() || undefined,
         type: gateForm.type,
@@ -526,7 +526,7 @@ export default function GatepassConfigurationPage() {
     setSaving(true);
 
     try {
-      const response = await apiClient.post("/gate-config/devices", {
+      const response = await apiClient.post("/gatepass/configuration/devices", {
         gateId: deviceForm.gateId,
         deviceName: deviceForm.deviceName.trim(),
         deviceToken: deviceForm.deviceToken.trim(),
@@ -567,7 +567,7 @@ export default function GatepassConfigurationPage() {
     setSaving(true);
 
     try {
-      const response = await apiClient.post("/gate-config/slots", {
+      const response = await apiClient.post("/gatepass/configuration/slots", {
         slotDate: new Date(`${slotForm.slotDate}T00:00:00`).toISOString(),
         timeFrom: slotForm.timeFrom,
         timeTo: slotForm.timeTo,
@@ -598,7 +598,7 @@ export default function GatepassConfigurationPage() {
     setSaving(true);
 
     try {
-      const response = await apiClient.post("/gate-config/blacklist", {
+      const response = await apiClient.post("/gatepass/configuration/blacklist", {
         subjectType: blacklistForm.subjectType,
         subjectId: blacklistForm.subjectId.trim(),
         reason: blacklistForm.reason.trim() || undefined,
@@ -622,7 +622,7 @@ export default function GatepassConfigurationPage() {
     setSaving(true);
 
     try {
-      await apiClient.delete(`/gate-config/blacklist/${id}`);
+      await apiClient.delete(`/gatepass/configuration/blacklist/${id}`);
 
       setBlacklist((previous) => previous.filter((item) => item.id !== id));
 

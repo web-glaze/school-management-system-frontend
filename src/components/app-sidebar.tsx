@@ -25,6 +25,7 @@ import {
   ClipboardCheck,
   CalendarCheck2,
   Briefcase,
+  BriefcaseBusiness,
   BookCheck,
   CalendarFold,
   Summary,
@@ -32,15 +33,16 @@ import {
   ClipboardList,
   ClipboardClock,
   SwatchBook,
-  // Settings2,
-  // ArrowLeftRight,
-  // BadgeCheck,
-  // ContactRound,
-  // ScanLine,
-  // Gauge,
+  Settings2,
+  ArrowLeftRight,
+  BadgeCheck,
+  ContactRound,
+  ScanLine,
+  Gauge,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
+import { HR_ADMIN_PERMISSIONS } from "@/lib/hrPermissions";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
@@ -230,13 +232,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       isActive: pathname.startsWith("/academic/teacher-assignment"),
     },
 
-    permissions.includes("faculty-attendance.read") && {
-      title: "Faculty Attendance",
-      url: "/academic/faculty-attendance",
-      icon: CalendarCheck2,
-      isActive: pathname.startsWith("/academic/faculty-attendance"),
-    },
-
     permissions.includes("timetable.read") && {
       title: "Timetable",
       url: "/academic/timetables",
@@ -250,14 +245,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       icon: ClipboardList,
       isActive: pathname.startsWith("/academic/exams"),
     },
-  
+
     permissions.includes("marks.read") && {
       title: "Exam Marks",
       url: "/academic/exam-mark",
       icon: ClipboardCheck,
       isActive: pathname.startsWith("/academic/exam-mark"),
     },
-  
+
     permissions.includes("reportcard.read") && {
       title: "Report Cards",
       url: "/academic/report-card",
@@ -266,49 +261,65 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     },
   ].filter(Boolean);
 
-   const gatepassItems = [
-  //   permissions.includes("gatepass.config") && {
-  //     title: "Configuration",
-  //     url: "/gatepass/configuration",
-  //     icon: Settings2,
-  //     isActive: pathname.startsWith("/gatepass/configuration"),
-  //   },
+  const hrItems = [
+    HR_ADMIN_PERMISSIONS.some((p) => permissions.includes(p)) && {
+      title: "HR & Payroll",
+      url: "/hr",
+      icon: BriefcaseBusiness,
+      isActive: pathname === "/hr",
+    },
 
-  //   permissions.includes("movement.request") && {
-  //     title: "Movement",
-  //     url: "/gatepass/movement",
-  //     icon: ArrowLeftRight,
-  //     isActive: pathname.startsWith("/gatepass/movement"),
-  //   },
+    permissions.includes("hr-self.read") && {
+      title: "My Attendance",
+      url: "/hr/my",
+      icon: CalendarCheck2,
+      isActive: pathname.startsWith("/hr/my"),
+    },
+  ].filter(Boolean);
 
-  //   permissions.includes("gatepass.issue") && {
-  //     title: "Gate Passes",
-  //     url: "/gatepass/movement/passes",
-  //     icon: BadgeCheck,
-  //     isActive: pathname.startsWith("/gatepass/movement/passes"),
-  //   },
+  const gatepassItems = [
+    permissions.includes("gatepass.config") && {
+      title: "Configuration",
+      url: "/gatepass/configuration",
+      icon: Settings2,
+      isActive: pathname.startsWith("/gatepass/configuration"),
+    },
 
-  //   permissions.includes("movement.request") && {
-  //     title: "Visitors",
-  //     url: "/gatepass/visitor",
-  //     icon: ContactRound,
-  //     isActive: pathname.startsWith("/gatepass/visitor"),
-  //   },
+    permissions.includes("movement.request") && {
+      title: "Movement",
+      url: "/gatepass/movement",
+      icon: ArrowLeftRight,
+      isActive: pathname.startsWith("/gatepass/movement"),
+    },
 
-  //   permissions.includes("gate.scan") && {
-  //     title: "Gate Scan",
-  //     url: "/gatepass/gate-scan",
-  //     icon: ScanLine,
-  //     isActive: pathname.startsWith("/gatepass/gate-scan"),
-  //   },
+    // permissions.includes("gatepass.issue") && {
+    //   title: "Gate Passes",
+    //   url: "/gatepass/movement/passes",
+    //   icon: BadgeCheck,
+    //   isActive: pathname.startsWith("/gatepass/movement/passes"),
+    // },
 
-  //   permissions.includes("gate.dashboard") && {
-  //     title: "Gate Dashboard",
-  //     url: "/gatepass",
-  //     icon: Gauge,
-  //     isActive: pathname === "/gatepass",
-  //   },
-   ].filter(Boolean);
+    permissions.includes("movement.request") && {
+      title: "Visitors",
+      url: "/gatepass/visitor",
+      icon: ContactRound,
+      isActive: pathname.startsWith("/gatepass/visitor"),
+    },
+
+    permissions.includes("gate.scan") && {
+      title: "Gate Scan",
+      url: "/gatepass/gate-scan",
+      icon: ScanLine,
+      isActive: pathname.startsWith("/gatepass/gate-scan"),
+    },
+
+    // permissions.includes("gate.dashboard") && {
+    //   title: "Gate Dashboard",
+    //   url: "/gatepass",
+    //   icon: Gauge,
+    //   isActive: pathname === "/gatepass",
+    // },
+  ].filter(Boolean);
 
   const data = {
     user: {
@@ -350,7 +361,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
       {/* Content */}
       <SidebarContent ref={sidebarContentRef} onScroll={handleScroll}>
-        <NavMain maintenanceItems={maintenanceItems} academicItems={academicItems} gatepassItems={gatepassItems} settingItems={settingItems} />
+        <NavMain maintenanceItems={maintenanceItems} academicItems={academicItems} hrItems={hrItems} gatepassItems={gatepassItems} settingItems={settingItems} />
       </SidebarContent>
     </Sidebar>
   );

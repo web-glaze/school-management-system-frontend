@@ -28,8 +28,6 @@ import {
   UpdateStudentAttendancePayload,
   CreateSubjectAttendancePayload,
   UpdateSubjectAttendancePayload,
-  CreateFacultyAttendancePayload,
-  UpdateFacultyAttendancePayload,
   CreateStudentSubjectAllocationPayload,
   UpdateStudentSubjectAllocationPayload,
   CreateEventPayload,
@@ -317,22 +315,6 @@ export interface SubjectAttendance {
 
   enrollment: StudentEnrollment;
   subjectAllocation: SubjectAllocation;
-}
-
-export interface FacultyAttendance {
-  id: string;
-  sessionId: string;
-  teacherId: string;
-  date: string;
-  status: "PRESENT" | "ABSENT" | "LATE" | "HALF_DAY" | "LEAVE" | "HOLIDAY";
-  checkIn?: string;
-  checkOut?: string;
-  remarks?: string;
-  createdAt: string;
-  updatedAt: string;
-
-  session: AcademicSession;
-  teacher: Teacher;
 }
 
 export interface AssignmentStudent {
@@ -683,7 +665,6 @@ interface AcademicStore {
   subjectAllocations: SubjectAllocation[];
   teacherAssignments: TeacherAssignment[];
   teacherTransfers: TeacherTransferHistory[];
-  facultyAttendances: FacultyAttendance[];
   timetables: Timetable[];
   studentSubjectAllocations: StudentSubjectAllocation[];
   assignments: Assignment[];
@@ -845,11 +826,6 @@ interface AcademicStore {
   fetchTeacherTransfers: () => Promise<void>;
   createTeacherTransfer: (data: TransferTeacherPayload) => Promise<void>;
 
-  fetchFacultyAttendances: () => Promise<void>;
-  createFacultyAttendance: (data: CreateFacultyAttendancePayload) => Promise<void>;
-  updateFacultyAttendance: (id: string, data: UpdateFacultyAttendancePayload) => Promise<void>;
-  deleteFacultyAttendance: (id: string) => Promise<void>;
-
   fetchTimetables: () => Promise<void>;
   createTimetable: (data: CreateTimetablePayload) => Promise<void>;
   updateTimetable: (id: string, data: UpdateTimetablePayload) => Promise<void>;
@@ -879,7 +855,6 @@ interface AcademicStore {
   clearStudentSubjectAllocations: () => void;
   clearTeacherAssignments: () => void;
   clearTeacherTransfers: () => void;
-  clearFacultyAttendances: () => void;
   clearTimetables: () => void;
 }
 
@@ -908,7 +883,6 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   studentSubjectAllocations: [],
   teacherAssignments: [],
   teacherTransfers: [],
-  facultyAttendances: [],
   timetables: [],
   loading: false,
 
@@ -2342,54 +2316,6 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   },
 
   // ======================
-  // Faculty Attendance
-  // ======================
-
-  fetchFacultyAttendances: async () => {
-    try {
-      set({ loading: true });
-
-      const response = await academicService.facultyAttendances.getAll();
-
-      set({
-        facultyAttendances: response.data.data ?? [],
-      });
-    } catch (error) {
-      console.error("Failed to fetch faculty attendance", error);
-      throw error;
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  createFacultyAttendance: async (data) => {
-    try {
-      await academicService.facultyAttendances.create(data);
-      await get().fetchFacultyAttendances();
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  updateFacultyAttendance: async (id, data) => {
-    try {
-      await academicService.facultyAttendances.update(id, data);
-      await get().fetchFacultyAttendances();
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  deleteFacultyAttendance: async (id) => {
-    try {
-      await academicService.facultyAttendances.delete(id);
-      await get().fetchFacultyAttendances();
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // ======================
   // Timetables
   // ======================
 
@@ -2555,11 +2481,6 @@ export const useAcademicStore = create<AcademicStore>((set, get) => ({
   clearTeacherTransfers: () =>
     set({
       teacherTransfers: [],
-    }),
-
-  clearFacultyAttendances: () =>
-    set({
-      facultyAttendances: [],
     }),
 
   clearTimetables: () =>

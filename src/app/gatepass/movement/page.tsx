@@ -219,10 +219,10 @@ export default function MovementPage() {
       setLoading(true);
 
       const [requestsResponse, approvalsResponse, requestTypesResponse, slotsResponse] = await Promise.all([
-        apiClient.get("/movement-requests"),
-        apiClient.get("/movement-requests/pending-approvals"),
-        apiClient.get("/gate-config/request-types"),
-        apiClient.get("/gate-config/slots"),
+        apiClient.get("/gatepass/movement/requests"),
+        apiClient.get("/gatepass/movement/requests/pending-approvals"),
+        apiClient.get("/gatepass/configuration/request-types"),
+        apiClient.get("/gatepass/configuration/slots"),
       ]);
 
       setRequests(normalizeArray<MovementRequest>(unwrap(requestsResponse)));
@@ -300,7 +300,7 @@ export default function MovementPage() {
     try {
       setSubmitting(true);
 
-      await apiClient.post("/movement-requests", {
+      await apiClient.post("/gatepass/movement/requests", {
         requestTypeId: createForm.requestTypeId,
         subjectType: createForm.subjectType,
         subjectId: createForm.subjectId,
@@ -329,7 +329,7 @@ export default function MovementPage() {
     try {
       setSubmitting(true);
 
-      await apiClient.post(`/movement-requests/${selectedRequest.id}/decision`, {
+      await apiClient.post(`/gatepass/movement/requests/${selectedRequest.id}/decision`, {
         action: approvalForm.action,
         remarks: approvalForm.remarks || undefined,
       });
@@ -357,7 +357,7 @@ export default function MovementPage() {
     try {
       setSubmitting(true);
 
-      await apiClient.post(`/movement-requests/${request.id}/cancel`);
+      await apiClient.post(`/gatepass/movement/requests/${request.id}/cancel`);
 
       toast.success("Movement request cancelled.");
       await loadData();
@@ -378,7 +378,7 @@ export default function MovementPage() {
     try {
       setSubmitting(true);
 
-      await apiClient.post("/gate-passes/permanent", {
+      await apiClient.post("/gatepass/passes/permanent", {
         holderType: passForm.holderType,
         holderId: passForm.holderId,
         validFrom: passForm.validFrom,

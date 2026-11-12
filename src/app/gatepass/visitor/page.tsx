@@ -219,7 +219,7 @@ export default function VisitorPage() {
     try {
       setLoading(true);
 
-      const [visitorsResponse, requestsResponse, slotsResponse] = await Promise.all([apiClient.get("/visitors"), apiClient.get("/visitors/requests"), apiClient.get("/gate-config/slots")]);
+      const [visitorsResponse, requestsResponse, slotsResponse] = await Promise.all([apiClient.get("/gatepass/visitors"), apiClient.get("/gatepass/visitors/requests"), apiClient.get("/gatepass/configuration/slots")]);
 
       setVisitors(normalizeArray<Visitor>(unwrap(visitorsResponse)));
 
@@ -311,7 +311,7 @@ export default function VisitorPage() {
     try {
       setSubmitting(true);
 
-      await apiClient.post("/visitors", {
+      await apiClient.post("/gatepass/visitors", {
         fullName: visitorForm.fullName.trim(),
         phone: visitorForm.phone.trim(),
         email: visitorForm.email.trim() || undefined,
@@ -353,7 +353,7 @@ export default function VisitorPage() {
     try {
       setSubmitting(true);
 
-      await apiClient.post("/visitors/requests", {
+      await apiClient.post("/gatepass/visitors/requests", {
         visitorId: requestForm.visitorId,
         hostType: requestForm.hostType,
         hostId: requestForm.hostId,
@@ -384,11 +384,11 @@ export default function VisitorPage() {
       setSubmitting(true);
 
       if (action === "approve") {
-        await apiClient.post(`/visitors/requests/${selectedRequest.id}/approve`);
+        await apiClient.post(`/gatepass/visitors/requests/${selectedRequest.id}/approve`);
 
         toast.success("Visitor request approved.");
       } else {
-        await apiClient.post(`/visitors/requests/${selectedRequest.id}/reject`);
+        await apiClient.post(`/gatepass/visitors/requests/${selectedRequest.id}/reject`);
 
         toast.success("Visitor request rejected.");
       }
@@ -424,7 +424,7 @@ export default function VisitorPage() {
     try {
       setSubmitting(true);
 
-      await apiClient.post("/visitors/scan", {
+      await apiClient.post("/gatepass/visitors/scan", {
         deviceToken: scanForm.deviceToken.trim(),
         qrToken: scanForm.qrToken.trim(),
         gateId: scanForm.gateId.trim(),
