@@ -33,17 +33,21 @@ import {
   ClipboardList,
   ClipboardClock,
   SwatchBook,
-  Settings2,
   ArrowLeftRight,
-  BadgeCheck,
-  ContactRound,
-  ScanLine,
-  Gauge,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/nav-main";
 import { HR_ADMIN_PERMISSIONS } from "@/lib/hrPermissions";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
+
+const GATEPASS_PERMISSIONS = [
+  "movement.request",
+  "movement.approve",
+  "movement.finalize",
+  "gate.scan",
+  "gate.dashboard",
+  "gatepass.config",
+];
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
@@ -278,47 +282,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   ].filter(Boolean);
 
   const gatepassItems = [
-    permissions.includes("gatepass.config") && {
-      title: "Configuration",
-      url: "/gatepass/configuration",
-      icon: Settings2,
-      isActive: pathname.startsWith("/gatepass/configuration"),
-    },
-
-    permissions.includes("movement.request") && {
-      title: "Movement",
-      url: "/gatepass/movement",
+    permissions.some((p: string) => GATEPASS_PERMISSIONS.includes(p)) && {
+      title: "Gate Pass",
+      url: "/gatepass",
       icon: ArrowLeftRight,
-      isActive: pathname.startsWith("/gatepass/movement"),
+      isActive: pathname.startsWith("/gatepass"),
     },
-
-    // permissions.includes("gatepass.issue") && {
-    //   title: "Gate Passes",
-    //   url: "/gatepass/movement/passes",
-    //   icon: BadgeCheck,
-    //   isActive: pathname.startsWith("/gatepass/movement/passes"),
-    // },
-
-    permissions.includes("movement.request") && {
-      title: "Visitors",
-      url: "/gatepass/visitor",
-      icon: ContactRound,
-      isActive: pathname.startsWith("/gatepass/visitor"),
-    },
-
-    permissions.includes("gate.scan") && {
-      title: "Gate Scan",
-      url: "/gatepass/gate-scan",
-      icon: ScanLine,
-      isActive: pathname.startsWith("/gatepass/gate-scan"),
-    },
-
-    // permissions.includes("gate.dashboard") && {
-    //   title: "Gate Dashboard",
-    //   url: "/gatepass",
-    //   icon: Gauge,
-    //   isActive: pathname === "/gatepass",
-    // },
   ].filter(Boolean);
 
   const data = {

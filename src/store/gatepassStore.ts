@@ -2,507 +2,277 @@ import { create } from "zustand";
 
 import {
   gatepassService,
-  CreateMovementRequestPayload,
-  ApprovalActionPayload,
-  IssuePermanentPassPayload,
-  CreateVisitorPayload,
-  CreateVisitorRequestPayload,
-  VisitorScanPayload,
-  GateScanPayload,
+  type CreateHostelPayload,
+  type CreateHousemotherPayload,
+  type CreateMovementRequestPayload,
+  type DecisionPayload,
+  type Gate,
+  type GateDashboard,
+  type Hostel,
+  type Housemother,
+  type ListParams,
+  type MovementRequest,
+  type UpdateHostelPayload,
+  type UpdateHousemotherPayload,
 } from "@/services/gatepass.service";
 
 /* =========================
    TYPES
 ========================= */
 
-export interface MovementRequest {
-  id: string;
-  requestNo: string;
-  requestTypeId: string;
-  subjectType: "STUDENT" | "STAFF";
-  subjectId: string;
-  raisedById: string;
-  slotId?: string | null;
-  requestedFrom: string;
-  requestedTo: string;
-  pickupId?: string | null;
-  purpose?: string | null;
-  destination?: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  requestType?: unknown;
-  slot?: unknown;
-  pickup?: unknown;
-  approvals?: unknown[];
-  pass?: GatePass | null;
-  goods?: unknown[];
-}
-
-export interface GatePass {
-  id: string;
-  schoolId: string;
-  movementRequestId?: string | null;
-  passType: string;
-  holderType: "STUDENT" | "STAFF";
-  holderId: string;
-  validFrom: string;
-  validTo: string;
-  version: number;
-  signature: string;
-  maxUses?: number | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Visitor {
-  id: string;
-  fullName: string;
-  phone: string;
-  email?: string | null;
-  idProofType?: string | null;
-  idProofNumber?: string | null;
-  photoUrl?: string | null;
-  company?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface VisitorRequest {
-  id: string;
-  visitorId: string;
-  hostType: "STUDENT" | "STAFF";
-  hostId: string;
-  slotId?: string | null;
-  purpose?: string | null;
-  timeFrom: string;
-  timeTo: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  visitor?: Visitor;
-}
-
-export interface QrTokenResponse {
-  passId: string;
-  qrToken: string;
-  passType: string;
-  validFrom: string;
-  validTo: string;
-  status: string;
-}
-
-/* =========================
-   STORE
-========================= */
+type LoadKey = "myRequests" | "allRequests" | "approvals" | "dashboard" | "gates" | "hostels" | "housemothers";
 
 interface GatepassStore {
-  movementRequests: MovementRequest[];
-  pendingApprovals: MovementRequest[];
-  passes: GatePass[];
-  visitors: Visitor[];
-  visitorRequests: VisitorRequest[];
+  /* Requests */
+  myRequests: MovementRequest[];
+  myTotal: number;
+  allRequests: MovementRequest[];
+  allTotal: number;
 
-  loading: boolean;
+  /* Approvals */
+  pendingHousemother: MovementRequest[];
+  pendingFinal: MovementRequest[];
 
-  /* Movement */
-  fetchMovementRequests: () => Promise<void>;
-  fetchMyMovementRequests: () => Promise<void>;
-  fetchMovementRequest: (
-    id: string,
-  ) => Promise<MovementRequest | null>;
-  createMovementRequest: (
-    data: CreateMovementRequestPayload,
-  ) => Promise<void>;
-  cancelMovementRequest: (id: string) => Promise<void>;
-  fetchPendingApprovals: () => Promise<void>;
-  decideMovementRequest: (
-    id: string,
-    data: ApprovalActionPayload,
-  ) => Promise<void>;
+  /* Gate */
+  dashboard: GateDashboard | null;
 
-  /* Passes */
-  issuePermanentPass: (
-    data: IssuePermanentPassPayload,
-  ) => Promise<void>;
-  fetchPassQr: (
-    id: string,
-  ) => Promise<QrTokenResponse | null>;
-  revokePass: (id: string) => Promise<void>;
-  fetchPassesByHolder: (
-    holderId: string,
-  ) => Promise<void>;
+  /* Setup */
+  gates: Gate[];
+  hostels: Hostel[];
+  housemothers: Housemother[];
 
-  /* Visitors */
-  fetchVisitors: () => Promise<void>;
-  createVisitor: (
-    data: CreateVisitorPayload,
-  ) => Promise<void>;
-  fetchVisitorRequests: () => Promise<void>;
-  createVisitorRequest: (
-    data: CreateVisitorRequestPayload,
-  ) => Promise<void>;
-  approveVisitorRequest: (
-    id: string,
-  ) => Promise<void>;
-  rejectVisitorRequest: (
-    id: string,
-  ) => Promise<void>;
-  scanVisitor: (
-    data: VisitorScanPayload,
-  ) => Promise<void>;
+  loading: Record<LoadKey, boolean>;
 
-  /* Gate Scan */
-  gateScan: (
-    data: GateScanPayload,
-  ) => Promise<void>;
+  /* Requests */
+  fetchMyRequests: (params?: ListParams) => Promise<void>;
+  fetchAllRequests: (params?: ListParams) => Promise<void>;
+  createRequest: (data: CreateMovementRequestPayload) => Promise<MovementRequest>;
+  cancelRequest: (id: string) => Promise<void>;
+  revokeRequest: (id: string) => Promise<void>;
+
+  /* Approvals */
+  fetchPendingHousemother: () => Promise<void>;
+  fetchPendingFinal: () => Promise<void>;
+  housemotherDecision: (id: string, data: DecisionPayload) => Promise<void>;
+  finalDecision: (id: string, data: DecisionPayload) => Promise<void>;
+
+  /* Gate */
+  fetchDashboard: () => Promise<void>;
+
+  /* Gates setup */
+  fetchGates: () => Promise<void>;
+  createGate: (data: { name: string; location?: string; type: Gate["type"] }) => Promise<void>;
+  updateGate: (id: string, data: { name?: string; location?: string; type?: Gate["type"]; isActive?: boolean }) => Promise<void>;
+
+  /* Hostels */
+  fetchHostels: () => Promise<void>;
+  createHostel: (data: CreateHostelPayload) => Promise<void>;
+  updateHostel: (id: string, data: UpdateHostelPayload) => Promise<void>;
+  setHostelHousemother: (id: string, housemotherId: string) => Promise<void>;
+  removeHostel: (id: string) => Promise<void>;
+  assignStudents: (data: { hostelId: string | null; studentIds: string[] }) => Promise<number>;
+
+  /* Housemothers */
+  fetchHousemothers: () => Promise<void>;
+  createHousemother: (data: CreateHousemotherPayload) => Promise<{ userCode: string; userName: string }>;
+  updateHousemother: (id: string, data: UpdateHousemotherPayload) => Promise<void>;
+  setHousemotherStatus: (id: string, active: boolean) => Promise<void>;
 
   /* Clear */
-  clearMovementRequests: () => void;
-  clearPendingApprovals: () => void;
-  clearPasses: () => void;
-  clearVisitors: () => void;
-  clearVisitorRequests: () => void;
+  reset: () => void;
 }
+
+const initialLoading: Record<LoadKey, boolean> = {
+  myRequests: false,
+  allRequests: false,
+  approvals: false,
+  dashboard: false,
+  gates: false,
+  hostels: false,
+  housemothers: false,
+};
+
+const initialData = {
+  myRequests: [] as MovementRequest[],
+  myTotal: 0,
+  allRequests: [] as MovementRequest[],
+  allTotal: 0,
+  pendingHousemother: [] as MovementRequest[],
+  pendingFinal: [] as MovementRequest[],
+  dashboard: null as GateDashboard | null,
+  gates: [] as Gate[],
+  hostels: [] as Hostel[],
+  housemothers: [] as Housemother[],
+};
 
 /* =========================
    ZUSTAND STORE
 ========================= */
 
-export const useGatepassStore =
-  create<GatepassStore>((set, get) => ({
-    movementRequests: [],
-    pendingApprovals: [],
-    passes: [],
-    visitors: [],
-    visitorRequests: [],
+export const useGatepassStore = create<GatepassStore>((set, get) => {
+  /** Runs a fetch with its own loading flag. */
+  const track = async <T>(key: LoadKey, task: () => Promise<T>): Promise<T> => {
+    set((s) => ({ loading: { ...s.loading, [key]: true } }));
 
-    loading: false,
+    try {
+      return await task();
+    } finally {
+      set((s) => ({ loading: { ...s.loading, [key]: false } }));
+    }
+  };
+
+  return {
+    ...initialData,
+    loading: initialLoading,
 
     // ======================
-    // Movement Requests
+    // Requests
     // ======================
 
-    fetchMovementRequests: async () => {
-      try {
-        set({ loading: true });
+    fetchMyRequests: (params) =>
+      track("myRequests", async () => {
+        const res = await gatepassService.movement.mine(params);
+        set({ myRequests: res.items ?? [], myTotal: res.total ?? 0 });
+      }),
 
-        const response =
-          await gatepassService.movement.getAll();
+    fetchAllRequests: (params) =>
+      track("allRequests", async () => {
+        const res = await gatepassService.movement.all(params);
+        set({ allRequests: res.items ?? [], allTotal: res.total ?? 0 });
+      }),
 
-        set({
-          movementRequests:
-            response.data.data ?? [],
-        });
-      } catch (error) {
-        console.error(
-          "Failed to fetch movement requests",
-          error,
-        );
-        throw error;
-      } finally {
-        set({ loading: false });
-      }
+    createRequest: async (data) => {
+      const created = await gatepassService.movement.create(data);
+      await get().fetchMyRequests();
+      return created;
     },
 
-    fetchMyMovementRequests: async () => {
-      try {
-        set({ loading: true });
-
-        const response =
-          await gatepassService.movement.getMine();
-
-        set({
-          movementRequests:
-            response.data.data ?? [],
-        });
-      } catch (error) {
-        console.error(
-          "Failed to fetch my movement requests",
-          error,
-        );
-        throw error;
-      } finally {
-        set({ loading: false });
-      }
+    cancelRequest: async (id) => {
+      await gatepassService.movement.cancel(id);
+      await get().fetchMyRequests();
     },
 
-    fetchMovementRequest: async (id) => {
-      try {
-        const response =
-          await gatepassService.movement.getById(id);
-
-        return response.data.data ?? null;
-      } catch (error) {
-        console.error(
-          "Failed to fetch movement request",
-          error,
-        );
-        throw error;
-      }
-    },
-
-    createMovementRequest: async (data) => {
-      try {
-        await gatepassService.movement.create(data);
-        await get().fetchMovementRequests();
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    cancelMovementRequest: async (id) => {
-      try {
-        await gatepassService.movement.cancel(id);
-        await get().fetchMovementRequests();
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    fetchPendingApprovals: async () => {
-      try {
-        set({ loading: true });
-
-        const response =
-          await gatepassService.movement.getPendingApprovals();
-
-        set({
-          pendingApprovals:
-            response.data.data ?? [],
-        });
-      } catch (error) {
-        console.error(
-          "Failed to fetch pending approvals",
-          error,
-        );
-        throw error;
-      } finally {
-        set({ loading: false });
-      }
-    },
-
-    decideMovementRequest: async (
-      id,
-      data,
-    ) => {
-      try {
-        await gatepassService.movement.decision(
-          id,
-          data,
-        );
-
-        await get().fetchMovementRequests();
-        await get().fetchPendingApprovals();
-      } catch (error) {
-        throw error;
-      }
+    revokeRequest: async (id) => {
+      await gatepassService.movement.revoke(id);
+      await get().fetchAllRequests();
     },
 
     // ======================
-    // Passes
+    // Approvals
     // ======================
 
-    issuePermanentPass: async (data) => {
-      try {
-        await gatepassService.passes.issuePermanent(
-          data,
-        );
-      } catch (error) {
-        throw error;
-      }
+    fetchPendingHousemother: () =>
+      track("approvals", async () => {
+        set({ pendingHousemother: (await gatepassService.movement.pendingHousemother()) ?? [] });
+      }),
+
+    fetchPendingFinal: () =>
+      track("approvals", async () => {
+        set({ pendingFinal: (await gatepassService.movement.pendingFinal()) ?? [] });
+      }),
+
+    housemotherDecision: async (id, data) => {
+      await gatepassService.movement.housemotherDecision(id, data);
+      await get().fetchPendingHousemother();
     },
 
-    fetchPassQr: async (id) => {
-      try {
-        const response =
-          await gatepassService.passes.getQr(id);
-
-        return response.data.data ?? null;
-      } catch (error) {
-        console.error(
-          "Failed to fetch pass QR",
-          error,
-        );
-        throw error;
-      }
-    },
-
-    revokePass: async (id) => {
-      try {
-        await gatepassService.passes.revoke(id);
-        await get().fetchMovementRequests();
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    fetchPassesByHolder: async (
-      holderId,
-    ) => {
-      try {
-        set({ loading: true });
-
-        const response =
-          await gatepassService.passes.getByHolder(
-            holderId,
-          );
-
-        set({
-          passes:
-            response.data.data ?? [],
-        });
-      } catch (error) {
-        console.error(
-          "Failed to fetch passes",
-          error,
-        );
-        throw error;
-      } finally {
-        set({ loading: false });
-      }
+    finalDecision: async (id, data) => {
+      await gatepassService.movement.finalDecision(id, data);
+      await Promise.all([get().fetchPendingFinal(), get().fetchAllRequests()]);
     },
 
     // ======================
-    // Visitors
+    // Gate
     // ======================
 
-    fetchVisitors: async () => {
-      try {
-        set({ loading: true });
+    fetchDashboard: () =>
+      track("dashboard", async () => {
+        set({ dashboard: await gatepassService.gate.dashboard() });
+      }),
 
-        const response =
-          await gatepassService.visitors.getAll();
+    // ======================
+    // Gates setup
+    // ======================
 
-        set({
-          visitors:
-            response.data.data ?? [],
-        });
-      } catch (error) {
-        console.error(
-          "Failed to fetch visitors",
-          error,
-        );
-        throw error;
-      } finally {
-        set({ loading: false });
-      }
+    fetchGates: () =>
+      track("gates", async () => {
+        set({ gates: (await gatepassService.gates.getAll()) ?? [] });
+      }),
+
+    createGate: async (data) => {
+      await gatepassService.gates.create(data);
+      await get().fetchGates();
     },
 
-    createVisitor: async (data) => {
-      try {
-        await gatepassService.visitors.create(data);
-        await get().fetchVisitors();
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    fetchVisitorRequests: async () => {
-      try {
-        set({ loading: true });
-
-        const response =
-          await gatepassService.visitors.getRequests();
-
-        set({
-          visitorRequests:
-            response.data.data ?? [],
-        });
-      } catch (error) {
-        console.error(
-          "Failed to fetch visitor requests",
-          error,
-        );
-        throw error;
-      } finally {
-        set({ loading: false });
-      }
-    },
-
-    createVisitorRequest: async (data) => {
-      try {
-        await gatepassService.visitors.createRequest(
-          data,
-        );
-
-        await get().fetchVisitorRequests();
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    approveVisitorRequest: async (id) => {
-      try {
-        await gatepassService.visitors.approveRequest(
-          id,
-        );
-
-        await get().fetchVisitorRequests();
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    rejectVisitorRequest: async (id) => {
-      try {
-        await gatepassService.visitors.rejectRequest(
-          id,
-        );
-
-        await get().fetchVisitorRequests();
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    scanVisitor: async (data) => {
-      try {
-        await gatepassService.visitors.scan(data);
-      } catch (error) {
-        throw error;
-      }
+    updateGate: async (id, data) => {
+      await gatepassService.gates.update(id, data);
+      await get().fetchGates();
     },
 
     // ======================
-    // Gate Scan
+    // Hostels
     // ======================
 
-    gateScan: async (data) => {
-      try {
-        await gatepassService.gateScan.scan(data);
-      } catch (error) {
-        throw error;
-      }
+    fetchHostels: () =>
+      track("hostels", async () => {
+        set({ hostels: (await gatepassService.hostel.hostels.getAll()) ?? [] });
+      }),
+
+    createHostel: async (data) => {
+      await gatepassService.hostel.hostels.create(data);
+      await get().fetchHostels();
+    },
+
+    updateHostel: async (id, data) => {
+      await gatepassService.hostel.hostels.update(id, data);
+      await get().fetchHostels();
+    },
+
+    setHostelHousemother: async (id, housemotherId) => {
+      await gatepassService.hostel.hostels.setHousemother(id, housemotherId);
+      await Promise.all([get().fetchHostels(), get().fetchHousemothers()]);
+    },
+
+    removeHostel: async (id) => {
+      await gatepassService.hostel.hostels.remove(id);
+      await get().fetchHostels();
+    },
+
+    assignStudents: async (data) => {
+      const res = await gatepassService.hostel.students.assign(data);
+      await get().fetchHostels();
+      return res.moved;
+    },
+
+    // ======================
+    // Housemothers
+    // ======================
+
+    fetchHousemothers: () =>
+      track("housemothers", async () => {
+        set({ housemothers: (await gatepassService.hostel.housemothers.getAll()) ?? [] });
+      }),
+
+    createHousemother: async (data) => {
+      const res = await gatepassService.hostel.housemothers.create(data);
+      await get().fetchHousemothers();
+      return res.credentials;
+    },
+
+    updateHousemother: async (id, data) => {
+      await gatepassService.hostel.housemothers.update(id, data);
+      await get().fetchHousemothers();
+    },
+
+    setHousemotherStatus: async (id, active) => {
+      await gatepassService.hostel.housemothers.setStatus(id, active);
+      await Promise.all([get().fetchHousemothers(), get().fetchHostels()]);
     },
 
     // ======================
     // Clear
     // ======================
 
-    clearMovementRequests: () =>
-      set({
-        movementRequests: [],
-      }),
-
-    clearPendingApprovals: () =>
-      set({
-        pendingApprovals: [],
-      }),
-
-    clearPasses: () =>
-      set({
-        passes: [],
-      }),
-
-    clearVisitors: () =>
-      set({
-        visitors: [],
-      }),
-
-    clearVisitorRequests: () =>
-      set({
-        visitorRequests: [],
-      }),
-  }));
+    reset: () => set({ ...initialData, loading: initialLoading }),
+  };
+});
