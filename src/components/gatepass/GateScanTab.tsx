@@ -10,14 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import {
-  gatepassService,
-  mediaUrl,
-  type Gate,
-  type GateLookupResult,
-  type GateRequestSummary,
-  type GateScanResult,
-} from "@/services/gatepass.service";
+import { gatepassService, mediaUrl, type Gate, type GateLookupResult, type GateRequestSummary, type GateScanResult } from "@/services/gatepass.service";
 import { StudentSummary, TYPE_LABEL, apiError, formatDateTime } from "./shared";
 
 const QrCameraScanner = dynamic(() => import("./QrCameraScanner"), { ssr: false });
@@ -76,6 +69,7 @@ export default function GateScanTab() {
   const [typed, setTyped] = useState("");
   const [token, setToken] = useState("");
   const [cameraOn, setCameraOn] = useState(false);
+  const [usedCamera, setUsedCamera] = useState(false);
   const [lookup, setLookup] = useState<GateLookupResult | null>(null);
   const [result, setResult] = useState<GateScanResult | null>(null);
   const [pickupPersonId, setPickupPersonId] = useState("");
@@ -120,8 +114,29 @@ export default function GateScanTab() {
     setCameraOn(false);
   };
 
+  // Stops the page behind from scrolling while the camera is open.
+  useEffect(() => {
+    if (!cameraOn) return;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [cameraOn]);
+
+  // After a failed scan: start over, and reopen the camera if that is how the guard scans.
+  const scanAgain = () => {
+    const reopenCamera = usedCamera;
+
+    reset();
+
+    if (reopenCamera) setCameraOn(true);
+  };
+
   const check = useCallback(
-    async (raw: string) => {
+    async (raw: string, viaCamera = false) => {
       const value = raw.trim();
 
       if (!value || busyRef.current) return;
@@ -134,6 +149,7 @@ export default function GateScanTab() {
       busyRef.current = true;
       setCameraOn(false);
       setToken(value);
+      setUsedCamera(viaCamera);
       setStage("checking");
 
       try {
@@ -148,7 +164,7 @@ export default function GateScanTab() {
         setStage("idle");
       }
     },
-    [gateId],
+    [gateId]
   );
 
   const request = lookup?.request ?? null;
@@ -188,11 +204,7 @@ export default function GateScanTab() {
   }
 
   if (gates.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-        There are no active gates. Ask the school office to add one under Setup, then Gates.
-      </div>
-    );
+    return <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">There are no active gates. Ask the school office to add one under Setup, then Gates.</div>;
   }
 
   return (
@@ -223,9 +235,7 @@ export default function GateScanTab() {
             <h2 className="font-semibold">Scan the pass</h2>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            Scan the QR with a scanner, use the camera, or type the code.
-          </p>
+          <p className="text-sm text-muted-foreground">Scan the QR with a scanner, use the camera, or type the code.</p>
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
@@ -247,21 +257,17 @@ export default function GateScanTab() {
               {stage === "checking" ? <Loader2 className="size-4 animate-spin" /> : "Check pass"}
             </Button>
 
-            <Button
-              variant="outline"
-              className="gap-2"
-              disabled={stage === "checking" || !gateId}
-              onClick={() => setCameraOn((on) => !on)}
-            >
+            <Button variant="outline" className="gap-2" disabled={stage === "checking" || !gateId} onClick={() => setCameraOn((on) => !on)}>
               <Camera className="size-4" />
               {cameraOn ? "Close camera" : "Use camera"}
             </Button>
           </div>
 
           {cameraOn && (
-            <div className="mx-auto max-w-sm overflow-hidden rounded-lg border">
+            <div>
               <QrCameraScanner
-                onScan={(value) => void check(value)}
+                onScan={(value) => void check(value, true)}
+                onClose={() => setCameraOn(false)}
                 onError={(message) => {
                   toast.error(message);
                   setCameraOn(false);
@@ -276,17 +282,10 @@ export default function GateScanTab() {
       {(stage === "review" || stage === "recording") && lookup && (
         <div className="space-y-5 rounded-lg border p-5">
           {lookup.valid ? (
-            <div
-              className={cn(
-                "flex items-center gap-3 rounded-lg p-4",
-                lookup.action === "EXIT" ? "bg-violet-50 text-violet-800" : "bg-emerald-50 text-emerald-800",
-              )}
-            >
+            <div className={cn("flex items-center gap-3 rounded-lg p-4", lookup.action === "EXIT" ? "bg-violet-50 text-violet-800" : "bg-emerald-50 text-emerald-800")}>
               <CheckCircle2 className="size-6 shrink-0" />
               <div>
-                <p className="text-lg font-semibold">
-                  {lookup.action === "EXIT" ? "Student is leaving" : "Student is returning"}
-                </p>
+                <p className="text-lg font-semibold">{lookup.action === "EXIT" ? "Student is leaving" : "Student is returning"}</p>
                 <p className="text-sm">{lookup.message}</p>
               </div>
             </div>
@@ -306,38 +305,15 @@ export default function GateScanTab() {
             <section className="space-y-3">
               <div>
                 <p className="text-sm font-semibold">Who is picking up the student?</p>
-                <p className="text-sm text-muted-foreground">
-                  Check the person&apos;s ID against the photo below, then select them.
-                </p>
+                <p className="text-sm text-muted-foreground">Check the person&apos;s ID against the photo below, then select them.</p>
               </div>
 
               {request.pickupPersons.map((person) => (
-                <label
-                  key={person.id}
-                  className={cn(
-                    "flex cursor-pointer flex-wrap items-center gap-4 rounded-lg border p-3",
-                    pickupPersonId === person.id && "border-primary bg-primary/5",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="pickup-person"
-                    className="size-4 accent-primary"
-                    checked={pickupPersonId === person.id}
-                    onChange={() => setPickupPersonId(person.id)}
-                  />
+                <label key={person.id} className={cn("flex cursor-pointer flex-wrap items-center gap-4 rounded-lg border p-3", pickupPersonId === person.id && "border-primary bg-primary/5")}>
+                  <input type="radio" name="pickup-person" className="size-4 accent-primary" checked={pickupPersonId === person.id} onChange={() => setPickupPersonId(person.id)} />
 
-                  <a
-                    href={mediaUrl(person.idProofUrl)}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <img
-                      src={mediaUrl(person.idProofUrl)}
-                      alt={`${person.name} ID proof`}
-                      className="h-20 w-32 rounded-md border object-cover"
-                    />
+                  <a href={mediaUrl(person.idProofUrl)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                    <img src={mediaUrl(person.idProofUrl)} alt={`${person.name} ID proof`} className="h-20 w-32 rounded-md border object-cover" />
                   </a>
 
                   <div className="text-sm">
@@ -360,6 +336,8 @@ export default function GateScanTab() {
               {lookup.valid ? "Cancel" : "Scan next"}
             </Button>
 
+            {/* {!lookup.valid && <Button onClick={scanAgain}>Scan again</Button>} */}
+
             {lookup.valid && (
               <Button onClick={record} disabled={stage === "recording"} className="gap-2">
                 {stage === "recording" && <Loader2 className="size-4 animate-spin" />}
@@ -373,12 +351,7 @@ export default function GateScanTab() {
       {/* Done */}
       {stage === "done" && result && (
         <div className="space-y-5 rounded-lg border p-5">
-          <div
-            className={cn(
-              "flex items-center gap-3 rounded-lg p-4",
-              result.allowed ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800",
-            )}
-          >
+          <div className={cn("flex items-center gap-3 rounded-lg p-4", result.allowed ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800")}>
             {result.allowed ? <CheckCircle2 className="size-7 shrink-0" /> : <XCircle className="size-7 shrink-0" />}
 
             <div>
@@ -400,8 +373,17 @@ export default function GateScanTab() {
 
           {!result.allowed && result.request && <RequestBlock request={result.request} />}
 
-          <div className="flex justify-end">
-            <Button onClick={reset}>Scan next</Button>
+          <div className="flex justify-end gap-2">
+            {result.allowed ? (
+              <Button onClick={reset}>Scan next</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={reset}>
+                  Scan next
+                </Button>
+                {/* <Button onClick={scanAgain}>Scan again</Button> */}
+              </>
+            )}
           </div>
         </div>
       )}

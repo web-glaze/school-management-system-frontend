@@ -5,6 +5,13 @@
 
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant short (@media (max-height: 700px));
+@media (max-height: 700px) {
+  [data-slot="dialog-content"] {
+    max-height: calc(100dvh - 1rem);
+    overflow-y: auto;
+  }
+}
 
 @theme inline {
   --color-background: var(--background);

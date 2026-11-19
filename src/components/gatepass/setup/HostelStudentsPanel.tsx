@@ -191,7 +191,7 @@ export default function HostelStudentsPanel() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>

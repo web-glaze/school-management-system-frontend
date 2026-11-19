@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { LayoutDashboard, type LucideIcon } from "lucide-react";
-
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 

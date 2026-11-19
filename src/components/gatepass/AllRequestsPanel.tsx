@@ -60,7 +60,7 @@ export default function AllRequestsPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>

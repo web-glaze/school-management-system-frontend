@@ -31,7 +31,6 @@ function namesLabel(people: { firstName: string; lastName: string }[]) {
   return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`;
 }
 
-/** "2 h 10 min", counted from the time the student was due back. */
 function overdueBy(due: string) {
   const minutes = Math.floor((Date.now() - new Date(due).getTime()) / 60000);
 
@@ -49,7 +48,7 @@ function overdueBy(due: string) {
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: "alert" }) {
   return (
-    <div className={cn("rounded-lg border p-4", tone === "alert" && value > 0 && "border-red-200 bg-red-50")}>
+    <div className={cn("rounded-xl border bg-card p-4", tone === "alert" && value > 0 && "border-red-200 bg-red-50")}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={cn("text-2xl font-bold", tone === "alert" && value > 0 && "text-red-700")}>{value}</p>
     </div>
@@ -114,7 +113,7 @@ export default function RecordsTab() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Students out of campus</h2>
 
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto rounded-xl border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -148,12 +147,8 @@ export default function RecordsTab() {
 
                       <TableCell className="max-w-56 text-sm">
                         <p className="truncate">{namesLabel(row.students.map((s) => s.student))}</p>
-                        {row.students.length === 1 && (
-                          <p className="text-xs text-muted-foreground">Adm. no. {row.students[0].student.admissionNo}</p>
-                        )}
-                        {row.accompanyingPerson && (
-                          <p className="text-xs text-muted-foreground">With {row.accompanyingPerson}</p>
-                        )}
+                        {row.students.length === 1 && <p className="text-xs text-muted-foreground">Adm. no. {row.students[0].student.admissionNo}</p>}
+                        {row.accompanyingPerson && <p className="text-xs text-muted-foreground">With {row.accompanyingPerson}</p>}
                       </TableCell>
 
                       <TableCell className="text-sm">{row.destination || "—"}</TableCell>
@@ -180,7 +175,7 @@ export default function RecordsTab() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Recent gate activity</h2>
 
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto rounded-xl border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -213,9 +208,7 @@ export default function RecordsTab() {
 
                       <TableCell className="text-sm">{request?.requestNo ?? "—"}</TableCell>
 
-                      <TableCell className="max-w-48 truncate text-sm">
-                        {request ? namesLabel(request.students.map((s) => s.student)) : "—"}
-                      </TableCell>
+                      <TableCell className="max-w-48 truncate text-sm">{request ? namesLabel(request.students.map((s) => s.student)) : "—"}</TableCell>
 
                       <TableCell>
                         <Badge variant="secondary">{log.direction === "OUT" ? "Left" : "Returned"}</Badge>
@@ -223,9 +216,7 @@ export default function RecordsTab() {
 
                       <TableCell className="text-sm">{log.gate?.name ?? "—"}</TableCell>
 
-                      <TableCell className="text-sm">
-                        {log.pickupPerson ? `${log.pickupPerson.name} (${log.pickupPerson.relation})` : "—"}
-                      </TableCell>
+                      <TableCell className="text-sm">{log.pickupPerson ? `${log.pickupPerson.name} (${log.pickupPerson.relation})` : "—"}</TableCell>
 
                       <TableCell className="text-sm">{log.scannedBy?.name ?? "—"}</TableCell>
 

@@ -58,7 +58,6 @@ export default function RequestDetailDialog({ requestId, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId]);
 
   return (
