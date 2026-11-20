@@ -848,7 +848,7 @@ export default function StudentAttendancePage() {
                   onClick={() => setViewMode("attendance")}
                   className={cn(
                     "flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                    viewMode === "attendance" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    viewMode === "attendance" ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <ClipboardList className="size-4" />
@@ -859,7 +859,7 @@ export default function StudentAttendancePage() {
                   onClick={() => setViewMode("reports")}
                   className={cn(
                     "flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                    viewMode === "reports" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    viewMode === "reports" ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <PieChart className="size-4" />
@@ -1384,7 +1384,7 @@ export default function StudentAttendancePage() {
 
       {/* Student report dialog */}
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
-        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden flex flex-col">
           <div className="border-b px-6 py-5 shrink-0">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">

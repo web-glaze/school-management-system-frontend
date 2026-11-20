@@ -2090,7 +2090,7 @@ export default function ExamsPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-125">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-125">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
@@ -2343,7 +2343,7 @@ export default function ExamsPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-125">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-125">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
@@ -2542,7 +2542,7 @@ export default function ExamsPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden p-0 sm:max-w-125">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-125">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
@@ -2726,7 +2726,7 @@ export default function ExamsPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-125">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-125">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
@@ -2985,7 +2985,7 @@ export default function ExamsPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-165">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-165">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
@@ -3220,7 +3220,7 @@ export default function ExamsPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[80vh] flex-col overflow-hidden p-0 sm:max-w-125">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-125">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">

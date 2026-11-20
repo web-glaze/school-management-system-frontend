@@ -67,7 +67,7 @@ export default function PendingList({ mode }: Props) {
 
   if (pending.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed py-16 text-center text-muted-foreground">
+      <div className="rounded-xl border border-dashed bg-card py-16 text-center text-muted-foreground">
         <Inbox className="mx-auto mb-2 size-6" />
         Nothing is waiting for your approval.
       </div>
@@ -86,7 +86,7 @@ export default function PendingList({ mode }: Props) {
         const extra = request.students.length - SHOWN_STUDENTS;
 
         return (
-          <div key={request.id} className="space-y-4 rounded-lg border p-4">
+          <div key={request.id} className="space-y-4 rounded-xl border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="font-semibold">{request.requestNo}</p>

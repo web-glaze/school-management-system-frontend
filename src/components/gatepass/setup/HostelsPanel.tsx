@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Hostel } from "@/services/gatepass.service";
 import { useGatepassStore } from "@/store/gatepassStore";
-import { apiError } from "../shared";
+import { RowActions, TH, THEAD_CLASS, TableCard, TableEmptyRow, TableLoadingRow, apiError } from "../shared";
 
 export default function HostelsPanel() {
   const hostels = useGatepassStore((s) => s.hostels);
@@ -117,6 +116,8 @@ export default function HostelsPanel() {
     }
   };
 
+  const unchanged = !!editing && name.trim() === editing.name && capacity.trim() === (editing.capacity > 0 ? String(editing.capacity) : "");
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -128,75 +129,74 @@ export default function HostelsPanel() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      <TableCard>
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Hostel</TableHead>
-              <TableHead>Students</TableHead>
-              <TableHead>Housemother</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+          <TableHeader className={THEAD_CLASS}>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className={`${TH} pl-4 sm:pl-6`}>Hostel</TableHead>
+              <TableHead className={`${TH} hidden sm:table-cell`}>Students</TableHead>
+              <TableHead className={`${TH} hidden md:table-cell`}>Housemother</TableHead>
+              <TableHead className={`${TH} w-14 pr-4 text-right sm:pr-6 md:w-28`}>Actions</TableHead>
             </TableRow>
           </TableHeader>
 
-          <TableBody>
+          <TableBody className="divide-y divide-border/30">
             {loading && hostels.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
-                </TableCell>
-              </TableRow>
+              <TableLoadingRow colSpan={4} />
             ) : hostels.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
-                  No hostels yet. Add a hostel, then link students to it.
-                </TableCell>
-              </TableRow>
+              <TableEmptyRow colSpan={4} title="No hostels yet" text="Add a hostel, then link students to it." />
             ) : (
-              hostels.map((hostel) => (
-                <TableRow key={hostel.id}>
-                  <TableCell className="font-medium">{hostel.name}</TableCell>
+              hostels.map((hostel) => {
+                const studentsText = `${hostel.studentCount}${hostel.capacity > 0 ? ` / ${hostel.capacity}` : ""}`;
 
-                  <TableCell>
-                    {hostel.studentCount}
-                    {hostel.capacity > 0 ? ` / ${hostel.capacity}` : ""}
-                  </TableCell>
+                const housemotherSelect = (
+                  <Select value={hostel.housemother?.id ?? ""} onValueChange={(value) => changeHousemother(hostel, value)}>
+                    <SelectTrigger className="w-full bg-card md:w-56">
+                      <SelectValue placeholder="Assign a housemother" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeHousemothers.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">No housemothers yet</div>
+                      ) : (
+                        activeHousemothers.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                );
 
-                  <TableCell>
-                    <Select value={hostel.housemother?.id ?? ""} onValueChange={(value) => changeHousemother(hostel, value)}>
-                      <SelectTrigger className="w-56">
-                        <SelectValue placeholder="Assign a housemother" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeHousemothers.length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-muted-foreground">No housemothers yet</div>
-                        ) : (
-                          activeHousemothers.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
+                return (
+                  <TableRow key={hostel.id}>
+                    <TableCell className="py-4 pl-4 align-middle sm:pl-6">
+                      <div className="min-w-0 max-w-56 space-y-1 sm:max-w-none">
+                        <p className="font-semibold leading-tight">{hostel.name}</p>
+                        <p className="text-sm text-foreground/50 sm:hidden">{studentsText} students</p>
+                        <div className="pt-1 md:hidden">{housemotherSelect}</div>
+                      </div>
+                    </TableCell>
 
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(hostel)}>
-                        Edit
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setDeleting(hostel)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                    <TableCell className="hidden py-4 align-middle sm:table-cell">{studentsText}</TableCell>
+
+                    <TableCell className="hidden py-4 align-middle md:table-cell">{housemotherSelect}</TableCell>
+
+                    <TableCell className="py-4 pr-4 text-right align-top sm:pr-6 md:align-middle">
+                      <RowActions
+                        actions={[
+                          { label: "Edit", icon: Pencil, onClick: () => openEdit(hostel) },
+                          { label: "Delete", icon: Trash2, danger: true, onClick: () => setDeleting(hostel) },
+                        ]}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
-      </div>
+      </TableCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-[95vw] sm:max-w-md">
@@ -240,7 +240,7 @@ export default function HostelsPanel() {
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={save} disabled={saving} className="gap-2">
+            <Button onClick={save} disabled={saving || unchanged} className="gap-2">
               {saving && <Loader2 className="size-4 animate-spin" />}
               Save
             </Button>
@@ -249,22 +249,43 @@ export default function HostelsPanel() {
       </Dialog>
 
       <AlertDialog open={!!deleting} onOpenChange={(next) => !next && setDeleting(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-105">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleting?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>A hostel can only be deleted when no students are linked to it. This cannot be undone.</AlertDialogDescription>
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+              <Trash2 className="size-6 text-destructive" />
+            </div>
+
+            <AlertDialogTitle className="w-full text-center text-xl">Delete hostel?</AlertDialogTitle>
+
+            <AlertDialogDescription className="text-center wrap-break-word">
+              A hostel can only be deleted when no students are linked to it. This action cannot be undone. This will permanently remove{" "}
+              <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deleting?.name}</span>.
+            </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={removing}>Keep hostel</AlertDialogCancel>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel disabled={removing} className="h-11">
+              Keep hostel
+            </AlertDialogCancel>
             <AlertDialogAction
-              disabled={removing}
               onClick={(event) => {
                 event.preventDefault();
                 void confirmDelete();
               }}
+              disabled={removing}
+              className="h-11 bg-destructive text-white hover:bg-destructive/90"
             >
-              {removing ? "Deleting..." : "Delete hostel"}
+              {removing ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 size-4" />
+                  Delete hostel
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -510,16 +510,18 @@ export default function StudentsPage() {
               }
             }}
           >
-            {canCreate && (<DialogTrigger asChild>
-              <Button className="gap-2 px-5">
-                <Plus className="size-4" />
-                Add Student
-              </Button>
-            </DialogTrigger>)}
+            {canCreate && (
+              <DialogTrigger asChild>
+                <Button className="gap-2 px-5">
+                  <Plus className="size-4" />
+                  Add Student
+                </Button>
+              </DialogTrigger>
+            )}
 
-            <DialogContent className="sm:max-w-3xl w-[95vw] p-0 overflow-hidden max-h-[80vh] flex flex-col gap-0">
+            <DialogContent className="sm:max-w-3xl w-[95vw] p-0 overflow-hidden flex flex-col gap-0">
               {/* Header */}
-              <div className="border-b px-5 sm:px-6 py-4 sm:py-5 shrink-0">
+              <div className="shrink-0 border-b px-5 py-4 short:py-2.5 sm:px-6 sm:py-5">
                 <div className="flex items-center gap-3">
                   <div className="size-9 sm:size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <CalendarDays className="size-4 sm:size-5 text-primary" />
@@ -534,7 +536,7 @@ export default function StudentsPage() {
 
               <form onSubmit={handleCreate} className="flex flex-col flex-1 min-h-0">
                 {/* Scrollable body */}
-                <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-7 sm:space-y-8">
+                <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-7 sm:space-y-8 short:py-3 short:space-y-4">
                   {/* Personal Information */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 border-b pb-2">
@@ -542,7 +544,7 @@ export default function StudentsPage() {
                       <h3 className="text-sm sm:text-base font-semibold">Personal Information</h3>
                     </div>
 
-                    <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FieldGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 short:gap-2 short:sm:grid-cols-3">
                       <Field>
                         <Label>Admission No</Label>
                         <Input
@@ -623,7 +625,7 @@ export default function StudentsPage() {
                       <h3 className="text-sm sm:text-base font-semibold">Parent Information</h3>
                     </div>
 
-                    <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FieldGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 short:gap-2 short:sm:grid-cols-3">
                       <Field>
                         <Label>Father Name</Label>
 
@@ -705,7 +707,7 @@ export default function StudentsPage() {
                       <h3 className="text-sm sm:text-base font-semibold">Admission Information</h3>
                     </div>
 
-                    <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FieldGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 short:gap-2 short:sm:grid-cols-3">
                       <Field>
                         <Label>Admission Date</Label>
 
@@ -744,7 +746,7 @@ export default function StudentsPage() {
                 </div>
 
                 {/* Sticky footer */}
-                <DialogFooter className="border-t px-5 py-3 sm:pb-7 shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-2 bg-background rounded-b-lg">
+                <DialogFooter className="m-0 shrink-0 flex-col-reverse gap-2 rounded-b-lg border-t bg-background px-5 py-3 sm:flex-row sm:px-6">
                   <DialogClose asChild>
                     <Button variant="outline" className="w-full sm:w-auto" type="button">
                       Cancel
@@ -888,9 +890,11 @@ export default function StudentsPage() {
                       <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Date Of Birth</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden md:table-cell">Created At</TableHead>
-                      {(canCreate || canUpdate || canDelete) && (<TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
-                        <span className="md:block">Actions</span>
-                      </TableHead>)}
+                      {(canCreate || canUpdate || canDelete) && (
+                        <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                          <span className="md:block">Actions</span>
+                        </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
 
@@ -958,73 +962,83 @@ export default function StudentsPage() {
                           </div>
                         </TableCell>
 
-                        {(canCreate || canUpdate || canDelete) && (<TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
-                          <div className="hidden md:flex justify-end gap-1">
-                            {!student.user && canCreate && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-10 rounded-lg text-muted-foreground hover:bg-emerald-300/10 hover:text-emerald-700 transition-all"
-                                title="Create login"
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClick={() => openExistingLoginDialog(student)}
-                              >
-                                <KeyRound className="size-5" />
-                              </Button>
-                            )}
-
-                            {canUpdate && (<Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                              title="Edit section"
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onClick={() => openEditDialog(student)}
-                            >
-                              <Pencil className="size-5" />
-                            </Button>)}
-
-                            {canDelete && (<Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                              title="Delete section"
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onClick={() => openDeleteDialog(student)}
-                            >
-                              <Trash2 className="size-5" />
-                            </Button>)}
-                          </div>
-
-                          <div className="md:hidden flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
-                                  <MoreVertical className="size-5" />
+                        {(canCreate || canUpdate || canDelete) && (
+                          <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                            <div className="hidden md:flex justify-end gap-1">
+                              {!student.user && canCreate && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-10 rounded-lg text-muted-foreground hover:bg-emerald-300/10 hover:text-emerald-700 transition-all"
+                                  title="Create login"
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onClick={() => openExistingLoginDialog(student)}
+                                >
+                                  <KeyRound className="size-5" />
                                 </Button>
-                              </DropdownMenuTrigger>
+                              )}
 
-                              <DropdownMenuContent align="end">
-                                {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(student)}>
-                                  <Pencil className="mr-2 size-4" />
-                                  Edit
-                                </DropdownMenuItem>)}
+                              {canUpdate && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                                  title="Edit section"
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onClick={() => openEditDialog(student)}
+                                >
+                                  <Pencil className="size-5" />
+                                </Button>
+                              )}
 
-                                {!student.user && (
-                                  <DropdownMenuItem onClick={() => openExistingLoginDialog(student)}>
-                                    <KeyRound className="mr-2 size-4" />
-                                    Create login
-                                  </DropdownMenuItem>
-                                )}
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                  title="Delete section"
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onClick={() => openDeleteDialog(student)}
+                                >
+                                  <Trash2 className="size-5" />
+                                </Button>
+                              )}
+                            </div>
 
-                                {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(student)} className="text-destructive">
-                                  <Trash2 className="mr-2 size-4" />
-                                  Delete
-                                </DropdownMenuItem>)}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>)}
+                            <div className="md:hidden flex justify-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
+                                    <MoreVertical className="size-5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+
+                                <DropdownMenuContent align="end">
+                                  {canUpdate && (
+                                    <DropdownMenuItem onClick={() => openEditDialog(student)}>
+                                      <Pencil className="mr-2 size-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {!student.user && (
+                                    <DropdownMenuItem onClick={() => openExistingLoginDialog(student)}>
+                                      <KeyRound className="mr-2 size-4" />
+                                      Create login
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {canDelete && (
+                                    <DropdownMenuItem onClick={() => openDeleteDialog(student)} className="text-destructive">
+                                      <Trash2 className="mr-2 size-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1045,8 +1059,8 @@ export default function StudentsPage() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-2xl w-[95vw] p-0 overflow-hidden max-h-[80vh] flex flex-col gap-0">
-          <div className="border-b px-5 sm:px-6 py-4 sm:py-5 shrink-0">
+        <DialogContent className="sm:max-w-2xl w-[95vw] p-0 overflow-hidden flex flex-col gap-0">
+          <div className="shrink-0 border-b px-5 py-4 short:py-2.5 sm:px-6 sm:py-5">
             <div className="flex items-center gap-3">
               <div className="size-9 sm:size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <CalendarDays className="size-4 sm:size-5 text-primary" />
@@ -1060,13 +1074,13 @@ export default function StudentsPage() {
           </div>
 
           <form onSubmit={handleUpdate} className="flex flex-col flex-1 min-h-0">
-            <div className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-5 sm:py-6 space-y-5">
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-5 sm:py-6 space-y-5 short:py-3 short:space-y-3">
               <div className="flex items-center gap-2 border-b pb-2">
                 <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">1</span>
 
                 <h3 className="text-sm sm:text-base font-semibold">Personal Information</h3>
               </div>
-              <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FieldGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 short:gap-2 short:sm:grid-cols-3">
                 <Field>
                   <Label>Admission No</Label>
                   <Input
@@ -1143,7 +1157,7 @@ export default function StudentsPage() {
                 <h3 className="text-sm sm:text-base font-semibold">Parent Information</h3>
               </div>
 
-              <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FieldGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 short:gap-2 short:sm:grid-cols-3">
                 <Field>
                   <Label>Father Name</Label>
 
@@ -1215,7 +1229,7 @@ export default function StudentsPage() {
                 <h3 className="text-sm sm:text-base font-semibold">Admission Information</h3>
               </div>
 
-              <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FieldGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 short:gap-2 short:sm:grid-cols-3">
                 <Field>
                   <Label>Admission Date</Label>
 
@@ -1279,7 +1293,7 @@ export default function StudentsPage() {
               </FieldGroup>
             </div>
 
-            <DialogFooter className="border-t px-5 py-3 sm:pb-7 shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-2 bg-background rounded-b-lg">
+            <DialogFooter className="m-0 shrink-0 flex-col-reverse gap-2 rounded-b-lg border-t bg-background px-5 py-3 sm:flex-row sm:px-6">
               <DialogClose asChild>
                 <Button variant="outline" className="w-full sm:w-auto">
                   Cancel

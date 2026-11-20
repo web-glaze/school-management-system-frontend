@@ -64,13 +64,7 @@ const restrictToVerticalAxis: Modifier = ({ transform }) => ({
   x: 0,
 });
 
-function SortableRow({
-  classItem,
-  children,
-}: {
-  classItem: AcademicClass;
-  children: (dragHandle: React.ReactNode) => React.ReactNode;
-}) {
+function SortableRow({ classItem, children }: { classItem: AcademicClass; children: (dragHandle: React.ReactNode) => React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: classItem.id });
 
   const style = {
@@ -86,13 +80,7 @@ function SortableRow({
   );
 
   return (
-    <TableRow
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`hover:bg-muted/20 transition-colors ${listeners ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "touch-none" : ""}`}
-    >
+    <TableRow ref={setNodeRef} style={style} {...attributes} {...listeners} className={`hover:bg-muted/20 transition-colors ${listeners ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "touch-none" : ""}`}>
       {children(dragHandle)}
     </TableRow>
   );
@@ -115,10 +103,7 @@ export default function ClassesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
-  );
+  const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }));
   const [orderedClasses, setOrderedClasses] = useState<AcademicClass[]>([]);
   const isReorderingRef = useRef(false);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -306,15 +291,17 @@ export default function ClassesPage() {
             <p className="text-muted-foreground">Manage classes</p>
           </div>
           <Dialog open={addClassOpen} onOpenChange={setAddClassOpen}>
-            {canCreate && (<DialogTrigger asChild>
-              <Button className="gap-2 px-5">
-                <Plus className="size-4" />
-                Add Class
-              </Button>
-            </DialogTrigger>)}
+            {canCreate && (
+              <DialogTrigger asChild>
+                <Button className="gap-2 px-5">
+                  <Plus className="size-4" />
+                  Add Class
+                </Button>
+              </DialogTrigger>
+            )}
 
-            <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
-              <div className="border-b px-6 py-5">
+            <DialogContent className="sm:max-w-115 gap-0 p-0">
+              <div className="shrink-0 border-b px-6 py-5 short:py-3">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
                     <CalendarDays className="size-5 text-primary" />
@@ -326,8 +313,8 @@ export default function ClassesPage() {
                 </div>
               </div>
 
-              <form onSubmit={handleCreate} className="space-y-6 p-6">
-                <FieldGroup>
+              <form onSubmit={handleCreate} className="flex min-h-0 flex-1 flex-col">
+                <FieldGroup className="min-h-0 flex-1 overflow-y-auto p-6 short:gap-3 short:py-3">
                   <Field>
                     <Label>Class Name</Label>
 
@@ -357,9 +344,7 @@ export default function ClassesPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Classes with the same name but a different board (e.g. two &quot;Class 9&quot; records) are kept as different class records.
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Classes with the same name but a different board (e.g. two &quot;Class 9&quot; records) are kept as different class records.</p>
                     {formErrors.board && <p className="text-sm text-red-500 mt-1">{formErrors.board}</p>}
                   </Field>
 
@@ -372,7 +357,7 @@ export default function ClassesPage() {
                   </Field>
                 </FieldGroup>
 
-                <DialogFooter className="gap-2">
+                <DialogFooter className="m-0 shrink-0 gap-2 px-6 py-4 short:py-3">
                   <DialogClose asChild>
                     <Button variant="outline" type="button">
                       Cancel
@@ -449,13 +434,15 @@ export default function ClassesPage() {
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 hidden sm:table-cell">Board</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
-                      {(canUpdate || canDelete) && (<TableHead
-                        className={`font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 bg-gray-50 dark:bg-muted/15 ${
-                          isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0"
-                        }`}
-                      >
-                        <span className="md:block">Actions</span>
-                      </TableHead>)}
+                      {(canUpdate || canDelete) && (
+                        <TableHead
+                          className={`font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 bg-gray-50 dark:bg-muted/15 ${
+                            isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0"
+                          }`}
+                        >
+                          <span className="md:block">Actions</span>
+                        </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border/30">
@@ -468,10 +455,7 @@ export default function ClassesPage() {
 
                               <TableCell className="py-4 align-middle">
                                 <div className="space-y-1 min-w-0 max-w-35 sm:max-w-55 md:max-w-45">
-                                  <p
-                                    className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors"
-                                    title={classItem.name}
-                                  >
+                                  <p className="font-semibold text-foreground text-base leading-tight truncate hover:text-primary transition-colors" title={classItem.name}>
                                     {classItem.name}
                                   </p>
 
@@ -505,57 +489,65 @@ export default function ClassesPage() {
                                 </div>
                               </TableCell>
 
-                              {(canUpdate || canDelete) && (<TableCell
-                                className={`py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card ${
-                                  isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0"
-                                }`}
-                              >
-                                <div className="hidden md:flex justify-end gap-1">
-                                  {canUpdate && (<Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                                    title="Edit class"
-                                    onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={() => openEditDialog(classItem)}
-                                  >
-                                    <Pencil className="size-5" />
-                                  </Button>)}
-
-                                  {canUpdate && (<Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                                    title="Delete class"
-                                    onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={() => openDeleteDialog(classItem)}
-                                  >
-                                    <Trash2 className="size-5" />
-                                  </Button>)}
-                                </div>
-
-                                <div className="md:hidden flex justify-end">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
-                                        <MoreVertical className="size-5" />
+                              {(canUpdate || canDelete) && (
+                                <TableCell
+                                  className={`py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card ${isDragActive ? "" : "sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0"}`}
+                                >
+                                  <div className="hidden md:flex justify-end gap-1">
+                                    {canUpdate && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                                        title="Edit class"
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        onClick={() => openEditDialog(classItem)}
+                                      >
+                                        <Pencil className="size-5" />
                                       </Button>
-                                    </DropdownMenuTrigger>
+                                    )}
 
-                                    <DropdownMenuContent align="end">
-                                      {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(classItem)}>
-                                        <Pencil className="mr-2 size-4" />
-                                        Edit
-                                      </DropdownMenuItem>)}
+                                    {canUpdate && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                        title="Delete class"
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        onClick={() => openDeleteDialog(classItem)}
+                                      >
+                                        <Trash2 className="size-5" />
+                                      </Button>
+                                    )}
+                                  </div>
 
-                                      {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(classItem)} className="text-destructive">
-                                        <Trash2 className="mr-2 size-4" />
-                                        Delete
-                                      </DropdownMenuItem>)}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </TableCell>)}
+                                  <div className="md:hidden flex justify-end">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
+                                          <MoreVertical className="size-5" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+
+                                      <DropdownMenuContent align="end">
+                                        {canUpdate && (
+                                          <DropdownMenuItem onClick={() => openEditDialog(classItem)}>
+                                            <Pencil className="mr-2 size-4" />
+                                            Edit
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {canDelete && (
+                                          <DropdownMenuItem onClick={() => openDeleteDialog(classItem)} className="text-destructive">
+                                            <Trash2 className="mr-2 size-4" />
+                                            Delete
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </TableCell>
+                              )}
                             </>
                           )}
                         </SortableRow>
@@ -570,8 +562,8 @@ export default function ClassesPage() {
       </div>
 
       <Dialog open={editClassOpen} onOpenChange={setEditClassOpen}>
-        <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
-          <div className="border-b px-6 py-5">
+        <DialogContent className="sm:max-w-115 gap-0 p-0">
+          <div className="shrink-0 border-b px-6 py-5 short:py-3">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Pencil className="size-5 text-primary" />
@@ -585,8 +577,8 @@ export default function ClassesPage() {
             </div>
           </div>
 
-          <form onSubmit={handleUpdate} className="space-y-6 p-6">
-            <FieldGroup>
+          <form onSubmit={handleUpdate} className="flex min-h-0 flex-1 flex-col">
+            <FieldGroup className="min-h-0 flex-1 overflow-y-auto p-6 short:gap-3 short:py-3">
               <Field>
                 <Label>Class Name</Label>
 
@@ -627,7 +619,7 @@ export default function ClassesPage() {
               </Field>
             </FieldGroup>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="m-0 shrink-0 gap-2 px-6 py-4 short:py-3">
               <DialogClose asChild>
                 <Button variant="outline" type="button">
                   Cancel
@@ -662,8 +654,7 @@ export default function ClassesPage() {
             <AlertDialogTitle className="w-full text-center text-xl">Delete class?</AlertDialogTitle>
 
             <AlertDialogDescription className="text-center wrap-break-word">
-              This action cannot be undone. This will permanently remove{" "}
-              <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingClass?.name}</span>.
+              This action cannot be undone. This will permanently remove <span className="inline-block max-w-60 truncate align-bottom font-semibold text-foreground">{deletingClass?.name}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
 

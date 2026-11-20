@@ -1179,7 +1179,7 @@ export default function AssignmentsPage() {
           if (!open) resetAddForm();
         }}
       >
-        <DialogContent className="sm:max-w-125 p-0 overflow-hidden max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-125 p-0 overflow-hidden flex flex-col">
           <div className="border-b px-6 py-5 shrink-0">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -1386,7 +1386,7 @@ export default function AssignmentsPage() {
           if (!open) setEditingAssignment(null);
         }}
       >
-        <DialogContent className="sm:max-w-125 p-0 overflow-hidden max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-125 p-0 overflow-hidden flex flex-col">
           <div className="border-b px-6 py-5 shrink-0">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">

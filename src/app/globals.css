@@ -7,7 +7,8 @@
 @custom-variant dark (&:is(.dark *));
 @custom-variant short (@media (max-height: 700px));
 @media (max-height: 700px) {
-  [data-slot="dialog-content"] {
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"] {
     max-height: calc(100dvh - 1rem);
     overflow-y: auto;
   }

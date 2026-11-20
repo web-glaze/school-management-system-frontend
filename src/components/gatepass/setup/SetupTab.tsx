@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PillTabs } from "../shared";
 import GatesPanel from "./GatesPanel";
 import HostelStudentsPanel from "./HostelStudentsPanel";
 import HostelsPanel from "./HostelsPanel";
@@ -20,15 +19,7 @@ export default function SetupTab() {
 
   return (
     <div className="space-y-4">
-      <Tabs value={panel} onValueChange={setPanel}>
-        <TabsList>
-          {PANELS.map((item) => (
-            <TabsTrigger key={item.value} value={item.value}>
-              {item.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <PillTabs size="sub" tabs={PANELS} value={panel} onChange={setPanel} />
 
       {panel === "hostels" && <HostelsPanel />}
       {panel === "housemothers" && <HousemothersPanel />}

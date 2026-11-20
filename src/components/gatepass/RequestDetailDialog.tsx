@@ -62,7 +62,7 @@ export default function RequestDetailDialog({ requestId, onClose }: Props) {
 
   return (
     <Dialog open={!!requestId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] w-[95vw] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className=" w-[95vw] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-3">
             {request?.requestNo ?? "Request"}

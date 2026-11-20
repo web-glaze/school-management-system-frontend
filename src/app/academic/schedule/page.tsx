@@ -1261,7 +1261,7 @@ export default function SchedulePage() {
 
       {/* Create Event popup */}
       <Dialog open={createDialogOpen} onOpenChange={(open) => (open ? setCreateDialogOpen(true) : closeCreateDialog())}>
-        <DialogContent className="max-h-[78vh] overflow-y-auto p-0 sm:max-w-xl">
+        <DialogContent className=" overflow-y-auto p-0 sm:max-w-xl">
           <DialogHeader>
             <div className="border-b px-6 py-5">
               <div className="flex items-center gap-3">
@@ -1305,7 +1305,7 @@ export default function SchedulePage() {
 
       {/* Edit Event popup — keeps the user on whatever tab they were viewing */}
       <Dialog open={editDialogOpen} onOpenChange={(open) => (open ? setEditDialogOpen(true) : closeEditDialog())}>
-        <DialogContent className="max-h-[78vh] overflow-y-auto p-0 sm:max-w-xl">
+        <DialogContent className=" overflow-y-auto p-0 sm:max-w-xl">
           <DialogHeader>
             <div className="border-b px-6 py-5">
               <div className="flex items-center gap-3">
@@ -1347,7 +1347,7 @@ export default function SchedulePage() {
 
       {/* Event details popup */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="max-h-[85vh] overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-lg">
+        <DialogContent className=" overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-lg">
           {viewingEvent && (
             <>
               <DialogHeader className="gap-3">

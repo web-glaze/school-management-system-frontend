@@ -7,15 +7,16 @@ import RecordsTab from "@/components/gatepass/RecordsTab";
 import RequestsTab from "@/components/gatepass/RequestsTab";
 import SetupTab from "@/components/gatepass/setup/SetupTab";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAnyPermission, usePermissions } from "@/hooks/usePermission";
+import { ClipboardCheck, ClipboardList, ScanLine, Settings, ShieldCheck } from "lucide-react";
+import { PillTabs } from "@/components/gatepass/shared";
 
 const TABS = [
-  { value: "requests", label: "Requests", permissions: ["movement.request"] },
-  { value: "approvals", label: "Approvals", permissions: ["movement.approve", "movement.finalize"] },
-  { value: "gate", label: "Gate Scan", permissions: ["gate.scan"] },
-  { value: "records", label: "Records", permissions: ["gate.dashboard"] },
-  { value: "setup", label: "Setup", permissions: ["gatepass.config"] },
+  { value: "requests", label: "Requests", icon: ClipboardList, permissions: ["movement.request"] },
+  { value: "approvals", label: "Approvals", icon: ShieldCheck, permissions: ["movement.approve", "movement.finalize"] },
+  { value: "gate", label: "Gate Scan", icon: ScanLine, permissions: ["gate.scan"] },
+  { value: "records", label: "Records", icon: ClipboardCheck, permissions: ["gate.dashboard"] },
+  { value: "setup", label: "Setup", icon: Settings, permissions: ["gatepass.config"] },
 ];
 
 const ALL_PERMISSIONS = TABS.flatMap((tab) => tab.permissions);
@@ -38,15 +39,7 @@ export default function GatepassPage() {
           <p className="text-muted-foreground">Outpasses, event trips and gate movement</p>
         </div>
 
-        <Tabs value={active} onValueChange={setTab}>
-          <TabsList>
-            {visible.map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
-                {item.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <PillTabs tabs={visible} value={active} onChange={setTab} />
 
         {active === "requests" && <RequestsTab />}
         {active === "approvals" && <ApprovalsTab />}

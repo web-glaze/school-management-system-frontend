@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Inbox, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import type { GateDashboard } from "@/services/gatepass.service";
 import { useGatepassStore } from "@/store/gatepassStore";
-import { StatusBadge, TYPE_LABEL, apiError, formatDateTime, fullName } from "./shared";
+import { StatusBadge, TH, THEAD_CLASS, TYPE_LABEL, TableCard, TableEmptyRow, apiError, formatDateTime, fullName } from "./shared";
 
 const REFRESH_MS = 30_000;
 
@@ -113,54 +113,59 @@ export default function RecordsTab() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Students out of campus</h2>
 
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <TableCard>
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Request</TableHead>
-                <TableHead>Students</TableHead>
-                <TableHead>Destination</TableHead>
-                <TableHead>Left at</TableHead>
-                <TableHead>Due back</TableHead>
-                <TableHead>Status</TableHead>
+            <TableHeader className={THEAD_CLASS}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={`${TH} pl-4 sm:pl-6`}>Request</TableHead>
+                <TableHead className={`${TH} hidden md:table-cell`}>Students</TableHead>
+                <TableHead className={`${TH} hidden lg:table-cell`}>Destination</TableHead>
+                <TableHead className={`${TH} hidden lg:table-cell`}>Left at</TableHead>
+                <TableHead className={`${TH} hidden sm:table-cell`}>Due back</TableHead>
+                <TableHead className={`${TH} pr-4 sm:pr-6`}>Status</TableHead>
               </TableRow>
             </TableHeader>
 
-            <TableBody>
+            <TableBody className="divide-y divide-border/30">
               {outNow.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                    <Inbox className="mx-auto mb-2 size-6" />
-                    Everyone is on campus.
-                  </TableCell>
-                </TableRow>
+                <TableEmptyRow colSpan={6} title="Everyone is on campus" />
               ) : (
                 outNow.map((row: OutNow) => {
                   const overdue = row.status === "OVERDUE";
 
                   return (
                     <TableRow key={row.id} className={cn(overdue && "bg-red-50/60")}>
-                      <TableCell>
-                        <p className="font-medium">{row.requestNo}</p>
-                        <p className="text-xs text-muted-foreground">{TYPE_LABEL[row.type]}</p>
+                      <TableCell className="py-4 pl-4 align-middle sm:pl-6">
+                        <div className="min-w-0 max-w-48 space-y-1 sm:max-w-none">
+                          <p className="font-semibold leading-tight">{row.requestNo}</p>
+                          <p className="text-xs text-muted-foreground">{TYPE_LABEL[row.type]}</p>
+                          <p className="truncate text-sm text-foreground/60 md:hidden">{namesLabel(row.students.map((s) => s.student))}</p>
+                          <p className="text-xs text-muted-foreground lg:hidden">
+                            {row.destination ? `To ${row.destination} · ` : ""}Left {formatDateTime(row.actualExitAt)}
+                          </p>
+                          <p className={cn("text-xs sm:hidden", overdue ? "font-medium text-red-700" : "text-muted-foreground")}>
+                            Due {formatDateTime(row.requestedTo)}
+                            {overdue ? ` · Late by ${overdueBy(row.requestedTo)}` : ""}
+                          </p>
+                        </div>
                       </TableCell>
 
-                      <TableCell className="max-w-56 text-sm">
+                      <TableCell className="hidden max-w-56 py-4 align-middle text-sm md:table-cell">
                         <p className="truncate">{namesLabel(row.students.map((s) => s.student))}</p>
                         {row.students.length === 1 && <p className="text-xs text-muted-foreground">Adm. no. {row.students[0].student.admissionNo}</p>}
                         {row.accompanyingPerson && <p className="text-xs text-muted-foreground">With {row.accompanyingPerson}</p>}
                       </TableCell>
 
-                      <TableCell className="text-sm">{row.destination || "—"}</TableCell>
+                      <TableCell className="hidden py-4 align-middle text-sm lg:table-cell">{row.destination || "—"}</TableCell>
 
-                      <TableCell className="text-sm">{formatDateTime(row.actualExitAt)}</TableCell>
+                      <TableCell className="hidden py-4 align-middle text-sm lg:table-cell">{formatDateTime(row.actualExitAt)}</TableCell>
 
-                      <TableCell className="text-sm">
+                      <TableCell className="hidden py-4 align-middle text-sm sm:table-cell">
                         <p>{formatDateTime(row.requestedTo)}</p>
                         {overdue && <p className="font-medium text-red-700">Late by {overdueBy(row.requestedTo)}</p>}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="py-4 pr-4 align-middle sm:pr-6">
                         <StatusBadge status={row.status} />
                       </TableCell>
                     </TableRow>
@@ -169,58 +174,73 @@ export default function RecordsTab() {
               )}
             </TableBody>
           </Table>
-        </div>
+        </TableCard>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Recent gate activity</h2>
 
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <TableCard>
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Request</TableHead>
-                <TableHead>Students</TableHead>
-                <TableHead>Movement</TableHead>
-                <TableHead>Gate</TableHead>
-                <TableHead>Picked up by</TableHead>
-                <TableHead>Guard</TableHead>
-                <TableHead>Result</TableHead>
+            <TableHeader className={THEAD_CLASS}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={`${TH} hidden pl-4 sm:pl-6 md:table-cell`}>Time</TableHead>
+                <TableHead className={`${TH} pl-4 md:pl-2`}>Request</TableHead>
+                <TableHead className={`${TH} hidden md:table-cell`}>Students</TableHead>
+                <TableHead className={`${TH} hidden lg:table-cell`}>Movement</TableHead>
+                <TableHead className={`${TH} hidden lg:table-cell`}>Gate</TableHead>
+                <TableHead className={`${TH} hidden xl:table-cell`}>Picked up by</TableHead>
+                <TableHead className={`${TH} hidden xl:table-cell`}>Guard</TableHead>
+                <TableHead className={`${TH} pr-4 sm:pr-6`}>Result</TableHead>
               </TableRow>
             </TableHeader>
 
-            <TableBody>
+            <TableBody className="divide-y divide-border/30">
               {recent.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                    No gate activity yet.
-                  </TableCell>
-                </TableRow>
+                <TableEmptyRow colSpan={8} title="No gate activity yet" />
               ) : (
                 recent.map((log: Recent) => {
                   const request = log.pass?.movementRequest;
                   const result = RESULT_META[log.result] ?? { label: log.result, className: "" };
+                  const students = request ? namesLabel(request.students.map((s) => s.student)) : "—";
 
                   return (
                     <TableRow key={log.id}>
-                      <TableCell className="whitespace-nowrap text-sm">{formatDateTime(log.scanTime)}</TableCell>
+                      <TableCell className="hidden whitespace-nowrap py-4 pl-4 align-middle text-sm sm:pl-6 md:table-cell">{formatDateTime(log.scanTime)}</TableCell>
 
-                      <TableCell className="text-sm">{request?.requestNo ?? "—"}</TableCell>
+                      <TableCell className="py-4 pl-4 align-middle md:pl-2">
+                        <div className="min-w-0 max-w-48 space-y-1 sm:max-w-none">
+                          <p className="font-semibold leading-tight">{request?.requestNo ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground md:hidden">{formatDateTime(log.scanTime)}</p>
+                          <p className="truncate text-sm text-foreground/60 md:hidden">{students}</p>
+                          <p className="text-xs text-muted-foreground lg:hidden">
+                            {log.direction === "OUT" ? "Left" : "Returned"}
+                            {log.gate?.name ? ` · ${log.gate.name}` : ""}
+                          </p>
+                          {log.pickupPerson && (
+                            <p className="text-xs text-muted-foreground xl:hidden">
+                              Picked up by {log.pickupPerson.name} ({log.pickupPerson.relation})
+                            </p>
+                          )}
+                          {log.scannedBy?.name && <p className="text-xs text-muted-foreground xl:hidden">Guard: {log.scannedBy.name}</p>}
+                        </div>
+                      </TableCell>
 
-                      <TableCell className="max-w-48 truncate text-sm">{request ? namesLabel(request.students.map((s) => s.student)) : "—"}</TableCell>
+                      <TableCell className="hidden max-w-48 py-4 align-middle text-sm md:table-cell">
+                        <p className="truncate">{students}</p>
+                      </TableCell>
 
-                      <TableCell>
+                      <TableCell className="hidden py-4 align-middle lg:table-cell">
                         <Badge variant="secondary">{log.direction === "OUT" ? "Left" : "Returned"}</Badge>
                       </TableCell>
 
-                      <TableCell className="text-sm">{log.gate?.name ?? "—"}</TableCell>
+                      <TableCell className="hidden py-4 align-middle text-sm lg:table-cell">{log.gate?.name ?? "—"}</TableCell>
 
-                      <TableCell className="text-sm">{log.pickupPerson ? `${log.pickupPerson.name} (${log.pickupPerson.relation})` : "—"}</TableCell>
+                      <TableCell className="hidden py-4 align-middle text-sm xl:table-cell">{log.pickupPerson ? `${log.pickupPerson.name} (${log.pickupPerson.relation})` : "—"}</TableCell>
 
-                      <TableCell className="text-sm">{log.scannedBy?.name ?? "—"}</TableCell>
+                      <TableCell className="hidden py-4 align-middle text-sm xl:table-cell">{log.scannedBy?.name ?? "—"}</TableCell>
 
-                      <TableCell>
+                      <TableCell className="py-4 pr-4 align-middle sm:pr-6">
                         <Badge variant="outline" className={result.className}>
                           {result.label}
                         </Badge>
@@ -231,7 +251,7 @@ export default function RecordsTab() {
               )}
             </TableBody>
           </Table>
-        </div>
+        </TableCard>
       </section>
     </div>
   );

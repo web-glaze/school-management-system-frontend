@@ -5,14 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { MovementRequest } from "@/services/gatepass.service";
@@ -48,13 +41,7 @@ export default function DecisionDialog({ mode, request, action, onClose }: Props
       const decide = mode === "housemother" ? housemotherDecision : finalDecision;
       await decide(request.id, { action, remarks: remarks.trim() || undefined });
 
-      toast.success(
-        approving
-          ? mode === "final"
-            ? `${request.requestNo} approved. The QR code is now available.`
-            : `${request.requestNo} approved`
-          : `${request.requestNo} rejected`,
-      );
+      toast.success(approving ? (mode === "final" ? `${request.requestNo} approved. The QR code is now available.` : `${request.requestNo} approved`) : `${request.requestNo} rejected`);
 
       onClose();
     } catch (error) {
@@ -80,27 +67,18 @@ export default function DecisionDialog({ mode, request, action, onClose }: Props
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2">
-          <Label htmlFor="remarks">{approving ? "Remarks (optional)" : "Reason for rejecting"}</Label>
-          <Textarea
-            id="remarks"
-            rows={3}
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-            placeholder={approving ? "Anything the next approver should know" : "Why is this being rejected?"}
-          />
-        </div>
+        <DialogBody className="-my-1 py-1">
+          <div className="space-y-2">
+            <Label htmlFor="remarks">{approving ? "Remarks (optional)" : "Reason for rejecting"}</Label>
+            <Textarea id="remarks" rows={3} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder={approving ? "Anything the next approver should know" : "Why is this being rejected?"} />
+          </div>
+        </DialogBody>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button
-            onClick={submit}
-            disabled={submitting}
-            variant={approving ? "default" : "destructive"}
-            className="gap-2"
-          >
+          <Button onClick={submit} disabled={submitting} variant={approving ? "default" : "destructive"} className="gap-2">
             {submitting && <Loader2 className="size-4 animate-spin" />}
             {approving ? "Approve" : "Reject"}
           </Button>

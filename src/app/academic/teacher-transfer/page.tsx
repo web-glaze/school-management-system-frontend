@@ -1021,7 +1021,7 @@ export default function TeacherTransferPage() {
 
       {/* Timetable conflict popup */}
       <Dialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden p-0 flex flex-col gap-0">
+        <DialogContent className="sm:max-w-2xl overflow-hidden p-0 flex flex-col gap-0">
           {/* Header */}
           <div className="shrink-0 border-b border-border/60 px-4 sm:px-6 py-4 sm:py-5">
             <div className="flex items-start gap-3">
@@ -1206,7 +1206,7 @@ export default function TeacherTransferPage() {
       </Dialog>
 
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DialogContent className="sm:max-w-lg p-0 overflow-hidden max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden flex flex-col">
           <div className="border-b px-4 sm:px-6 py-4 sm:py-5 shrink-0">
             <div className="flex items-center gap-3">
               <div className="size-9 sm:size-10 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">

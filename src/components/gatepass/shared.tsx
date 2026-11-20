@@ -1,7 +1,11 @@
 "use client";
 
 import type { AxiosError } from "axios";
-
+import type { ReactNode } from "react";
+import { Inbox, MoreVertical, type LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { mediaUrl, type MovementRequest, type MovementStatus, type MovementType, type StudentCard } from "@/services/gatepass.service";
@@ -152,5 +156,138 @@ export function StudentSummary({ student, compact = false }: { student: StudentC
         )}
       </div>
     </div>
+  );
+}
+
+export interface PillTab {
+  value: string;
+  label: string;
+  icon?: LucideIcon;
+}
+
+/** size="main" for the page tabs, size="sub" for tabs inside a tab. */
+export function PillTabs({ tabs, value, onChange, size = "main" }: { tabs: PillTab[]; value: string | undefined; onChange: (value: string) => void; size?: "main" | "sub" }) {
+  const main = size === "main";
+
+  return (
+    <div role="tablist" className="flex w-full gap-1 rounded-xl border bg-card p-1.5 sm:inline-flex sm:w-auto sm:gap-1.5">
+      {tabs.map((tab) => {
+        const active = tab.value === value;
+        const Icon = tab.icon;
+
+        return (
+          <button
+            key={tab.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.value)}
+            className={cn(
+              "flex min-w-0 flex-1 items-center justify-center rounded-lg font-medium transition-colors sm:flex-none",
+              main ? "flex-col gap-0.5 px-1 py-2 text-[11px] sm:flex-row sm:gap-2 sm:px-4 sm:py-2 sm:text-sm" : "px-2.5 py-1.5 text-xs sm:px-3.5 sm:text-sm",
+              active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            {Icon && <Icon className="size-4 shrink-0" />}
+            <span className="truncate">{tab.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------- Table helpers ---------- */
+
+export const TH = "py-4 text-xs font-bold uppercase tracking-wider text-foreground/80";
+export const THEAD_CLASS = "border-b border-border/60 bg-gray-50 dark:bg-muted/15";
+
+export function TableCard({ children }: { children: ReactNode }) {
+  return <div className="w-full overflow-x-auto rounded-md border border-border/60 bg-card">{children}</div>;
+}
+
+export function TableLoadingRow({ colSpan }: { colSpan: number }) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colSpan}>
+        <div className="space-y-3 py-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-8 animate-pulse rounded bg-muted" />
+          ))}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+export function TableEmptyRow({ colSpan, title, text }: { colSpan: number; title: string; text?: string }) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colSpan}>
+        <div className="flex flex-col items-center justify-center p-10 text-center">
+          <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground/75">
+            <Inbox className="size-6 stroke-[1.5]" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">{title}</h3>
+          {text && <p className="mt-1 max-w-sm text-sm text-muted-foreground">{text}</p>}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+export interface RowAction {
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  danger?: boolean;
+  hidden?: boolean;
+  disabled?: boolean;
+}
+
+/** Icon buttons on desktop, a three-dot menu on phones. */
+export function RowActions({ actions }: { actions: RowAction[] }) {
+  const items = actions.filter((action) => !action.hidden);
+
+  if (items.length === 0) return null;
+
+  return (
+    <>
+      <div className="hidden justify-end gap-1 md:flex">
+        {items.map(({ label, icon: Icon, onClick, danger, disabled }) => (
+          <Button
+            key={label}
+            variant="ghost"
+            size="icon"
+            title={label}
+            aria-label={label}
+            disabled={disabled}
+            onClick={onClick}
+            className={cn("size-9 rounded-lg text-muted-foreground transition-all", danger ? "hover:bg-destructive/10 hover:text-destructive" : "hover:bg-muted hover:text-foreground")}
+          >
+            <Icon className="size-5" />
+          </Button>
+        ))}
+      </div>
+
+      <div className="flex justify-end md:hidden">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="size-9" aria-label="Actions">
+              <MoreVertical className="size-5" />
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end">
+            {items.map(({ label, icon: Icon, onClick, danger, disabled }) => (
+              <DropdownMenuItem key={label} disabled={disabled} onClick={onClick} className={danger ? "text-destructive" : undefined}>
+                <Icon className="mr-2 size-4" />
+                {label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </>
   );
 }

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Power } from "lucide-react";
 import { toast } from "sonner";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Gate } from "@/services/gatepass.service";
 import { useGatepassStore } from "@/store/gatepassStore";
-import { apiError } from "../shared";
+import { RowActions, TH, THEAD_CLASS, TableCard, TableEmptyRow, TableLoadingRow, apiError } from "../shared";
 
 const GATE_TYPES: { value: Gate["type"]; label: string }[] = [
   { value: "MAIN", label: "Main gate" },
@@ -88,6 +87,8 @@ export default function GatesPanel() {
     }
   };
 
+  const unchanged = !!editing && name.trim() === editing.name && location.trim() === (editing.location ?? "") && type === editing.type;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -99,58 +100,62 @@ export default function GatesPanel() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      <TableCard>
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Gate</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+          <TableHeader className={THEAD_CLASS}>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className={`${TH} pl-4 sm:pl-6`}>Gate</TableHead>
+              <TableHead className={`${TH} hidden sm:table-cell`}>Location</TableHead>
+              <TableHead className={`${TH} hidden md:table-cell`}>Type</TableHead>
+              <TableHead className={TH}>Status</TableHead>
+              <TableHead className={`${TH} w-14 pr-4 text-right sm:pr-6 md:w-28`}>Actions</TableHead>
             </TableRow>
           </TableHeader>
 
-          <TableBody>
+          <TableBody className="divide-y divide-border/30">
             {loading && gates.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
-                </TableCell>
-              </TableRow>
+              <TableLoadingRow colSpan={5} />
             ) : gates.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                  No gates yet. Add your main gate to start.
-                </TableCell>
-              </TableRow>
+              <TableEmptyRow colSpan={5} title="No gates yet" text="Add your main gate to start." />
             ) : (
-              gates.map((gate) => (
-                <TableRow key={gate.id}>
-                  <TableCell className="font-medium">{gate.name}</TableCell>
-                  <TableCell>{gate.location || "—"}</TableCell>
-                  <TableCell>{GATE_TYPES.find((t) => t.value === gate.type)?.label ?? gate.type}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={gate.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-gray-200 bg-gray-50 text-gray-600"}>
-                      {gate.isActive ? "Active" : "Off"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(gate)}>
-                        Edit
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => toggleActive(gate)}>
-                        {gate.isActive ? "Switch off" : "Switch on"}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              gates.map((gate) => {
+                const typeLabel = GATE_TYPES.find((t) => t.value === gate.type)?.label ?? gate.type;
+
+                return (
+                  <TableRow key={gate.id}>
+                    <TableCell className="py-4 pl-4 align-middle sm:pl-6">
+                      <div className="min-w-0 space-y-1">
+                        <p className="font-semibold leading-tight">{gate.name}</p>
+                        {gate.location && <p className="text-sm text-foreground/50 sm:hidden">{gate.location}</p>}
+                        <p className="text-xs text-muted-foreground md:hidden">{typeLabel}</p>
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="hidden py-4 align-middle sm:table-cell">{gate.location || "—"}</TableCell>
+
+                    <TableCell className="hidden py-4 align-middle md:table-cell">{typeLabel}</TableCell>
+
+                    <TableCell className="py-4 align-middle">
+                      <Badge variant="outline" className={gate.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-gray-200 bg-gray-50 text-gray-600"}>
+                        {gate.isActive ? "Active" : "Off"}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell className="py-4 pr-4 text-right align-middle sm:pr-6">
+                      <RowActions
+                        actions={[
+                          { label: "Edit", icon: Pencil, onClick: () => openEdit(gate) },
+                          { label: gate.isActive ? "Switch off" : "Switch on", icon: Power, onClick: () => toggleActive(gate), danger: gate.isActive },
+                        ]}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
-      </div>
+      </TableCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-[95vw] sm:max-w-md">
@@ -191,7 +196,7 @@ export default function GatesPanel() {
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={save} disabled={saving} className="gap-2">
+            <Button onClick={save} disabled={saving || unchanged} className="gap-2">
               {saving && <Loader2 className="size-4 animate-spin" />}
               Save
             </Button>

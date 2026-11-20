@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Inbox, Loader2, Plus, QrCode } from "lucide-react";
+import { Eye, Loader2, Plus, QrCode, XCircle } from "lucide-react";
 import { toast } from "sonner";
-
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,7 +10,7 @@ import { useGatepassStore } from "@/store/gatepassStore";
 import QrDialog from "./QrDialog";
 import RaiseRequestDialog from "./RaiseRequestDialog";
 import RequestDetailDialog from "./RequestDetailDialog";
-import { StatusBadge, TYPE_LABEL, apiError, formatDateTime, studentsLabel } from "./shared";
+import { RowActions, StatusBadge, TH, THEAD_CLASS, TYPE_LABEL, TableCard, TableEmptyRow, TableLoadingRow, apiError, formatDateTime, studentsLabel } from "./shared";
 
 const PAGE_SIZE = 10;
 const CANCELLABLE = ["PENDING_HOUSEMOTHER", "PENDING_PCH", "APPROVED"];
@@ -67,79 +66,68 @@ export default function RequestsTab() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      <TableCard>
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Request</TableHead>
-              <TableHead>Students</TableHead>
-              <TableHead>Period</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+          <TableHeader className={THEAD_CLASS}>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className={`${TH} pl-4 sm:pl-6`}>Request</TableHead>
+              <TableHead className={`${TH} hidden md:table-cell`}>Students</TableHead>
+              <TableHead className={`${TH} hidden md:table-cell`}>Period</TableHead>
+              <TableHead className={`${TH} hidden sm:table-cell`}>Status</TableHead>
+              <TableHead className={`${TH} w-14 pr-4 text-right sm:pr-6 md:w-28`}>Actions</TableHead>
             </TableRow>
           </TableHeader>
 
-          <TableBody>
+          <TableBody className="divide-y divide-border/30">
             {loading && requests.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
-                </TableCell>
-              </TableRow>
+              <TableLoadingRow colSpan={5} />
             ) : requests.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                  <Inbox className="mx-auto mb-2 size-6" />
-                  No requests yet
-                </TableCell>
-              </TableRow>
+              <TableEmptyRow colSpan={5} title="No requests yet" text="Raise a new request to get started." />
             ) : (
               requests.map((request) => (
                 <TableRow key={request.id}>
-                  <TableCell>
-                    <p className="font-medium">{request.requestNo}</p>
-                    <p className="text-xs text-muted-foreground">{TYPE_LABEL[request.type]}</p>
+                  <TableCell className="py-4 pl-4 align-middle sm:pl-6">
+                    <div className="min-w-0 max-w-56 space-y-1 sm:max-w-none">
+                      <p className="font-semibold leading-tight">{request.requestNo}</p>
+                      <p className="text-xs text-muted-foreground">{TYPE_LABEL[request.type]}</p>
+                      <p className="truncate text-sm text-foreground/60 md:hidden">{studentsLabel(request)}</p>
+                      <p className="text-xs text-muted-foreground md:hidden">
+                        {formatDateTime(request.requestedFrom)} to {formatDateTime(request.requestedTo)}
+                      </p>
+                      <div className="pt-1 sm:hidden">
+                        <StatusBadge status={request.status} />
+                      </div>
+                    </div>
                   </TableCell>
 
-                  <TableCell className="max-w-56">
+                  <TableCell className="hidden max-w-56 py-4 align-middle md:table-cell">
                     <p className="truncate">{studentsLabel(request)}</p>
                   </TableCell>
 
-                  <TableCell className="text-sm">
+                  <TableCell className="hidden py-4 align-middle text-sm md:table-cell">
                     <p>{formatDateTime(request.requestedFrom)}</p>
                     <p className="text-muted-foreground">to {formatDateTime(request.requestedTo)}</p>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="hidden py-4 align-middle sm:table-cell">
                     <StatusBadge status={request.status} />
                   </TableCell>
 
-                  <TableCell>
-                    <div className="flex flex-wrap items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => setDetailId(request.id)}>
-                        View
-                      </Button>
-
-                      {request.pass && QR_STATUSES.includes(request.status) && (
-                        <Button variant="outline" size="sm" className="gap-1" onClick={() => setQrId(request.id)}>
-                          <QrCode className="size-4" />
-                          QR
-                        </Button>
-                      )}
-
-                      {CANCELLABLE.includes(request.status) && (
-                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setCancelId(request.id)}>
-                          Cancel
-                        </Button>
-                      )}
-                    </div>
+                  <TableCell className="py-4 pr-4 text-right align-middle sm:pr-6">
+                    <RowActions
+                      actions={[
+                        { label: "View", icon: Eye, onClick: () => setDetailId(request.id) },
+                        { label: "Show QR", icon: QrCode, onClick: () => setQrId(request.id), hidden: !(request.pass && QR_STATUSES.includes(request.status)) },
+                        { label: "Cancel request", icon: XCircle, danger: true, onClick: () => setCancelId(request.id), hidden: !CANCELLABLE.includes(request.status) },
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
-      </div>
+      </TableCard>
 
       {total > PAGE_SIZE && (
         <div className="flex items-center justify-between text-sm">
@@ -171,22 +159,40 @@ export default function RequestsTab() {
       <QrDialog requestId={qrId} onClose={() => setQrId(null)} />
 
       <AlertDialog open={!!cancelId} onOpenChange={(open) => !open && setCancelId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-105">
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel this request?</AlertDialogTitle>
-            <AlertDialogDescription>The request will be withdrawn and any QR code for it stops working. This cannot be undone.</AlertDialogDescription>
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+              <XCircle className="size-6 text-destructive" />
+            </div>
+
+            <AlertDialogTitle className="w-full text-center text-xl">Cancel this request?</AlertDialogTitle>
+
+            <AlertDialogDescription className="text-center wrap-break-word">The request will be withdrawn and any QR code for it stops working. This cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelling}>Keep request</AlertDialogCancel>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel disabled={cancelling} className="h-11">
+              Keep request
+            </AlertDialogCancel>
             <AlertDialogAction
-              disabled={cancelling}
               onClick={(event) => {
                 event.preventDefault();
                 void confirmCancel();
               }}
+              disabled={cancelling}
+              className="h-11 bg-destructive text-white hover:bg-destructive/90"
             >
-              {cancelling ? "Cancelling..." : "Cancel request"}
+              {cancelling ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <XCircle className="mr-2 size-4" />
+                  Cancel request
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

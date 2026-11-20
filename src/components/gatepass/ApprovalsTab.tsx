@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions } from "@/hooks/usePermission";
 import AllRequestsPanel from "./AllRequestsPanel";
 import PendingList from "./PendingList";
+import { PillTabs } from "./shared";
 
 export default function ApprovalsTab() {
   const { ready, has } = usePermissions();
@@ -28,15 +28,7 @@ export default function ApprovalsTab() {
   return (
     <div className="space-y-4">
       {views.length > 1 && (
-        <Tabs value={active} onValueChange={setView}>
-          <TabsList>
-            {views.map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
-                {item.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <PillTabs size="sub" tabs={views} value={active} onChange={setView} />
       )}
 
       {active === "housemother" && <PendingList mode="housemother" />}

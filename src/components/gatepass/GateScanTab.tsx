@@ -204,7 +204,7 @@ export default function GateScanTab() {
   }
 
   if (gates.length === 0) {
-    return <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">There are no active gates. Ask the school office to add one under Setup, then Gates.</div>;
+    return <div className="rounded-xl border border-dashed bg-card p-10 text-center text-muted-foreground">There are no active gates. Ask the school office to add one under Setup, then Gates.</div>;
   }
 
   return (
@@ -213,7 +213,7 @@ export default function GateScanTab() {
         <p className="text-sm font-medium sm:min-w-24">You are at</p>
 
         <Select value={gateId} onValueChange={chooseGate} disabled={stage !== "idle"}>
-          <SelectTrigger className="sm:w-64">
+          <SelectTrigger className="bg-card sm:w-64">
             <SelectValue placeholder="Choose the gate" />
           </SelectTrigger>
           <SelectContent>
@@ -229,7 +229,7 @@ export default function GateScanTab() {
 
       {/* Scan */}
       {(stage === "idle" || stage === "checking") && (
-        <div className="space-y-4 rounded-lg border p-5">
+        <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2">
             <ScanLine className="size-5" />
             <h2 className="font-semibold">Scan the pass</h2>
@@ -280,7 +280,7 @@ export default function GateScanTab() {
 
       {/* Review */}
       {(stage === "review" || stage === "recording") && lookup && (
-        <div className="space-y-5 rounded-lg border p-5">
+        <div className="space-y-5 rounded-xl border bg-card p-5">
           {lookup.valid ? (
             <div className={cn("flex items-center gap-3 rounded-lg p-4", lookup.action === "EXIT" ? "bg-violet-50 text-violet-800" : "bg-emerald-50 text-emerald-800")}>
               <CheckCircle2 className="size-6 shrink-0" />
@@ -350,7 +350,7 @@ export default function GateScanTab() {
 
       {/* Done */}
       {stage === "done" && result && (
-        <div className="space-y-5 rounded-lg border p-5">
+        <div className="space-y-5 rounded-xl border bg-card p-5">
           <div className={cn("flex items-center gap-3 rounded-lg p-4", result.allowed ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800")}>
             {result.allowed ? <CheckCircle2 className="size-7 shrink-0" /> : <XCircle className="size-7 shrink-0" />}
 

@@ -2485,7 +2485,7 @@ export default function ReportCardsPage() {
       ===================================================== */}
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden p-0 sm:max-w-[880px]">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-[880px]">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-start gap-3">
               <button type="button" onClick={() => setDetailOpen(false)} className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted">
@@ -2597,7 +2597,7 @@ export default function ReportCardsPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-140">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-140">
           <form onSubmit={handleSaveRemarks} className="flex flex-1 flex-col overflow-hidden">
             <div className="shrink-0 border-b px-6 py-5">
               <div className="flex items-center gap-3">
@@ -2654,7 +2654,7 @@ export default function ReportCardsPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-140">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-140">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -3055,7 +3055,7 @@ export default function ReportCardsPage() {
           if (!open) resetTemplateForm();
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-125">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-125">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
@@ -3204,7 +3204,7 @@ export default function ReportCardsPage() {
           if (!open) setSectionsTemplate(null);
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-140">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-140">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
@@ -3361,7 +3361,7 @@ export default function ReportCardsPage() {
           if (!open) setRemarkFieldsManagerTemplate(null);
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-140">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-140">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
@@ -3464,7 +3464,7 @@ export default function ReportCardsPage() {
           if (!open) setCoScholasticManagerTemplate(null);
         }}
       >
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-140">
+        <DialogContent className="flex flex-col overflow-hidden p-0 sm:max-w-140">
           <div className="shrink-0 border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">

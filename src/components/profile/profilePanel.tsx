@@ -289,7 +289,7 @@ function TemplateManager({ entity, open, onOpenChange }: { entity: ProfileEntity
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] w-[95vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+      <DialogContent className="flex w-[95vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
         <div className="shrink-0 border-b px-5 py-4 sm:px-6">
           <DialogTitle className="text-lg">Manage template</DialogTitle>
           <DialogDescription>Sections and fields here apply to every {entity === "student" ? "student" : "teacher"}. Turning one off hides it but keeps the saved data.</DialogDescription>

@@ -533,7 +533,7 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 overflow-y-auto">
             <div className="border-b px-6 py-5">
               <div className="flex items-center gap-3">
                 <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -795,7 +795,7 @@ function GeneratorList({ onSelect }: { onSelect: (generator: Generator) => void 
 
       {/* Edit Generator */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 overflow-y-auto">
           <div className="border-b px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -1041,7 +1041,7 @@ function FuelStockDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 max-h-[85vh] flex flex-col">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 flex flex-col">
         <div className="border-b px-6 py-5 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -1671,7 +1671,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 overflow-y-auto">
                   <div className="border-b px-6 py-5">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -1821,7 +1821,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 overflow-y-auto">
                   <div className="border-b px-6 py-5">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -1969,7 +1969,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[calc(100%-2rem)] sm:max-w-115 p-0 overflow-hidden gap-0 overflow-y-auto">
                   <div className="border-b px-6 py-5">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -2147,7 +2147,7 @@ function GeneratorDetail({ generator, onBack }: { generator: Generator; onBack: 
       {/* Log Entry Details (shared) — lets you see everything a truncated table row hides,
           especially useful on mobile where columns get cut down. */}
       <Dialog open={!!detailsTarget} onOpenChange={(open) => !open && setDetailsTarget(null)}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-105 p-0 overflow-hidden gap-0 max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-105 p-0 overflow-hidden gap-0 flex flex-col">
           <div className="border-b px-6 py-5 shrink-0">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">

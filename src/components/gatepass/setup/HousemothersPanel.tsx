@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Power } from "lucide-react";
 import { toast } from "sonner";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { gatepassService, type Housemother } from "@/services/gatepass.service";
 import { useGatepassStore } from "@/store/gatepassStore";
-import { apiError } from "../shared";
+import { RowActions, TH, THEAD_CLASS, TableCard, TableEmptyRow, TableLoadingRow, apiError } from "../shared";
 
 interface Form {
   name: string;
@@ -174,6 +173,8 @@ export default function HousemothersPanel() {
     }
   };
 
+  const unchanged = !!editing && form.name.trim() === editing.name && form.email.trim() === (editing.user.email ?? "") && form.phone.trim() === (editing.user.phone ?? editing.phone ?? "");
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -187,77 +188,83 @@ export default function HousemothersPanel() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      <TableCard>
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Login</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Hostels</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+          <TableHeader className={THEAD_CLASS}>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className={`${TH} pl-4 sm:pl-6`}>Name</TableHead>
+              <TableHead className={`${TH} hidden lg:table-cell`}>Login</TableHead>
+              <TableHead className={`${TH} hidden md:table-cell`}>Contact</TableHead>
+              <TableHead className={`${TH} hidden lg:table-cell`}>Hostels</TableHead>
+              <TableHead className={`${TH} hidden sm:table-cell`}>Status</TableHead>
+              <TableHead className={`${TH} w-14 pr-4 text-right sm:pr-6 md:w-28`}>Actions</TableHead>
             </TableRow>
           </TableHeader>
 
-          <TableBody>
+          <TableBody className="divide-y divide-border/30">
             {loading && housemothers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
-                </TableCell>
-              </TableRow>
+              <TableLoadingRow colSpan={6} />
             ) : housemothers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                  No housemothers registered yet.
-                </TableCell>
-              </TableRow>
+              <TableEmptyRow colSpan={6} title="No housemothers registered yet" />
             ) : (
-              housemothers.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.employeeNo}</p>
-                  </TableCell>
+              housemothers.map((item) => {
+                const active = item.status === "ACTIVE";
+                const hostelNames = item.hostels.map((h) => h.name).join(", ");
 
-                  <TableCell className="text-sm">
-                    <p>{item.user.userName ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">{item.user.userCode}</p>
-                  </TableCell>
+                const statusBadge = (
+                  <Badge variant="outline" className={active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-gray-200 bg-gray-50 text-gray-600"}>
+                    {active ? "Active" : "Inactive"}
+                  </Badge>
+                );
 
-                  <TableCell className="text-sm">
-                    <p>{item.user.phone ?? item.phone ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">{item.user.email ?? ""}</p>
-                  </TableCell>
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell className="py-4 pl-4 align-middle sm:pl-6">
+                      <div className="min-w-0 max-w-56 space-y-1 sm:max-w-none">
+                        <p className="font-semibold leading-tight">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">{item.employeeNo}</p>
+                        <p className="truncate text-sm text-foreground/60 md:hidden">
+                          {item.user.phone ?? item.phone ?? "—"}
+                          {item.user.email ? ` · ${item.user.email}` : ""}
+                        </p>
+                        <p className="text-xs text-muted-foreground lg:hidden">Login: {item.user.userName ?? "—"}</p>
+                        {hostelNames && <p className="text-xs text-muted-foreground lg:hidden">Hostels: {hostelNames}</p>}
+                        <div className="pt-1 sm:hidden">{statusBadge}</div>
+                      </div>
+                    </TableCell>
 
-                  <TableCell className="text-sm">{item.hostels.length > 0 ? item.hostels.map((h) => h.name).join(", ") : "—"}</TableCell>
+                    <TableCell className="hidden py-4 align-middle text-sm lg:table-cell">
+                      <p>{item.user.userName ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">{item.user.userCode}</p>
+                    </TableCell>
 
-                  <TableCell>
-                    <Badge variant="outline" className={item.status === "ACTIVE" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-gray-200 bg-gray-50 text-gray-600"}>
-                      {item.status === "ACTIVE" ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
+                    <TableCell className="hidden py-4 align-middle text-sm md:table-cell">
+                      <p>{item.user.phone ?? item.phone ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">{item.user.email ?? ""}</p>
+                    </TableCell>
 
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
-                        Edit
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => toggleStatus(item)}>
-                        {item.status === "ACTIVE" ? "Deactivate" : "Activate"}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                    <TableCell className="hidden py-4 align-middle text-sm lg:table-cell">{hostelNames || "—"}</TableCell>
+
+                    <TableCell className="hidden py-4 align-middle sm:table-cell">{statusBadge}</TableCell>
+
+                    <TableCell className="py-4 pr-4 text-right align-middle sm:pr-6">
+                      <RowActions
+                        actions={[
+                          { label: "Edit", icon: Pencil, onClick: () => openEdit(item) },
+                          { label: active ? "Deactivate" : "Activate", icon: Power, danger: active, onClick: () => toggleStatus(item) },
+                        ]}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
-      </div>
+      </TableCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[88vh] w-[95vw] overflow-y-auto sm:max-w-lg">
+        <DialogContent className=" w-[95vw] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit housemother" : "Register housemother"}</DialogTitle>
             <DialogDescription>{editing ? "Change her name or contact details." : "This creates her login. She must change the password the first time she signs in."}</DialogDescription>
@@ -308,7 +315,7 @@ export default function HousemothersPanel() {
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={save} disabled={saving} className="gap-2">
+            <Button onClick={save} disabled={saving || unchanged} className="gap-2">
               {saving && <Loader2 className="size-4 animate-spin" />}
               {editing ? "Save" : "Register"}
             </Button>
