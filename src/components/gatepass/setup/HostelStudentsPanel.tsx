@@ -21,7 +21,7 @@ export default function HostelStudentsPanel() {
     sections: [],
   });
 
-  const [hostelFilter, setHostelFilter] = useState("unassigned");
+  const [hostelFilter, setHostelFilter] = useState("all");
   const [classId, setClassId] = useState("all");
   const [sectionId, setSectionId] = useState("all");
   const [query, setQuery] = useState("");
@@ -35,7 +35,7 @@ export default function HostelStudentsPanel() {
 
   // The filters used for the last search, so Search stays off until something changes.
   const filterKey = [hostelFilter, classId, sectionId, query.trim()].join("|");
-  const [appliedKey, setAppliedKey] = useState("unassigned|all|all|");
+  const [appliedKey, setAppliedKey] = useState("all|all|all|");
 
   const load = async () => {
     try {
@@ -117,8 +117,8 @@ export default function HostelStudentsPanel() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="unassigned">Not in a hostel</SelectItem>
               <SelectItem value="all">All students</SelectItem>
+              <SelectItem value="unassigned">Not in a hostel</SelectItem>
               {hostels.map((hostel) => (
                 <SelectItem key={hostel.id} value={hostel.id}>
                   {hostel.name}
