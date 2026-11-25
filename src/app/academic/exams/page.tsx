@@ -470,6 +470,41 @@ export default function ExamsPage() {
   }, [detailClasses]);
 
   const [publicSelectedClassId, setPublicSelectedClassId] = useState("");
+  const [publicSelectedSectionId, setPublicSelectedSectionId] = useState("");
+
+  const pivotSections = useMemo(() => {
+    if (!detailExam) return [];
+
+    const map = new Map<string, { id: string; name: string }>();
+
+    (detailExam.schedules ?? []).forEach((schedule) => {
+      if (isTeacherView && !teacherAllocationIds.has(schedule.subjectAllocationId)) {
+        return;
+      }
+
+      if (schedule.subjectAllocation.class.id !== publicSelectedClassId) {
+        return;
+      }
+
+      map.set(schedule.subjectAllocation.section.id, {
+        id: schedule.subjectAllocation.section.id,
+        name: schedule.subjectAllocation.section.name,
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [detailExam, publicSelectedClassId, isTeacherView, teacherAllocationIds]);
+
+  useEffect(() => {
+    if (pivotSections.length === 0) {
+      if (publicSelectedSectionId) setPublicSelectedSectionId("");
+      return;
+    }
+
+    if (!pivotSections.some((section) => section.id === publicSelectedSectionId)) {
+      setPublicSelectedSectionId(pivotSections[0].id);
+    }
+  }, [pivotSections, publicSelectedSectionId]);
 
   useEffect(() => {
     if (pivotClasses.length === 0) {
@@ -507,7 +542,7 @@ export default function ExamsPage() {
         return;
       }
 
-      const key = `${toDateInputValue(schedule.examDate)}::${schedule.subjectAllocation.class.id}::${schedule.shift}`;
+      const key = `${toDateInputValue(schedule.examDate)}::${schedule.subjectAllocation.class.id}:${schedule.subjectAllocation.section.id}::${schedule.shift}`;
       const existing = map.get(key) ?? [];
       const name = schedule.subjectAllocation.subject.name;
 
@@ -549,6 +584,8 @@ export default function ExamsPage() {
   const [componentTemplateContext, setComponentTemplateContext] = useState<{
     classId: string;
     className: string;
+    sectionId: string;
+    sectionName: string;
     examGroupId: string;
     examGroupName: string;
   } | null>(null);
@@ -558,17 +595,52 @@ export default function ExamsPage() {
   const [componentTemplateDeleteOpen, setComponentTemplateDeleteOpen] = useState(false);
   const [syncingComponents, setSyncingComponents] = useState(false);
   const [copyTemplateOpen, setCopyTemplateOpen] = useState(false);
-  const [copyTargetClassIds, setCopyTargetClassIds] = useState<string[]>([]);
+  const [copyTargetKeys, setCopyTargetKeys] = useState<string[]>([]);
   const [copyingTemplate, setCopyingTemplate] = useState(false);
   const [classPickerOpen, setClassPickerOpen] = useState(false);
   const [classPickerSelectedId, setClassPickerSelectedId] = useState("");
+  const [classPickerSectionId, setClassPickerSectionId] = useState("");
 
   const sortedClasses = useMemo(() => [...classes].sort((a, b) => a.sortOrder - b.sortOrder), [classes]);
+
+  // Sections that have subjects allocated for the picked class
+  const classPickerSections = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; board: string }>();
+
+    subjectAllocations.filter((allocation) => allocation.classId === classPickerSelectedId).forEach((allocation) => map.set(allocation.section.id, allocation.section));
+
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [subjectAllocations, classPickerSelectedId]);
+
+  // Every class + section pair that can receive a copied structure
+  const copyTargetOptions = useMemo(() => {
+    const map = new Map<string, { key: string; classId: string; sectionId: string; className: string; sectionName: string; board: string; classSortOrder: number }>();
+
+    subjectAllocations.forEach((allocation) => {
+      const key = `${allocation.classId}:${allocation.sectionId}`;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          classId: allocation.classId,
+          sectionId: allocation.sectionId,
+          className: allocation.class.name,
+          sectionName: allocation.section.name,
+          board: allocation.section.board,
+          classSortOrder: allocation.class.sortOrder,
+        });
+      }
+    });
+
+    return [...map.values()]
+      .filter((option) => !(option.classId === componentTemplateContext?.classId && option.sectionId === componentTemplateContext?.sectionId))
+      .sort((a, b) => a.classSortOrder - b.classSortOrder || a.sectionName.localeCompare(b.sectionName));
+  }, [subjectAllocations, componentTemplateContext]);
 
   const classComponentTemplateRowsForExamGroup = useMemo(() => {
     if (!componentTemplateContext) return [];
 
-    return classComponentTemplates.filter((t) => t.classId === componentTemplateContext.classId && t.examGroupId === componentTemplateContext.examGroupId);
+    return classComponentTemplates.filter((t) => t.classId === componentTemplateContext.classId && t.sectionId === componentTemplateContext.sectionId && t.examGroupId === componentTemplateContext.examGroupId);
   }, [classComponentTemplates, componentTemplateContext]);
 
   const componentTemplateOverrideSubjectIds = useMemo(() => {
@@ -952,8 +1024,8 @@ export default function ExamsPage() {
   // Grade-level component template manager (default + subject overrides)
   // ---------------------------------------------------------
 
-  const loadDefRowsForSelection = (classId: string, examGroupId: string, subjectId: string | null) => {
-    const found = useAcademicStore.getState().classComponentTemplates.find((t) => t.classId === classId && t.examGroupId === examGroupId && (t.subjectId ?? null) === subjectId);
+  const loadDefRowsForSelection = (classId: string, sectionId: string, examGroupId: string, subjectId: string | null) => {
+    const found = useAcademicStore.getState().classComponentTemplates.find((t) => t.classId === classId && t.sectionId === sectionId && t.examGroupId === examGroupId && (t.subjectId ?? null) === subjectId);
 
     if (found) {
       setComponentTemplateDefRows(
@@ -972,44 +1044,46 @@ export default function ExamsPage() {
     }
   };
 
-  const openComponentTemplateManagerForClass = async (classId: string, className: string) => {
+  const openComponentTemplateManagerForClass = async (classId: string, className: string, sectionId: string, sectionName: string) => {
     if (!detailExam) return;
 
     const examGroupId = detailExam.examGroupId;
     const examGroupName = detailExam.examGroup?.name ?? examGroupLabel(examGroupId);
 
-    setComponentTemplateContext({ classId, className, examGroupId, examGroupName });
+    setComponentTemplateContext({ classId, className, sectionId, sectionName, examGroupId, examGroupName });
     setComponentTemplateSelectedSubjectId(null);
     setComponentTemplateOpen(true);
 
     try {
-      await fetchClassComponentTemplates(classId);
+      await fetchClassComponentTemplates(classId, sectionId);
     } catch {
     } finally {
-      loadDefRowsForSelection(classId, examGroupId, null);
+      loadDefRowsForSelection(classId, sectionId, examGroupId, null);
     }
   };
 
   const openComponentTemplateManager = async (schedule: ExamSchedule) => {
-    await openComponentTemplateManagerForClass(schedule.subjectAllocation.classId, schedule.subjectAllocation.class.name);
+    await openComponentTemplateManagerForClass(schedule.subjectAllocation.classId, schedule.subjectAllocation.class.name, schedule.subjectAllocation.sectionId, schedule.subjectAllocation.section.name);
   };
 
   const openClassPicker = () => {
     setClassPickerSelectedId("");
+    setClassPickerSectionId("");
     setClassPickerOpen(true);
   };
 
   const handleClassPickerContinue = async () => {
-    const selected = sortedClasses.find((item) => item.id === classPickerSelectedId);
+    const selectedClass = sortedClasses.find((item) => item.id === classPickerSelectedId);
+    const selectedSection = classPickerSections.find((item) => item.id === classPickerSectionId);
 
-    if (!selected) {
-      toast.error("Select a class");
+    if (!selectedClass || !selectedSection) {
+      toast.error("Select a class and section");
       return;
     }
 
     setClassPickerOpen(false);
 
-    await openComponentTemplateManagerForClass(selected.id, selected.name);
+    await openComponentTemplateManagerForClass(selectedClass.id, selectedClass.name, selectedSection.id, selectedSection.name);
   };
 
   const handleComponentTemplateSubjectChange = (value: string) => {
@@ -1018,7 +1092,7 @@ export default function ExamsPage() {
     const subjectId = value === "DEFAULT" ? null : value;
 
     setComponentTemplateSelectedSubjectId(subjectId);
-    loadDefRowsForSelection(componentTemplateContext.classId, componentTemplateContext.examGroupId, subjectId);
+    loadDefRowsForSelection(componentTemplateContext.classId, componentTemplateContext.sectionId, componentTemplateContext.examGroupId, subjectId);
   };
 
   const addComponentTemplateRow = () => {
@@ -1066,6 +1140,7 @@ export default function ExamsPage() {
       if (!template) {
         await createClassComponentTemplate({
           classId: componentTemplateContext.classId,
+          sectionId: componentTemplateContext.sectionId,
           examGroupId: componentTemplateContext.examGroupId,
           subjectId: componentTemplateSelectedSubjectId ?? undefined,
         });
@@ -1074,7 +1149,11 @@ export default function ExamsPage() {
           useAcademicStore
             .getState()
             .classComponentTemplates.find(
-              (t) => t.classId === componentTemplateContext.classId && t.examGroupId === componentTemplateContext.examGroupId && (t.subjectId ?? null) === componentTemplateSelectedSubjectId
+              (t) =>
+                t.classId === componentTemplateContext.classId &&
+                t.sectionId === componentTemplateContext.sectionId &&
+                t.examGroupId === componentTemplateContext.examGroupId &&
+                (t.subjectId ?? null) === componentTemplateSelectedSubjectId
             ) ?? null;
       }
 
@@ -1093,7 +1172,7 @@ export default function ExamsPage() {
         }))
       );
 
-      toast.success(componentTemplateSelectedSubjectId ? "Marks structure saved for this subject" : "Marks structure saved — it now applies to every subject in this class for this exam group");
+      toast.success(componentTemplateSelectedSubjectId ? "Marks structure saved for this subject" : "Marks structure saved — it now applies to every subject in this class and section for this exam group");
 
       await fetchExams();
     } catch (error) {
@@ -1115,7 +1194,7 @@ export default function ExamsPage() {
       setComponentTemplateDeleteOpen(false);
 
       if (componentTemplateContext) {
-        loadDefRowsForSelection(componentTemplateContext.classId, componentTemplateContext.examGroupId, componentTemplateSelectedSubjectId);
+        loadDefRowsForSelection(componentTemplateContext.classId, componentTemplateContext.sectionId, componentTemplateContext.examGroupId, componentTemplateSelectedSubjectId);
       }
     } catch (error) {
       const err = error as AxiosError<ApiErrorResponse>;
@@ -1129,7 +1208,7 @@ export default function ExamsPage() {
     setSyncingComponents(true);
 
     try {
-      const result = await syncExamComponentsForClassExamGroup(componentTemplateContext.classId, componentTemplateContext.examGroupId);
+      const result = await syncExamComponentsForClassExamGroup(componentTemplateContext.classId, componentTemplateContext.sectionId, componentTemplateContext.examGroupId);
 
       if (result.skipped.length > 0) {
         toast.success(`${result.message} — ${result.skipped.length} skipped (nothing configured for that subject yet)`);
@@ -1149,19 +1228,19 @@ export default function ExamsPage() {
   // ---------------------------------------------------------
 
   const openCopyTemplate = () => {
-    setCopyTargetClassIds([]);
+    setCopyTargetKeys([]);
     setCopyTemplateOpen(true);
   };
 
-  const toggleCopyTargetClass = (classId: string, checked: boolean) => {
-    setCopyTargetClassIds((previous) => (checked ? [...previous, classId] : previous.filter((id) => id !== classId)));
+  const toggleCopyTarget = (key: string, checked: boolean) => {
+    setCopyTargetKeys((previous) => (checked ? [...previous, key] : previous.filter((item) => item !== key)));
   };
 
   const handleCopyTemplate = async () => {
     if (!componentTemplateContext) return;
 
-    if (copyTargetClassIds.length === 0) {
-      toast.error("Select at least one target class");
+    if (copyTargetKeys.length === 0) {
+      toast.error("Select at least one target section");
       return;
     }
 
@@ -1170,8 +1249,12 @@ export default function ExamsPage() {
     try {
       const result = await copyClassComponentTemplate({
         sourceClassId: componentTemplateContext.classId,
+        sourceSectionId: componentTemplateContext.sectionId,
         examGroupId: componentTemplateContext.examGroupId,
-        targetClassIds: copyTargetClassIds,
+        targets: copyTargetKeys.map((key) => {
+          const [classId, sectionId] = key.split(":");
+          return { classId, sectionId };
+        }),
       });
 
       toast.success(result.message);
@@ -1803,24 +1886,52 @@ export default function ExamsPage() {
           {dateSheetTab === "datesheet" && (
             <div className="pt-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                {pivotClasses.length > 0 &&
-                  (myStudentClassId ? (
-                    <span className="w-fit rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">{pivotClasses.find((cls) => cls.id === myStudentClassId)?.name ?? "Your Class"}</span>
-                  ) : (
-                    <Select value={publicSelectedClassId} onValueChange={setPublicSelectedClassId}>
-                      <SelectTrigger className="h-10 w-full sm:w-48">
-                        <SelectValue placeholder="Select a class" />
-                      </SelectTrigger>
+                {pivotClasses.length > 0 && (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    {myStudentClassId ? (
+                      <span className="w-fit rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">
+                        {pivotClasses.find((cls) => cls.id === myStudentClassId)?.name ?? "Your Class"}
+                        {pivotSections.length === 1 ? ` - ${pivotSections[0].name}` : ""}
+                      </span>
+                    ) : (
+                      <Select
+                        value={publicSelectedClassId}
+                        onValueChange={(value) => {
+                          setPublicSelectedClassId(value);
+                          setPublicSelectedSectionId("");
+                        }}
+                      >
+                        <SelectTrigger className="h-10 w-full sm:w-48">
+                          <SelectValue placeholder="Select a class" />
+                        </SelectTrigger>
 
-                      <SelectContent>
-                        {pivotClasses.map((cls) => (
-                          <SelectItem key={cls.id} value={cls.id}>
-                            {cls.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ))}
+                        <SelectContent>
+                          {pivotClasses.map((cls) => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {pivotSections.length > 1 && (
+                      <Select value={publicSelectedSectionId} onValueChange={setPublicSelectedSectionId}>
+                        <SelectTrigger className="h-10 w-full sm:w-40">
+                          <SelectValue placeholder="Select a section" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {pivotSections.map((section) => (
+                            <SelectItem key={section.id} value={section.id}>
+                              {section.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
               </div>
 
               {pivotClasses.length === 0 ? (
@@ -1857,8 +1968,8 @@ export default function ExamsPage() {
                         {pivotDates.map((date, index) => {
                           const dateStr = toLocalDateKey(date);
                           const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                          const morning = pivotCell(dateStr, publicSelectedClassId, "MORNING");
-                          const afternoon = pivotCell(dateStr, publicSelectedClassId, "AFTERNOON");
+                          const morning = pivotCell(dateStr, `${publicSelectedClassId}:${publicSelectedSectionId}`, "MORNING");
+                          const afternoon = pivotCell(dateStr, `${publicSelectedClassId}:${publicSelectedSectionId}`, "AFTERNOON");
                           const isLast = index === pivotDates.length - 1;
                           const rowBorder = isLast ? "" : "border-b";
 
@@ -2934,20 +3045,44 @@ export default function ExamsPage() {
 
             <div>
               <DialogTitle className="text-lg">Marks Structure</DialogTitle>
-              <DialogDescription>Pick a class to set up or edit its marks structure for this exam group.</DialogDescription>
+              <DialogDescription>Pick a class and section to set up or edit its marks structure for this exam group.</DialogDescription>
             </div>
           </div>
 
           <Field>
             <Label>Class</Label>
 
-            <Select value={classPickerSelectedId} onValueChange={setClassPickerSelectedId}>
+            <Select
+              value={classPickerSelectedId}
+              onValueChange={(value) => {
+                setClassPickerSelectedId(value);
+                setClassPickerSectionId("");
+              }}
+            >
               <SelectTrigger className="h-11 w-full">
                 <SelectValue placeholder="Select a class" />
               </SelectTrigger>
 
               <SelectContent>
                 {sortedClasses.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field className="mt-4">
+            <Label>Section</Label>
+
+            <Select value={classPickerSectionId} onValueChange={setClassPickerSectionId} disabled={!classPickerSelectedId}>
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue placeholder={classPickerSelectedId ? "Select a section" : "Select a class first"} />
+              </SelectTrigger>
+
+              <SelectContent>
+                {classPickerSections.map((item) => (
                   <SelectItem key={item.id} value={item.id}>
                     {item.name} ({item.board})
                   </SelectItem>
@@ -2961,7 +3096,7 @@ export default function ExamsPage() {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
 
-            <Button type="button" onClick={handleClassPickerContinue} disabled={!classPickerSelectedId} className="gap-2">
+            <Button type="button" onClick={handleClassPickerContinue} disabled={!classPickerSelectedId || !classPickerSectionId} className="gap-2">
               <ListChecks className="size-4" />
               Continue
             </Button>
@@ -2997,7 +3132,7 @@ export default function ExamsPage() {
 
                 <DialogDescription>
                   {componentTemplateContext
-                    ? `${componentTemplateContext.className} — ${componentTemplateContext.examGroupName}. Set a default for every subject, plus overrides for the ones that differ.`
+                    ? `${componentTemplateContext.className} - ${componentTemplateContext.sectionName} — ${componentTemplateContext.examGroupName}. Set a default for every subject, plus overrides for the ones that differ.`
                     : "Define the marks structure for this class and exam group."}
                 </DialogDescription>
               </div>
@@ -3192,8 +3327,8 @@ export default function ExamsPage() {
             <AlertDialogTitle>Delete this marks structure?</AlertDialogTitle>
             <AlertDialogDescription>
               {componentTemplateSelectedSubjectId ? "This removes the override for this subject — it will fall back to the class-wide default (if one exists)." : "This removes the class-wide default structure."} This
-              removes it for {componentTemplateContext?.className ?? "this class"} under {componentTemplateContext?.examGroupName ?? "this exam group"}. Existing exams already using it keep their components — this only
-              affects new schedules going forward. This action cannot be undone.
+              removes it for {componentTemplateContext ? `${componentTemplateContext.className} - ${componentTemplateContext.sectionName}` : "this section"} under{" "}
+              {componentTemplateContext?.examGroupName ?? "this exam group"}. Existing exams already using it keep their components — this only affects new schedules going forward. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -3216,7 +3351,7 @@ export default function ExamsPage() {
           setCopyTemplateOpen(open);
 
           if (!open) {
-            setCopyTargetClassIds([]);
+            setCopyTargetKeys([]);
           }
         }}
       >
@@ -3231,8 +3366,8 @@ export default function ExamsPage() {
                 <DialogTitle className="text-lg">Copy Marks Structure</DialogTitle>
 
                 <DialogDescription>
-                  Copies the default and every subject override from {componentTemplateContext?.className ?? "this class"} — {componentTemplateContext?.examGroupName ?? "this exam group"} onto the classes you pick below.
-                  Any subjects a target class doesn&apos;t teach are simply unused, not an error.
+                  Copies the default and every subject override from {componentTemplateContext ? `${componentTemplateContext.className} - ${componentTemplateContext.sectionName}` : "this section"} —{" "}
+                  {componentTemplateContext?.examGroupName ?? "this exam group"} onto the sections you pick below. Any subjects a target section doesn&apos;t teach are simply unused, not an error.
                 </DialogDescription>
               </div>
             </div>
@@ -3241,17 +3376,17 @@ export default function ExamsPage() {
           <div className="flex-1 overflow-y-auto p-6">
             <div className="rounded-md border">
               <div className="divide-y">
-                {sortedClasses
-                  .filter((item) => item.id !== componentTemplateContext?.classId)
-                  .map((item) => (
-                    <label key={item.id} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer select-none">
-                      <Checkbox checked={copyTargetClassIds.includes(item.id)} onCheckedChange={(value) => toggleCopyTargetClass(item.id, Boolean(value))} />
-                      <span className="text-sm font-medium">{item.name}</span>
-                      <span className="text-xs text-muted-foreground">({item.board})</span>
-                    </label>
-                  ))}
+                {copyTargetOptions.map((item) => (
+                  <label key={item.key} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer select-none">
+                    <Checkbox checked={copyTargetKeys.includes(item.key)} onCheckedChange={(value) => toggleCopyTarget(item.key, Boolean(value))} />
+                    <span className="text-sm font-medium">
+                      {item.className} - {item.sectionName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">({item.board})</span>
+                  </label>
+                ))}
 
-                {sortedClasses.filter((item) => item.id !== componentTemplateContext?.classId).length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No other classes to copy to.</p>}
+                {copyTargetOptions.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No other sections to copy to.</p>}
               </div>
             </div>
           </div>
@@ -3261,7 +3396,7 @@ export default function ExamsPage() {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
 
-            <Button type="button" onClick={handleCopyTemplate} disabled={copyingTemplate || copyTargetClassIds.length === 0} className="min-w-32.5 gap-2">
+            <Button type="button" onClick={handleCopyTemplate} disabled={copyingTemplate || copyTargetKeys.length === 0} className="min-w-32.5 gap-2">
               {copyingTemplate ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />

@@ -360,8 +360,8 @@ export default function ReportCardsPage() {
     return sessionEnrollments.filter((enrollment) => (classFilter === "ALL" || enrollment.classId === classFilter) && (sectionFilter === "ALL" || enrollment.sectionId === sectionFilter));
   }, [sessionEnrollments, classFilter, sectionFilter]);
 
-  const isGroupEnabledForClass = (classId: string, examGroupId: string) => {
-    const structure = classExamStructures.find((item) => item.classId === classId);
+  const isGroupEnabledForClass = (classId: string, sectionId: string, examGroupId: string) => {
+    const structure = classExamStructures.find((item) => item.classId === classId && item.sectionId === sectionId);
     const weight = structure?.examGroupWeights.find((item) => item.examGroupId === examGroupId);
     return (weight as { isEnabled?: boolean } | undefined)?.isEnabled !== false;
   };
@@ -429,8 +429,9 @@ export default function ReportCardsPage() {
 
     if (!generateExamGroupId) return 0;
 
-    return generateEnrollments.filter((enrollment) => isGroupEnabledForClass(enrollment.classId, generateExamGroupId) && !keySet.has(`${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`))
-      .length;
+    return generateEnrollments.filter(
+      (enrollment) => isGroupEnabledForClass(enrollment.classId, enrollment.sectionId, generateExamGroupId) && !keySet.has(`${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`)
+    ).length;
   }, [reportCards, generateEnrollments, effectiveSessionId, generateScope, generateExamGroupId]);
 
   const hasActiveFilters = search.trim() !== "" || sessionFilter !== "ALL" || examGroupFilter !== "ALL" || scopeFilter !== "ALL" || classFilter !== "ALL" || sectionFilter !== "ALL" || statusFilter !== "ALL";
@@ -687,7 +688,7 @@ export default function ReportCardsPage() {
       const existingKeys = new Set((reportCards as ReportCard[]).map((report) => report.reportKey));
 
       const missingStudents = generateEnrollments.filter((enrollment) => {
-        if (generateScope === "INDIVIDUAL" && !isGroupEnabledForClass(enrollment.classId, generateExamGroupId)) return false;
+        if (generateScope === "INDIVIDUAL" && !isGroupEnabledForClass(enrollment.classId, enrollment.sectionId, generateExamGroupId)) return false;
 
         const key = generateScope === "COMBINED" ? `${enrollment.studentId}:COMBINED:FINAL:${effectiveSessionId}` : `${enrollment.studentId}:INDIVIDUAL:${generateExamGroupId}:${effectiveSessionId}`;
 
@@ -733,7 +734,7 @@ export default function ReportCardsPage() {
 
   const selectedGradeBands = useMemo(() => {
     if (!selectedReport) return [];
-    const structure = classExamStructures.find((item) => item.classId === selectedReport.enrollment.classId);
+    const structure = classExamStructures.find((item) => item.classId === selectedReport.enrollment.classId && item.sectionId === selectedReport.enrollment.sectionId);
     const scheme = gradingSchemes.find((item) => item.id === structure?.gradingSchemeId);
     return scheme?.bands ?? [];
   }, [selectedReport, classExamStructures, gradingSchemes]);
@@ -1020,6 +1021,7 @@ export default function ReportCardsPage() {
   const sortedExamGroupsAll = useMemo(() => [...examGroups].sort((a, b) => a.sequence - b.sequence), [examGroups]);
 
   const [structureClassId, setStructureClassId] = useState("");
+  const [structureSectionId, setStructureSectionId] = useState("");
   const [structureGradingSchemeId, setStructureGradingSchemeId] = useState("");
   const [structureHasOptionalSubject, setStructureHasOptionalSubject] = useState(false);
   const [structureCombineExamGroups, setStructureCombineExamGroups] = useState(false);
@@ -1029,11 +1031,11 @@ export default function ReportCardsPage() {
   const [structureDeleteOpen, setStructureDeleteOpen] = useState(false);
 
   const existingStructure = useMemo<ClassExamStructure | null>(() => {
-    return classExamStructures.find((structure) => structure.classId === structureClassId) ?? null;
-  }, [classExamStructures, structureClassId]);
+    return classExamStructures.find((structure) => structure.classId === structureClassId && structure.sectionId === structureSectionId) ?? null;
+  }, [classExamStructures, structureClassId, structureSectionId]);
 
   const [loadedStructureKey, setLoadedStructureKey] = useState<string | null>(null);
-  const structureKey = structureClassId ? `${structureClassId}:${existingStructure?.id ?? "new"}` : null;
+  const structureKey = structureClassId && structureSectionId ? `${structureClassId}:${structureSectionId}:${existingStructure?.id ?? "new"}` : null;
 
   if (structureKey && structureKey !== loadedStructureKey) {
     setLoadedStructureKey(structureKey);
@@ -1066,8 +1068,8 @@ export default function ReportCardsPage() {
   };
 
   const handleSaveStructure = async () => {
-    if (!structureClassId) {
-      toast.error("Select a class first");
+    if (!structureClassId || !structureSectionId) {
+      toast.error("Select a class and section first");
       return;
     }
 
@@ -1102,7 +1104,7 @@ export default function ReportCardsPage() {
 
       if (!currentStructure) {
         await fetchClassExamStructures();
-        currentStructure = useAcademicStore.getState().classExamStructures.find((structure) => structure.classId === structureClassId) ?? null;
+        currentStructure = useAcademicStore.getState().classExamStructures.find((structure) => structure.classId === structureClassId && structure.sectionId === structureSectionId) ?? null;
       }
 
       if (currentStructure) {
@@ -1112,9 +1114,9 @@ export default function ReportCardsPage() {
           await replaceClassExamGroupWeights(currentStructure.id, weightItems);
         }
       } else {
-        await createClassExamStructure({ classId: structureClassId, ...payload });
+        await createClassExamStructure({ classId: structureClassId, sectionId: structureSectionId, ...payload });
 
-        const created = useAcademicStore.getState().classExamStructures.find((structure) => structure.classId === structureClassId);
+        const created = useAcademicStore.getState().classExamStructures.find((structure) => structure.classId === structureClassId && structure.sectionId === structureSectionId);
 
         if (created && weightItems.length > 0) {
           await replaceClassExamGroupWeights(created.id, weightItems);
@@ -1152,6 +1154,7 @@ export default function ReportCardsPage() {
   const [templateFormOpen, setTemplateFormOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<ReportCardTemplate | null>(null);
   const [templateClassId, setTemplateClassId] = useState("");
+  const [templateSectionId, setTemplateSectionId] = useState("");
   const [templateScope, setTemplateScope] = useState<ReportCardScopeT>("INDIVIDUAL");
   const [templateExamGroupId, setTemplateExamGroupId] = useState("");
   const [templateName, setTemplateName] = useState("");
@@ -1175,6 +1178,7 @@ export default function ReportCardsPage() {
   const resetTemplateForm = () => {
     setEditingTemplate(null);
     setTemplateClassId("");
+    setTemplateSectionId("");
     setTemplateScope("INDIVIDUAL");
     setTemplateExamGroupId("");
     setTemplateName("");
@@ -1192,6 +1196,7 @@ export default function ReportCardsPage() {
   const openEditTemplate = (template: ReportCardTemplate) => {
     setEditingTemplate(template);
     setTemplateClassId(template.classId);
+    setTemplateSectionId(template.sectionId);
     setTemplateScope(template.reportScope);
     setTemplateExamGroupId(template.examGroupId ?? "");
     setTemplateName(template.name);
@@ -1205,8 +1210,8 @@ export default function ReportCardsPage() {
   const handleSaveTemplate = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!templateClassId) {
-      toast.error("Select a class");
+    if (!templateClassId || !templateSectionId) {
+      toast.error("Select a class and section");
       return;
     }
 
@@ -1233,6 +1238,7 @@ export default function ReportCardsPage() {
       } else {
         await createReportCardTemplate({
           classId: templateClassId,
+          sectionId: templateSectionId,
           examGroupId: templateScope === "INDIVIDUAL" ? templateExamGroupId : undefined,
           name: templateName.trim(),
           reportScope: templateScope,
@@ -2212,24 +2218,42 @@ export default function ReportCardsPage() {
           ===================================================== */}
             <TabsContent value="structure" className="space-y-4 pt-6">
               <div className="rounded-xl border bg-card p-4 sm:p-6">
-                <Field>
-                  <Label>Class</Label>
-                  <Select value={structureClassId} onValueChange={setStructureClassId}>
-                    <SelectTrigger className="h-11 w-full sm:w-80">
-                      <SelectValue placeholder="Select a class to configure" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortedClasses.map((item: AcademicClass) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name} ({item.board})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
+                <div className="flex flex-col gap-4 sm:flex-row">
+                  <Field>
+                    <Label>Class</Label>
+                    <Select value={structureClassId} onValueChange={setStructureClassId}>
+                      <SelectTrigger className="h-11 w-full sm:w-64">
+                        <SelectValue placeholder="Select a class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sortedClasses.map((item: AcademicClass) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <Label>Section</Label>
+                    <Select value={structureSectionId} onValueChange={setStructureSectionId}>
+                      <SelectTrigger className="h-11 w-full sm:w-64">
+                        <SelectValue placeholder="Select a section" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sections.map((section) => (
+                          <SelectItem key={section.id} value={section.id}>
+                            {section.name} ({section.board})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
               </div>
 
-              {structureClassId && (
+              {structureClassId && structureSectionId && (
                 <div className="space-y-4">
                   <div className="rounded-xl border bg-card p-4 sm:p-6">
                     <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{existingStructure ? "Result Configuration" : "New Result Configuration"}</p>
@@ -2407,7 +2431,7 @@ export default function ReportCardsPage() {
                           )}
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {template.class.name}
+                          {template.class.name} - {template.section.name}
                           <span className="mx-1.5">•</span>
                           {template.reportScope === "INDIVIDUAL" ? (template.examGroup?.name ?? "Exam Group") : "Combined result"}
                           <span className="mx-1.5">•</span>
@@ -3081,6 +3105,22 @@ export default function ReportCardsPage() {
                       {sortedClasses.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
                           {item.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field>
+                  <Label>Section</Label>
+                  <Select value={templateSectionId} onValueChange={setTemplateSectionId} disabled={Boolean(editingTemplate)}>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue placeholder="Select section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sections.map((section) => (
+                        <SelectItem key={section.id} value={section.id}>
+                          {section.name} ({section.board})
                         </SelectItem>
                       ))}
                     </SelectContent>

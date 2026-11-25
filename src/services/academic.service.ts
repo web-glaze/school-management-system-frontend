@@ -52,13 +52,11 @@ export type Board = "GENERAL" | "CBSE" | "CIE";
 
 export interface CreateClassPayload {
   name: string;
-  board?: Board;
   isActive?: boolean;
 }
 
 export interface UpdateClassPayload {
   name?: string;
-  board?: Board;
   sortOrder?: number;
   isActive?: boolean;
 }
@@ -70,11 +68,13 @@ export interface ReorderClassPayload {
 
 export interface CreateSectionPayload {
   name: string;
+  board?: Board;
   isActive?: boolean;
 }
 
 export interface UpdateSectionPayload {
   name?: string;
+  board?: Board;
   isActive?: boolean;
 }
 
@@ -330,6 +330,7 @@ export interface UpdateGradeBandPayload {
 
 export interface CreateClassExamStructurePayload {
   classId: string;
+  sectionId: string;
   gradingSchemeId?: string;
   hasOptionalSubject?: boolean;
   combineExamGroups?: boolean;
@@ -354,6 +355,7 @@ export interface ClassExamGroupWeightItem {
 
 export interface CreateReportCardTemplatePayload {
   classId: string;
+  sectionId: string;
   examGroupId?: string;
   name: string;
   reportScope: "INDIVIDUAL" | "COMBINED";
@@ -394,14 +396,21 @@ export type ComponentSource = "FETCHED" | "MANUAL";
 
 export interface CreateClassSubjectComponentTemplatePayload {
   classId: string;
+  sectionId: string;
   examGroupId: string;
   subjectId?: string;
 }
 
+export interface CopyClassComponentTemplateTarget {
+  classId: string;
+  sectionId: string;
+}
+
 export interface CopyClassComponentTemplatePayload {
   sourceClassId: string;
+  sourceSectionId: string;
   examGroupId: string;
-  targetClassIds: string[];
+  targets: CopyClassComponentTemplateTarget[];
 }
 
 export interface ComponentTemplateDefinitionItem {
@@ -451,6 +460,7 @@ export interface UpdateExamSchedulePayload {
 
 export interface CreateExamSubjectComponentPayload {
   classId: string;
+  sectionId: string;
   subjectId: string;
   name: string;
   code?: string;
@@ -730,7 +740,7 @@ export const academicService = {
 
     getById: (id: string) => apiClient.get(`/academic/class-exam-structures/${id}`),
 
-    getByClass: (classId: string) => apiClient.get(`/academic/class-exam-structures/class/${classId}`),
+    getBySection: (classId: string, sectionId: string) => apiClient.get(`/academic/class-exam-structures/class/${classId}/section/${sectionId}`),
 
     create: (data: CreateClassExamStructurePayload) => apiClient.post("/academic/class-exam-structures", data),
 
@@ -742,7 +752,7 @@ export const academicService = {
   },
 
   reportCardTemplates: {
-    getAll: (classId?: string) => apiClient.get("/academic/report-card-templates", { params: classId ? { classId } : undefined }),
+    getAll: (classId?: string, sectionId?: string) => apiClient.get("/academic/report-card-templates", { params: { ...(classId ? { classId } : {}), ...(sectionId ? { sectionId } : {}) } }),
 
     getById: (id: string) => apiClient.get(`/academic/report-card-templates/${id}`),
 
@@ -778,8 +788,8 @@ export const academicService = {
 
     deleteSchedule: (scheduleId: string) => apiClient.delete(`/academic/exams/schedules/${scheduleId}`),
 
-    getSubjectComponents: (examId: string, subjectId?: string, classId?: string) =>
-      apiClient.get(`/academic/exams/${examId}/subject-components`, { params: { ...(subjectId ? { subjectId } : {}), ...(classId ? { classId } : {}) } }),
+    getSubjectComponents: (examId: string, subjectId?: string, classId?: string, sectionId?: string) =>
+      apiClient.get(`/academic/exams/${examId}/subject-components`, { params: { ...(subjectId ? { subjectId } : {}), ...(classId ? { classId } : {}), ...(sectionId ? { sectionId } : {}) } }),
 
     createSubjectComponent: (examId: string, data: CreateExamSubjectComponentPayload) => apiClient.post(`/academic/exams/${examId}/subject-components`, data),
 
@@ -787,7 +797,7 @@ export const academicService = {
 
     deleteSubjectComponent: (componentId: string) => apiClient.delete(`/academic/exams/subject-components/${componentId}`),
 
-    syncComponents: (classId: string, examGroupId: string) => apiClient.post(`/academic/exams/class/${classId}/exam-group/${examGroupId}/sync-components`),
+    syncComponents: (classId: string, sectionId: string, examGroupId: string) => apiClient.post(`/academic/exams/class/${classId}/section/${sectionId}/exam-group/${examGroupId}/sync-components`),
   },
 
   examMarks: {
@@ -805,12 +815,12 @@ export const academicService = {
   },
 
   classComponentTemplates: {
-    getAll: (classId?: string) => apiClient.get("/academic/class-component-templates", { params: classId ? { classId } : undefined }),
+    getAll: (classId?: string, sectionId?: string) => apiClient.get("/academic/class-component-templates", { params: { ...(classId ? { classId } : {}), ...(sectionId ? { sectionId } : {}) } }),
 
     getById: (id: string) => apiClient.get(`/academic/class-component-templates/${id}`),
 
-    getByClassAndExamGroup: (classId: string, examGroupId: string, subjectId?: string) =>
-      apiClient.get(`/academic/class-component-templates/class/${classId}/exam-group/${examGroupId}`, { params: subjectId ? { subjectId } : undefined }),
+    getByClassAndExamGroup: (classId: string, sectionId: string, examGroupId: string, subjectId?: string) =>
+      apiClient.get(`/academic/class-component-templates/class/${classId}/section/${sectionId}/exam-group/${examGroupId}`, { params: subjectId ? { subjectId } : undefined }),
 
     create: (data: CreateClassSubjectComponentTemplatePayload) => apiClient.post("/academic/class-component-templates", data),
 

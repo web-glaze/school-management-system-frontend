@@ -12,6 +12,8 @@ import { CalendarDays, Calendar, Inbox, Loader2, Pencil, Plus, Search, Trash2, M
 import { useAcademicStore } from "@/store/academicStore";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Board } from "@/services/academic.service";
 import { usePermission, useHasPermission } from "@/hooks/usePermission";
 import { useEffect, useState } from "react";
 import { Field, FieldGroup } from "@/components/ui/field";
@@ -27,6 +29,7 @@ interface Section {
   id: string;
   sectionCode: string;
   name: string;
+  board: Board;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -40,6 +43,9 @@ export default function SectionsPage() {
 
   const [isActive, setIsActive] = useState(true);
   const [editIsActive, setEditIsActive] = useState(true);
+
+  const [board, setBoard] = useState<Board>("GENERAL");
+  const [editBoard, setEditBoard] = useState<Board>("GENERAL");
 
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [editSectionOpen, setEditSectionOpen] = useState(false);
@@ -66,10 +72,12 @@ export default function SectionsPage() {
     try {
       await createSection({
         name,
+        board,
         isActive,
       });
 
       setName("");
+      setBoard("GENERAL");
       setIsActive(true);
 
       setFormErrors({});
@@ -98,6 +106,7 @@ export default function SectionsPage() {
     try {
       await updateSection(editingSection.id, {
         name: editName,
+        board: editBoard,
         isActive: editIsActive,
       });
 
@@ -152,6 +161,7 @@ export default function SectionsPage() {
     setEditingSection(section);
     setEditName(section.name);
     setEditIsActive(section.isActive);
+    setEditBoard(section.board);
     setEditErrors({});
     setEditSectionOpen(true);
   };
@@ -184,7 +194,7 @@ export default function SectionsPage() {
     }));
   };
 
-  const isSectionChanged = editingSection && (editName.trim() !== editingSection.name || editIsActive !== editingSection.isActive);
+  const isSectionChanged = editingSection && (editName.trim() !== editingSection.name || editIsActive !== editingSection.isActive || editBoard !== editingSection.board);
 
   const filteredSections = sections.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()) || item.sectionCode.toLowerCase().includes(search.toLowerCase()));
 
@@ -198,12 +208,14 @@ export default function SectionsPage() {
           </div>
 
           <Dialog open={addSectionOpen} onOpenChange={setAddSectionOpen}>
-            {canCreate && (<DialogTrigger asChild>
-              <Button className="gap-2 px-5">
-                <Plus className="size-4" />
-                Add Section
-              </Button>
-            </DialogTrigger>)}
+            {canCreate && (
+              <DialogTrigger asChild>
+                <Button className="gap-2 px-5">
+                  <Plus className="size-4" />
+                  Add Section
+                </Button>
+              </DialogTrigger>
+            )}
 
             <DialogContent className="sm:max-w-115 p-0 overflow-hidden">
               <div className="border-b px-6 py-5">
@@ -234,6 +246,21 @@ export default function SectionsPage() {
                       className=""
                     />
                     {formErrors.name && <p className="text-sm text-red-500 mt-1">{formErrors.name}</p>}
+                  </Field>
+
+                  <Field>
+                    <Label>Board</Label>
+
+                    <Select value={board} onValueChange={(v) => setBoard(v as Board)}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select board" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="GENERAL">General</SelectItem>
+                        <SelectItem value="CBSE">CBSE</SelectItem>
+                        <SelectItem value="CIE">CIE</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </Field>
 
                   <Field>
@@ -314,11 +341,14 @@ export default function SectionsPage() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pl-6 text-foreground/80 min-w-45">Section</TableHead>
                     <TableHead className="hidden md:table-cell font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Code</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80">Board</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 w-20 sm:w-50">Status</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider py-4 text-foreground/80 min-w-30 hidden lg:table-cell">Created At</TableHead>
-                    {(canUpdate || canDelete) && (<TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
-                      <span className="md:block">Actions</span>
-                    </TableHead>)}
+                    {(canUpdate || canDelete) && (
+                      <TableHead className="font-bold text-xs uppercase tracking-wider py-4 pr-4 sm:pr-6 text-foreground/80 text-right w-14 md:w-24 sticky right-0 bg-gray-50 dark:bg-muted/15 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                        <span className="md:block">Actions</span>
+                      </TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
 
@@ -336,6 +366,10 @@ export default function SectionsPage() {
                       </TableCell>
 
                       <TableCell className="hidden md:table-cell py-4 align-middle">{section.sectionCode}</TableCell>
+
+                      <TableCell className="py-4 align-middle">
+                        <Badge variant="outline">{section.board === "GENERAL" ? "General" : section.board}</Badge>
+                      </TableCell>
 
                       <TableCell className="py-4 align-middle">
                         <Badge className={section.isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-muted text-muted-foreground"}>{section.isActive ? "Active" : "Inactive"}</Badge>
@@ -357,53 +391,63 @@ export default function SectionsPage() {
                         </div>
                       </TableCell>
 
-                      {(canUpdate || canDelete) && (<TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
-                        <div className="hidden md:flex justify-end gap-1">
-                          {canUpdate && (<Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
-                            title="Edit section"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={() => openEditDialog(section)}
-                          >
-                            <Pencil className="size-5" />
-                          </Button>)}
-
-                          {canDelete && (<Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                            title="Delete section"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={() => openDeleteDialog(section)}
-                          >
-                            <Trash2 className="size-5" />
-                          </Button>)}
-                        </div>
-
-                        <div className="md:hidden flex justify-end">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
-                                <MoreVertical className="size-5" />
+                      {(canUpdate || canDelete) && (
+                        <TableCell className="py-4 pr-4 sm:pr-6 text-right align-middle w-14 md:w-24 bg-card sticky right-0 shadow-lg md:shadow-none border-l border-border/40 md:border-l-0">
+                          <div className="hidden md:flex justify-end gap-1">
+                            {canUpdate && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 rounded-lg text-muted-foreground hover:bg-blue-300/10 hover:text-blue-700 transition-all"
+                                title="Edit section"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={() => openEditDialog(section)}
+                              >
+                                <Pencil className="size-5" />
                               </Button>
-                            </DropdownMenuTrigger>
+                            )}
 
-                            <DropdownMenuContent align="end">
-                              {canUpdate && (<DropdownMenuItem onClick={() => openEditDialog(section)}>
-                                <Pencil className="mr-2 size-4" />
-                                Edit
-                              </DropdownMenuItem>)}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                title="Delete section"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={() => openDeleteDialog(section)}
+                              >
+                                <Trash2 className="size-5" />
+                              </Button>
+                            )}
+                          </div>
 
-                              {canDelete && (<DropdownMenuItem onClick={() => openDeleteDialog(section)} className="text-destructive">
-                                <Trash2 className="mr-2 size-4" />
-                                Delete
-                              </DropdownMenuItem>)}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>)}
+                          <div className="md:hidden flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-9" onPointerDown={(e) => e.stopPropagation()}>
+                                  <MoreVertical className="size-5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+
+                              <DropdownMenuContent align="end">
+                                {canUpdate && (
+                                  <DropdownMenuItem onClick={() => openEditDialog(section)}>
+                                    <Pencil className="mr-2 size-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                )}
+
+                                {canDelete && (
+                                  <DropdownMenuItem onClick={() => openDeleteDialog(section)} className="text-destructive">
+                                    <Trash2 className="mr-2 size-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -443,6 +487,21 @@ export default function SectionsPage() {
                   className=""
                 />
                 {editErrors.name && <p className="text-sm text-red-500 mt-1">{editErrors.name}</p>}
+              </Field>
+
+              <Field>
+                <Label>Board</Label>
+
+                <Select value={editBoard} onValueChange={(v) => setEditBoard(v as Board)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GENERAL">General</SelectItem>
+                    <SelectItem value="CBSE">CBSE</SelectItem>
+                    <SelectItem value="CIE">CIE</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
 
               <Field>
