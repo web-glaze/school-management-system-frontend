@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Building2, Loader2, Plus, Search, Trash2, Users as UsersIcon, Calendar, Pencil, MoreVertical } from "lucide-react";
+import { Building2, Loader2, Plus, Search, Trash2, Users as UsersIcon, Calendar, Pencil, MoreVertical, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,16 +17,44 @@ import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/usePermission";
 import { useUserStore, User } from "@/store/userStore";
 import { useRoleStore } from "@/store/roleStore";
+import { cn } from "@/lib/utils";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const FALLBACK_ROLES = ["MANAGER", "TEACHER", "STAFF", "TECHNICIAN", "USER"];
 
+function PageInitializer({ setCurrentPage }: { setCurrentPage: React.Dispatch<React.SetStateAction<number>> }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    setCurrentPage(Number(searchParams.get("page")) || 1);
+  }, [searchParams, setCurrentPage]);
+
+  return null;
+}
+
 export default function UserManagementPage() {
-  const { users, loading, creating, updating, deletingId, fetchUsers, createUser, updateUser, deleteUser } = useUserStore();
+  const { users, total, loading, creating, updating, deletingId, fetchUsers, createUser, updateUser, deleteUser } = useUserStore();
 
   const { roles, fetchRolesAndPermissions } = useRoleStore();
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const router = useRouter();
+  const pathname = usePathname();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const changePage = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+
+      router.replace(`${pathname}?page=${page}`, {
+        scroll: false,
+      });
+    },
+    [router, pathname]
+  );
 
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [editUserOpen, setEditUserOpen] = useState(false);
@@ -54,11 +82,49 @@ export default function UserManagementPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
-  // Fetch initial data
+  const totalPages = Math.ceil(total / pageSize) || 1;
+
+  const loadUsers = useCallback(
+    () =>
+      fetchUsers({
+        page: currentPage,
+        limit: pageSize,
+        search: debouncedSearch || undefined,
+        role: roleFilter === "all" ? undefined : roleFilter,
+      }).catch(() => toast.error("Failed to load users")),
+    [fetchUsers, currentPage, pageSize, debouncedSearch, roleFilter]
+  );
+
+  // Fetch users whenever page, page size, search or role filter changes
   useEffect(() => {
-    fetchUsers().catch(() => toast.error("Failed to load users"));
+    loadUsers();
+  }, [loadUsers]);
+
+  // Fetch roles once
+  useEffect(() => {
     fetchRolesAndPermissions().catch(() => {});
-  }, [fetchUsers, fetchRolesAndPermissions]);
+  }, [fetchRolesAndPermissions]);
+
+  // Debounce search, then go back to page 1
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const value = search.trim();
+
+      if (value !== debouncedSearch) {
+        setDebouncedSearch(value);
+        changePage(1);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search, debouncedSearch, changePage]);
+
+  // If the current page no longer exists (e.g. last user on it was deleted), go to the last page
+  useEffect(() => {
+    if (!loading && total > 0 && currentPage > totalPages) {
+      changePage(totalPages);
+    }
+  }, [loading, total, currentPage, totalPages, changePage]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +147,12 @@ export default function UserManagementPage() {
       setPassword("");
       setPhone("");
       setAddUserOpen(false);
+
+      if (currentPage === 1) {
+        loadUsers();
+      } else {
+        changePage(1);
+      }
 
       toast.success("User created");
     } catch (error: unknown) {
@@ -164,6 +236,7 @@ export default function UserManagementPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteUser(id);
+      loadUsers();
       setDeleteUserOpen(false);
       setDeletingUser(null);
       toast.success(deletingUser?.student ? "Student deactivated successfully" : deletingUser?.userRoles?.some((r) => r.role.name === "TEACHER") ? "Teacher deactivated successfully" : "User deleted successfully");
@@ -179,27 +252,7 @@ export default function UserManagementPage() {
     }));
   };
 
-  const grouped = useMemo(() => {
-    return [
-      {
-        id: "all-users",
-        name: "Users",
-        users: users.filter((u) => {
-          const needle = search.toLowerCase();
-          const matchSearch =
-            !needle ||
-            u.email?.toLowerCase().includes(needle) ||
-            (u.phone ?? u.student?.phone ?? "").includes(needle) ||
-            (u.student?.email ?? "").toLowerCase().includes(needle) ||
-            u.name?.toLowerCase().includes(needle) ||
-            u.userName?.toLowerCase().includes(needle) ||
-            (u.userCode || "").toLowerCase().includes(needle);
-          const matchRole = roleFilter === "all" || u.userRoles?.some((r) => r.role.name === roleFilter);
-          return matchSearch && matchRole;
-        }),
-      },
-    ];
-  }, [users, search, roleFilter]);
+  const grouped = useMemo(() => [{ id: "all-users", name: "Users", users }], [users]);
 
   const openEditDialog = (user: User) => {
     setEditingUser(user);
@@ -232,6 +285,9 @@ export default function UserManagementPage() {
 
   return (
     <DashboardLayout>
+      <Suspense fallback={null}>
+        <PageInitializer setCurrentPage={setCurrentPage} />
+      </Suspense>
       <div className="space-y-8">
         <div className="flex md:flex-row flex-col md:items-center items-start justify-between gap-4 mb-10">
           <div>
@@ -397,17 +453,43 @@ export default function UserManagementPage() {
                 <Input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11" />
               </div>
 
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <Select
+                value={roleFilter}
+                onValueChange={(value) => {
+                  setRoleFilter(value);
+                  changePage(1);
+                }}
+              >
                 <SelectTrigger className="w-full sm:w-37.5">
                   <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  {["SUPER_ADMIN", "ADMIN", ...FALLBACK_ROLES, "STUDENT"].map((roleName) => (
+                  {(roles.length > 0 ? roles.map((r) => r.name) : ["SUPER_ADMIN", "ADMIN", ...FALLBACK_ROLES, "STUDENT"]).map((roleName) => (
                     <SelectItem key={roleName} value={roleName}>
                       {roleName}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex w-full lg:w-auto justify-end">
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => {
+                  setPageSize(Number(val));
+                  changePage(1);
+                }}
+              >
+                <SelectTrigger className="w-27.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 rows</SelectItem>
+                  <SelectItem value="10">10 rows</SelectItem>
+                  <SelectItem value="25">25 rows</SelectItem>
+                  <SelectItem value="50">50 rows</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -421,8 +503,8 @@ export default function UserManagementPage() {
           ) : grouped.length === 0 || (grouped.length > 0 && grouped[0].users.length === 0) ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
               <UsersIcon className="size-8 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-gray-700">No users yet</p>
-              <p className="text-xs text-gray-500 mt-1">Use the form above to add your first user.</p>
+              <p className="text-sm font-semibold text-gray-700">{debouncedSearch || roleFilter !== "all" ? "No matching users" : "No users yet"}</p>
+              <p className="text-xs text-gray-500 mt-1">{debouncedSearch || roleFilter !== "all" ? "Check your search or reset the filters." : "Use the form above to add your first user."}</p>
             </div>
           ) : (
             <div className="relative w-full overflow-x-auto">
@@ -543,6 +625,58 @@ export default function UserManagementPage() {
             </div>
           )}
         </div>
+
+        {/* Pagination Footers Controls */}
+        {total > 0 && (
+          <div className="bg-card rounded-lg p-5 border border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm font-medium text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-semibold text-foreground">{Math.min(currentPage * pageSize, total)}</span> of{" "}
+              <span className="font-semibold text-foreground">{total}</span> users
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" onClick={() => changePage(1)} disabled={currentPage === 1} className="size-8">
+                <ChevronsLeft className="size-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => changePage(Math.max(currentPage - 1, 1))} disabled={currentPage === 1} className="size-8">
+                <ChevronLeft className="size-4" />
+              </Button>
+
+              <div className="flex items-center gap-1 px-1">
+                {Array.from({ length: totalPages }).map((_, idx) => {
+                  const pageNum = idx + 1;
+                  if (Math.abs(currentPage - pageNum) > 1 && pageNum !== 1 && pageNum !== totalPages) {
+                    if (pageNum === 2 || pageNum === totalPages - 1) {
+                      return (
+                        <span key={pageNum} className="text-muted-foreground/60 text-xs px-1 select-none">
+                          ..
+                        </span>
+                      );
+                    }
+                    return null;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      onClick={() => changePage(pageNum)}
+                      className={cn("size-8 font-bold text-xs", currentPage === pageNum ? "bg-sky-600 text-white" : "")}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              <Button variant="outline" size="icon" onClick={() => changePage(Math.min(currentPage + 1, totalPages))} disabled={currentPage === totalPages} className="size-8">
+                <ChevronRight className="size-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => changePage(totalPages)} disabled={currentPage === totalPages} className="size-8">
+                <ChevronsRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>

@@ -10,11 +10,11 @@ import { useGatepassStore } from "@/store/gatepassStore";
 import QrDialog from "./QrDialog";
 import RaiseRequestDialog from "./RaiseRequestDialog";
 import RequestDetailDialog from "./RequestDetailDialog";
-import { RowActions, StatusBadge, TH, THEAD_CLASS, TYPE_LABEL, TableCard, TableEmptyRow, TableLoadingRow, apiError, formatDateTime, studentsLabel } from "./shared";
+import { RowActions, StatusBadge, TH, THEAD_CLASS, TYPE_LABEL, TableCard, TableEmptyRow, TableLoadingRow, apiError, formatDateTime, studentsLabel, RequestPeriod } from "./shared";
 
 const PAGE_SIZE = 10;
 const CANCELLABLE = ["PENDING_HOUSEMOTHER", "PENDING_PCH", "APPROVED"];
-const QR_STATUSES = ["APPROVED", "OUT", "OVERDUE"];
+const QR_STATUSES = ["APPROVED", "OUT", "OVERDUE", "INSIDE"];
 
 export default function RequestsTab() {
   const requests = useGatepassStore((s) => s.myRequests);
@@ -105,8 +105,7 @@ export default function RequestsTab() {
                   </TableCell>
 
                   <TableCell className="hidden py-4 align-middle text-sm md:table-cell">
-                    <p>{formatDateTime(request.requestedFrom)}</p>
-                    <p className="text-muted-foreground">to {formatDateTime(request.requestedTo)}</p>
+                    <RequestPeriod request={request} />
                   </TableCell>
 
                   <TableCell className="hidden py-4 align-middle sm:table-cell">

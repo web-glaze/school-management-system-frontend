@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { gatepassService, mediaUrl, type MovementRequest } from "@/services/gatepass.service";
-import { StatusBadge, StudentAvatar, TYPE_LABEL, apiError, formatDateTime, fullName } from "./shared";
+import { StatusBadge, StudentAvatar, TYPE_LABEL, apiError, formatDateTime, formatDay, fullName } from "./shared";
 
 interface Props {
   requestId: string | null;
@@ -58,11 +59,14 @@ export default function RequestDetailDialog({ requestId, onClose }: Props) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId]);
+
+  const isVisitor = request?.type === "VISITOR";
 
   return (
     <Dialog open={!!requestId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className=" w-[95vw] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] w-[95vw] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-3">
             {request?.requestNo ?? "Request"}
@@ -78,45 +82,65 @@ export default function RequestDetailDialog({ requestId, onClose }: Props) {
         ) : (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <Info label="Leaves" value={formatDateTime(request.requestedFrom)} />
-              <Info label="Returns by" value={formatDateTime(request.requestedTo)} />
-              <Info label="Reason / event" value={request.purpose} />
-              <Info label="Destination" value={request.destination} />
+              {isVisitor ? (
+                <Info label="Visit day" value={`${formatDay(request.requestedFrom)} (valid all day)`} />
+              ) : (
+                <>
+                  <Info label="Leaves" value={formatDateTime(request.requestedFrom)} />
+                  <Info label="Returns by" value={formatDateTime(request.requestedTo)} />
+                </>
+              )}
+
+              <Info label={isVisitor ? "Purpose of visit" : "Reason / event"} value={request.purpose} />
+              {!isVisitor && <Info label="Destination" value={request.destination} />}
+              {request.hostName && <Info label="Staff member being met" value={request.hostName} />}
               {request.accompanyingPerson && <Info label="Maitre / home mother" value={request.accompanyingPerson} />}
-              <Info label="Raised by" value={request.raisedBy?.name} />
-              <Info label="Actual exit" value={formatDateTime(request.actualExitAt)} />
-              <Info label="Actual return" value={formatDateTime(request.actualReturnAt)} />
+              <Info label="Raised by" value={request.raisedBy?.name ?? request.raisedByName} />
+              <Info label={isVisitor ? "Entered at" : "Actual exit"} value={formatDateTime(request.actualExitAt)} />
+              <Info label={isVisitor ? "Left at" : "Actual return"} value={formatDateTime(request.actualReturnAt)} />
+
+              {request.closeNote && (
+                <div className="col-span-2">
+                  <Info label="Closing note" value={request.closeNote} />
+                </div>
+              )}
             </div>
 
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold">Students ({request.students.length})</h3>
+            {request.students.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold">
+                  {isVisitor ? "Student being visited" : "Students"} ({request.students.length})
+                </h3>
 
-              <div className="space-y-2">
-                {request.students.map(({ id, student }) => {
-                  const enrollment = student.enrollments?.[0];
-                  const name = fullName(student);
+                <div className="space-y-2">
+                  {request.students.map(({ id, student }) => {
+                    const enrollment = student.enrollments?.[0];
+                    const name = fullName(student);
 
-                  return (
-                    <div key={id} className="flex items-center gap-3 rounded-lg border p-3">
-                      <StudentAvatar name={name} photoUrl={student.photoUrl} />
-                      <div className="text-sm">
-                        <p className="font-medium">{name}</p>
-                        <p className="text-muted-foreground">
-                          Adm. no. {student.admissionNo}
-                          {enrollment ? ` · ${enrollment.class.name} - ${enrollment.section.name}` : ""}
-                          {student.hostel ? ` · ${student.hostel.name}` : ""}
-                          {student.room ? ` · Room ${student.room.roomNo}` : ""}
-                        </p>
+                    return (
+                      <div key={id} className="flex items-center gap-3 rounded-lg border p-3">
+                        <StudentAvatar name={name} photoUrl={student.photoUrl} />
+                        <div className="text-sm">
+                          <p className="font-medium">{name}</p>
+                          <p className="text-muted-foreground">
+                            Adm. no. {student.admissionNo}
+                            {enrollment ? ` · ${enrollment.class.name} - ${enrollment.section.name}` : ""}
+                            {student.hostel ? ` · ${student.hostel.name}` : ""}
+                            {student.room ? ` · Room ${student.room.roomNo}` : ""}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {request.pickupPersons && request.pickupPersons.length > 0 && (
               <section className="space-y-3">
-                <h3 className="text-sm font-semibold">Pickup persons ({request.pickupPersons.length})</h3>
+                <h3 className="text-sm font-semibold">
+                  {isVisitor ? "Visitors" : "Pickup persons"} ({request.pickupPersons.length})
+                </h3>
 
                 <div className="space-y-2">
                   {request.pickupPersons.map((person) => (

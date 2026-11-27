@@ -45,6 +45,7 @@ export function formatDateTime(value?: string | null) {
 export const TYPE_LABEL: Record<MovementType, string> = {
   OUTPASS: "Outpass",
   EVENT_TRIP: "Event trip",
+  VISITOR: "Visitor pass",
 };
 
 const STATUS_META: Record<MovementStatus, { label: string; className: string }> = {
@@ -80,6 +81,14 @@ const STATUS_META: Record<MovementStatus, { label: string; className: string }> 
     label: "Overdue",
     className: "border-red-200 bg-red-50 text-red-700",
   },
+  INSIDE: {
+    label: "Visitor inside",
+    className: "border-violet-200 bg-violet-50 text-violet-700",
+  },
+  COMPLETED: {
+    label: "Completed",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
   EXPIRED: {
     label: "Expired",
     className: "border-gray-200 bg-gray-50 text-gray-600",
@@ -103,6 +112,11 @@ export function fullName(person: { firstName: string; lastName: string }) {
 /** "Asha Rao, Meera Das +3 more" */
 export function studentsLabel(request: MovementRequest) {
   const names = request.students.map((s) => fullName(s.student));
+
+  // A visitor pass with no student: say who they are meeting.
+  if (names.length === 0 && request.type === "VISITOR") {
+    return request.hostName ? `Visiting ${request.hostName}` : "Visitor";
+  }
 
   if (names.length <= 2) return names.join(", ");
 
@@ -288,6 +302,39 @@ export function RowActions({ actions }: { actions: RowAction[] }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+    </>
+  );
+}
+
+export function formatDay(value?: string | null) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+/** The leave and return time, or the visit day for a visitor pass. */
+export function RequestPeriod({ request }: { request: { type: MovementRequest["type"]; requestedFrom?: string; requestedTo: string } }) {
+  if (request.type === "VISITOR") {
+    return (
+      <>
+        <p>{formatDay(request.requestedFrom)}</p>
+        <p className="text-muted-foreground">Valid all day</p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p>{formatDateTime(request.requestedFrom)}</p>
+      <p className="text-muted-foreground">to {formatDateTime(request.requestedTo)}</p>
     </>
   );
 }

@@ -324,21 +324,23 @@ export default function DashboardPage() {
             </Link>
             
             {/* Gate Pass Module */}
-            <Card
-              onClick={() => toast.info("Gate Pass — Coming Soon", { description: "This module is under development." })}
-              className="group cursor-pointer border-2 border-dashed border-gray-300 ring-0 bg-transparent p-5 transition-all duration-200 relative overflow-hidden"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="size-10 rounded-md bg-primary/10 text-primary flex items-center justify-center transition-colors shrink-0">
-                  <Car className="size-5" />
+            <Link href="/gatepass" className="block">
+              <Card className="group border p-5 transition-all duration-200 relative overflow-hidden h-full">
+                <div className="flex items-start justify-between mb-4 relative z-10">
+                  <div className="size-10 rounded-md bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0 text-primary">
+                    <Car className="size-5" />
+                  </div>
+                  <Badge variant="outline" className="text-[12px] font-bold uppercase tracking-widest text-white bg-primary border-primary/20 px-3 py-3">
+                    Active
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground bg-muted border-border/40 px-3 py-3">
-                  Soon
-                </Badge>
-              </div>
-              <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">Gate Pass</h3>
-              <p className="text-muted-foreground leading-normal">Visitor tracking, passes & entry/exit logs</p>
-            </Card>
+                <h3 className="text-base font-bold text-foreground relative z-10 group-hover:text-primary transition-colors">Gate Pass</h3>
+                <p className="text-muted-foreground leading-normal relative z-10">Visitor tracking, passes & entry/exit logs</p>
+                <div className="mt-4 flex items-center gap-1 text-primary text-base font-bold relative z-10">
+                  Open module <ChevronRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </Card>
+            </Link>
 
             {/* Tuck Shop / POS Module */}
             <Card

@@ -10,7 +10,7 @@ import type { MovementRequest } from "@/services/gatepass.service";
 import { useGatepassStore } from "@/store/gatepassStore";
 import DecisionDialog from "./DecisionDialog";
 import RequestDetailDialog from "./RequestDetailDialog";
-import { StudentAvatar, TYPE_LABEL, apiError, formatDateTime, fullName } from "./shared";
+import { StudentAvatar, TYPE_LABEL, apiError, formatDateTime, formatDay, fullName } from "./shared";
 
 const SHOWN_STUDENTS = 3;
 
@@ -112,12 +112,12 @@ export default function PendingList({ mode }: Props) {
 
             <div className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <p className="text-xs text-muted-foreground">Leaves</p>
-                <p className="font-medium">{formatDateTime(request.requestedFrom)}</p>
+                <p className="text-xs text-muted-foreground">{request.type === "VISITOR" ? "Visit day" : "Leaves"}</p>
+                <p className="font-medium">{request.type === "VISITOR" ? formatDay(request.requestedFrom) : formatDateTime(request.requestedFrom)}</p>
               </div>
 
               <div>
-                <p className="text-xs text-muted-foreground">Returns by</p>
+                <p className="text-xs text-muted-foreground">{request.type === "VISITOR" ? "Valid until" : "Returns by"}</p>
                 <p className="font-medium">{formatDateTime(request.requestedTo)}</p>
               </div>
 
@@ -127,8 +127,8 @@ export default function PendingList({ mode }: Props) {
               </div>
 
               <div>
-                <p className="text-xs text-muted-foreground">Destination</p>
-                <p className="font-medium">{request.destination || "—"}</p>
+                <p className="text-xs text-muted-foreground">{request.type === "VISITOR" ? "Staff member being met" : "Destination"}</p>
+                <p className="font-medium">{request.destination || request.hostName || "—"}</p>
               </div>
 
               {request.accompanyingPerson && (
@@ -140,10 +140,8 @@ export default function PendingList({ mode }: Props) {
 
               {request.pickupPersons && request.pickupPersons.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground">Pickup persons</p>
-                  <p className="font-medium">
-                    {request.pickupPersons.map((p) => `${p.name} (${p.relation})`).join(", ")}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{request.type === "VISITOR" ? "Visitors" : "Pickup persons"}</p>
+                  <p className="font-medium">{request.pickupPersons.map((p) => `${p.name} (${p.relation})`).join(", ")}</p>
                 </div>
               )}
             </div>
@@ -171,15 +169,7 @@ export default function PendingList({ mode }: Props) {
 
       <RequestDetailDialog requestId={detailId} onClose={() => setDetailId(null)} />
 
-      {decision && (
-        <DecisionDialog
-          key={`${decision.request.id}-${decision.action}`}
-          mode={mode}
-          request={decision.request}
-          action={decision.action}
-          onClose={() => setDecision(null)}
-        />
-      )}
+      {decision && <DecisionDialog key={`${decision.request.id}-${decision.action}`} mode={mode} request={decision.request} action={decision.action} onClose={() => setDecision(null)} />}
     </div>
   );
 }

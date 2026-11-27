@@ -12,9 +12,9 @@ const unwrap = <T>(request: Promise<AxiosResponse>) => request.then((res) => (re
    TYPES
 ========================= */
 
-export type MovementType = "OUTPASS" | "EVENT_TRIP";
+export type MovementType = "OUTPASS" | "EVENT_TRIP" | "VISITOR";
 
-export type MovementStatus = "PENDING_HOUSEMOTHER" | "PENDING_PCH" | "APPROVED" | "REJECTED" | "CANCELLED" | "OUT" | "RETURNED" | "OVERDUE" | "EXPIRED";
+export type MovementStatus = "PENDING_HOUSEMOTHER" | "PENDING_PCH" | "APPROVED" | "REJECTED" | "CANCELLED" | "OUT" | "RETURNED" | "OVERDUE" | "EXPIRED" | "INSIDE" | "COMPLETED";
 
 export interface Option {
   id: string;
@@ -47,10 +47,7 @@ export interface StudentCard {
 }
 
 export interface StudentLookupParams {
-  admissionNo?: string;
-  q?: string;
-  classId?: string;
-  sectionId?: string;
+  admissionNo: string;
 }
 
 export interface PickupPersonPayload {
@@ -65,11 +62,13 @@ export interface PickupPersonPayload {
 export interface CreateMovementRequestPayload {
   type: MovementType;
   studentIds: string[];
-  requestedFrom: string;
-  requestedTo: string;
+  requestedFrom?: string;
+  requestedTo?: string;
+  visitDate?: string;
   purpose?: string;
   destination?: string;
   accompanyingPerson?: string;
+  hostName?: string;
   pickupPersons?: PickupPersonPayload[];
 }
 
@@ -130,11 +129,14 @@ export interface MovementRequest {
   purpose?: string | null;
   destination?: string | null;
   accompanyingPerson?: string | null;
+  hostName?: string | null;
   approvedAt?: string | null;
+  closeNote?: string | null;
   actualExitAt?: string | null;
   actualReturnAt?: string | null;
   createdAt: string;
-  raisedBy?: { id: string; name: string | null };
+  raisedBy?: { id: string; name: string | null } | null;
+  raisedByName?: string | null;
   students: RequestStudent[];
   pickupPersons?: PickupPerson[];
   approvals?: RequestApproval[];
@@ -179,6 +181,7 @@ export interface GateRequestSummary {
   purpose?: string | null;
   destination?: string | null;
   accompanyingPerson?: string | null;
+  hostName?: string | null;
   requestedFrom: string;
   requestedTo: string;
   actualExitAt?: string | null;
@@ -188,10 +191,19 @@ export interface GateRequestSummary {
 
 export interface GateLookupResult {
   valid: boolean;
-  action: "EXIT" | "RETURN" | null;
+  action: "EXIT" | "RETURN" | "ENTRY" | "LEAVE" | null;
   result?: string;
   message: string;
   request: GateRequestSummary | null;
+}
+
+/** Recording the return (or a visitor leaving) by hand, when it was not scanned. */
+export interface ManualReturnPayload {
+  requestId: string;
+  remarks: string;
+  /** ISO time it really happened. Empty means now. */
+  occurredAt?: string;
+  gateId?: string;
 }
 
 export interface GateScanPayload {
@@ -204,7 +216,7 @@ export interface GateScanResult {
   allowed: boolean;
   result: string;
   message: string;
-  action?: "EXIT" | "RETURN";
+  action?: "EXIT" | "RETURN" | "ENTRY" | "LEAVE";
   direction?: "IN" | "OUT";
   late?: boolean;
   logId: string | null;
@@ -213,48 +225,65 @@ export interface GateScanResult {
   request?: GateRequestSummary | null;
 }
 
-export interface GateDashboard {
-  outNow: {
+export interface DashboardStudentLink {
+  id: string;
+  studentId: string | null;
+  studentName: string;
+  admissionNo: string;
+  className: string | null;
+  sectionName: string | null;
+  student: {
     id: string;
-    requestNo: string;
-    type: MovementType;
-    status: MovementStatus;
-    destination?: string | null;
-    accompanyingPerson?: string | null;
-    requestedTo: string;
-    actualExitAt?: string | null;
-    students: {
-      student: {
-        id: string;
-        admissionNo: string;
-        firstName: string;
-        lastName: string;
-        photoUrl?: string | null;
-      };
-    }[];
-  }[];
+    admissionNo: string;
+    firstName: string;
+    lastName: string;
+    photoUrl?: string | null;
+  };
+}
+
+export interface DashboardRequest {
+  id: string;
+  requestNo: string;
+  type: MovementType;
+  status: MovementStatus;
+  destination?: string | null;
+  purpose?: string | null;
+  hostName?: string | null;
+  accompanyingPerson?: string | null;
+  requestedFrom?: string;
+  requestedTo: string;
+  actualExitAt?: string | null;
+  students: DashboardStudentLink[];
+  pickupPersons?: { id: string; name: string; relation: string }[];
+}
+
+export interface GateDashboard {
+  outNow: DashboardRequest[];
+  visitorsInside: DashboardRequest[];
+  waiting: DashboardRequest[];
   overdueCount: number;
   todayExits: number;
   todayReturns: number;
+  todayVisitors: number;
   todayDenied: number;
   recent: {
     id: string;
     direction: "IN" | "OUT";
     scanTime: string;
     result: string;
-    gate?: { name: string };
-    scannedBy?: { name: string | null };
+    isManual: boolean;
+    remarks?: string | null;
+    gate?: { name: string } | null;
+    scannedBy?: { name: string | null } | null;
     pickupPerson?: { name: string; relation: string } | null;
     pass?: {
       movementRequest: {
         requestNo: string;
         type: MovementType;
+        hostName?: string | null;
+        pickupPersons?: { name: string }[];
         students: {
-          student: {
-            admissionNo: string;
-            firstName: string;
-            lastName: string;
-          };
+          student: { admissionNo: string; firstName: string; lastName: string };
         }[];
       };
     };
@@ -405,6 +434,8 @@ export const gatepassService = {
     scan: (data: GateScanPayload) => unwrap<GateScanResult>(apiClient.post("/gate/scan", data)),
 
     dashboard: () => unwrap<GateDashboard>(apiClient.get("/gate/dashboard")),
+
+    manual: (data: ManualReturnPayload) => unwrap<{ requestId: string; status: MovementStatus }>(apiClient.post("/gate/manual", data)),
 
     logsForStudent: (studentId: string) => unwrap<GateDashboard["recent"]>(apiClient.get(`/gate/logs/student/${studentId}`)),
   },

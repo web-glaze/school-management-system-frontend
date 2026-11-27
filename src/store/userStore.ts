@@ -46,8 +46,16 @@ type UserPayload = {
   role?: string;
 };
 
+export interface FetchUsersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+}
+
 interface UserState {
   users: User[];
+  total: number;
   loading: boolean;
   creating: boolean;
   updating: boolean;
@@ -57,41 +65,51 @@ interface UserState {
   createUser: (data: UserPayload) => Promise<void>;
   updateUser: (id: string, data: UserPayload) => Promise<void>;
   updateMyProfile: (data: UserPayload) => Promise<ProfileUser>;
-  fetchUsers: () => Promise<void>;
+  fetchUsers: (params?: FetchUsersParams) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   changePassword: (id: string, newPassword: string) => Promise<void>;
   changeMyPassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
+// Ignores slow, outdated responses (e.g. while typing in search)
+let latestUsersRequest = 0;
+
 export const useUserStore = create<UserState>((set) => ({
   users: [],
+  total: 0,
   loading: false,
   creating: false,
   updating: false,
   deletingId: null,
   changingPasswordId: null,
 
-  fetchUsers: async () => {
+  fetchUsers: async (params) => {
+    const requestId = ++latestUsersRequest;
+
     try {
       set({ loading: true });
-      const response = await userService.getAll();
-      set({ users: response.data?.data?.items || response.data?.data || response.data || [] });
+      const response = await userService.getAll(params);
+
+      if (requestId !== latestUsersRequest) return;
+
+      const result = response.data?.data ?? response.data;
+      set({ users: result?.items || [], total: result?.total || 0 });
     } catch (error) {
+      if (requestId !== latestUsersRequest) return;
+
       console.error("fetchUsers failed:", error);
       throw error;
     } finally {
-      set({ loading: false });
+      if (requestId === latestUsersRequest) {
+        set({ loading: false });
+      }
     }
   },
 
   createUser: async (data: UserPayload) => {
     try {
       set({ creating: true });
-      const response = await userService.create(data);
-      const newUser = response.data?.data || response.data;
-      set((state) => ({
-        users: [newUser, ...state.users],
-      }));
+      await userService.create(data);
     } finally {
       set({ creating: false });
     }
@@ -114,12 +132,6 @@ export const useUserStore = create<UserState>((set) => ({
     try {
       set({ deletingId: id });
       await userService.delete(id);
-
-      const response = await userService.getAll();
-
-      set({
-        users: response.data?.data?.items || response.data?.data || response.data || [],
-      });
     } finally {
       set({ deletingId: null });
     }

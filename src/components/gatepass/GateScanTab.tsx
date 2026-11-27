@@ -11,13 +11,30 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { gatepassService, mediaUrl, type Gate, type GateLookupResult, type GateRequestSummary, type GateScanResult } from "@/services/gatepass.service";
-import { StudentSummary, TYPE_LABEL, apiError, formatDateTime } from "./shared";
+import { StudentSummary, TYPE_LABEL, apiError, formatDateTime, formatDay } from "./shared";
 
 const QrCameraScanner = dynamic(() => import("./QrCameraScanner"), { ssr: false });
 
 const GATE_KEY = "gatepass.gateId";
 
 type Stage = "idle" | "checking" | "review" | "recording" | "done";
+
+/** The first movement of a pass (leaving, or a visitor coming in). */
+const FIRST_MOVES = ["EXIT", "ENTRY"];
+
+const ACTION_TITLE: Record<string, string> = {
+  EXIT: "Student is leaving",
+  RETURN: "Student is returning",
+  ENTRY: "Visitor is arriving",
+  LEAVE: "Visitor is leaving",
+};
+
+const ACTION_BUTTON: Record<string, string> = {
+  EXIT: "Record exit",
+  RETURN: "Record return",
+  ENTRY: "Record entry",
+  LEAVE: "Record leaving",
+};
 
 function Info({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -29,6 +46,8 @@ function Info({ label, value }: { label: string; value?: string | null }) {
 }
 
 function RequestBlock({ request }: { request: GateRequestSummary }) {
+  const isVisitor = request.type === "VISITOR";
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -37,25 +56,38 @@ function RequestBlock({ request }: { request: GateRequestSummary }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Info label="Leaves" value={formatDateTime(request.requestedFrom)} />
-        <Info label="Returns by" value={formatDateTime(request.requestedTo)} />
-        <Info label="Reason / event" value={request.purpose} />
-        <Info label="Destination" value={request.destination} />
+        {isVisitor ? (
+          <Info label="Visit day" value={`${formatDay(request.requestedFrom)} (valid all day)`} />
+        ) : (
+          <>
+            <Info label="Leaves" value={formatDateTime(request.requestedFrom)} />
+            <Info label="Returns by" value={formatDateTime(request.requestedTo)} />
+          </>
+        )}
+
+        <Info label={isVisitor ? "Purpose of visit" : "Reason / event"} value={request.purpose} />
+        {!isVisitor && <Info label="Destination" value={request.destination} />}
+        {request.hostName && <Info label="Staff member being met" value={request.hostName} />}
         {request.accompanyingPerson && <Info label="Maitre / home mother" value={request.accompanyingPerson} />}
-        {request.actualExitAt && <Info label="Left at" value={formatDateTime(request.actualExitAt)} />}
+        {isVisitor && request.pickupPersons.length > 0 && <Info label="Visitors" value={request.pickupPersons.map((p) => `${p.name} (${p.relation})`).join(", ")} />}
+        {request.actualExitAt && <Info label={isVisitor ? "Came in at" : "Left at"} value={formatDateTime(request.actualExitAt)} />}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-sm font-semibold">Students ({request.students.length})</p>
+      {request.students.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">
+            {isVisitor ? "Student being visited" : "Students"} ({request.students.length})
+          </p>
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          {request.students.map((student) => (
-            <div key={student.id} className="rounded-lg border p-3">
-              <StudentSummary student={student} />
-            </div>
-          ))}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {request.students.map((student) => (
+              <div key={student.id} className="rounded-lg border p-3">
+                <StudentSummary student={student} />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -98,6 +130,18 @@ export default function GateScanTab() {
     if (stage === "idle" && !cameraOn && gateId) inputRef.current?.focus();
   }, [stage, cameraOn, gateId]);
 
+  // Stops the page behind from scrolling while the camera is open.
+  useEffect(() => {
+    if (!cameraOn) return;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [cameraOn]);
+
   const chooseGate = (id: string) => {
     setGateId(id);
     localStorage.setItem(GATE_KEY, id);
@@ -113,18 +157,6 @@ export default function GateScanTab() {
     setPickupPersonId("");
     setCameraOn(false);
   };
-
-  // Stops the page behind from scrolling while the camera is open.
-  useEffect(() => {
-    if (!cameraOn) return;
-
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [cameraOn]);
 
   // After a failed scan: start over, and reopen the camera if that is how the guard scans.
   const scanAgain = () => {
@@ -168,13 +200,16 @@ export default function GateScanTab() {
   );
 
   const request = lookup?.request ?? null;
-  const needsPerson = lookup?.valid === true && lookup.action === "EXIT" && request?.type === "OUTPASS";
+  const isVisitorPass = request?.type === "VISITOR";
+
+  // The guard says whose ID was checked: the pickup person at an outpass exit, the visitor at entry.
+  const needsPerson = lookup?.valid === true && ((lookup.action === "EXIT" && request?.type === "OUTPASS") || (lookup.action === "ENTRY" && request?.type === "VISITOR"));
 
   const record = async () => {
     if (!lookup?.valid || !request) return;
 
     if (needsPerson && !pickupPersonId) {
-      toast.error("Select the pickup person whose ID you checked");
+      toast.error(isVisitorPass ? "Select the visitor whose ID you checked" : "Select the pickup person whose ID you checked");
       return;
     }
 
@@ -204,7 +239,7 @@ export default function GateScanTab() {
   }
 
   if (gates.length === 0) {
-    return <div className="rounded-xl border border-dashed bg-card p-10 text-center text-muted-foreground">There are no active gates. Ask the school office to add one under Setup, then Gates.</div>;
+    return <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">There are no active gates. Ask the school office to add one under Setup, then Gates.</div>;
   }
 
   return (
@@ -213,7 +248,7 @@ export default function GateScanTab() {
         <p className="text-sm font-medium sm:min-w-24">You are at</p>
 
         <Select value={gateId} onValueChange={chooseGate} disabled={stage !== "idle"}>
-          <SelectTrigger className="bg-card sm:w-64">
+          <SelectTrigger className="sm:w-64">
             <SelectValue placeholder="Choose the gate" />
           </SelectTrigger>
           <SelectContent>
@@ -229,7 +264,7 @@ export default function GateScanTab() {
 
       {/* Scan */}
       {(stage === "idle" || stage === "checking") && (
-        <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+        <div className="space-y-4 rounded-xl border bg-card p-5">
           <div className="flex items-center gap-2">
             <ScanLine className="size-5" />
             <h2 className="font-semibold">Scan the pass</h2>
@@ -264,16 +299,14 @@ export default function GateScanTab() {
           </div>
 
           {cameraOn && (
-            <div>
-              <QrCameraScanner
-                onScan={(value) => void check(value, true)}
-                onClose={() => setCameraOn(false)}
-                onError={(message) => {
-                  toast.error(message);
-                  setCameraOn(false);
-                }}
-              />
-            </div>
+            <QrCameraScanner
+              onScan={(value) => void check(value, true)}
+              onClose={() => setCameraOn(false)}
+              onError={(message) => {
+                toast.error(message);
+                setCameraOn(false);
+              }}
+            />
           )}
         </div>
       )}
@@ -282,10 +315,10 @@ export default function GateScanTab() {
       {(stage === "review" || stage === "recording") && lookup && (
         <div className="space-y-5 rounded-xl border bg-card p-5">
           {lookup.valid ? (
-            <div className={cn("flex items-center gap-3 rounded-lg p-4", lookup.action === "EXIT" ? "bg-violet-50 text-violet-800" : "bg-emerald-50 text-emerald-800")}>
+            <div className={cn("flex items-center gap-3 rounded-lg p-4", FIRST_MOVES.includes(lookup.action ?? "") ? "bg-violet-50 text-violet-800" : "bg-emerald-50 text-emerald-800")}>
               <CheckCircle2 className="size-6 shrink-0" />
               <div>
-                <p className="text-lg font-semibold">{lookup.action === "EXIT" ? "Student is leaving" : "Student is returning"}</p>
+                <p className="text-lg font-semibold">{ACTION_TITLE[lookup.action ?? ""]}</p>
                 <p className="text-sm">{lookup.message}</p>
               </div>
             </div>
@@ -304,7 +337,7 @@ export default function GateScanTab() {
           {needsPerson && request && (
             <section className="space-y-3">
               <div>
-                <p className="text-sm font-semibold">Who is picking up the student?</p>
+                <p className="text-sm font-semibold">{isVisitorPass ? "Which visitor is at the gate?" : "Who is picking up the student?"}</p>
                 <p className="text-sm text-muted-foreground">Check the person&apos;s ID against the photo below, then select them.</p>
               </div>
 
@@ -336,12 +369,12 @@ export default function GateScanTab() {
               {lookup.valid ? "Cancel" : "Scan next"}
             </Button>
 
-            {/* {!lookup.valid && <Button onClick={scanAgain}>Scan again</Button>} */}
+            {!lookup.valid && <Button onClick={scanAgain}>Scan again</Button>}
 
             {lookup.valid && (
               <Button onClick={record} disabled={stage === "recording"} className="gap-2">
                 {stage === "recording" && <Loader2 className="size-4 animate-spin" />}
-                {lookup.action === "EXIT" ? "Record exit" : "Record return"}
+                {ACTION_BUTTON[lookup.action ?? ""]}
               </Button>
             )}
           </div>
@@ -361,7 +394,7 @@ export default function GateScanTab() {
             </div>
           </div>
 
-          {result.allowed && result.students && (
+          {result.allowed && result.students && result.students.length > 0 && (
             <div className="grid gap-2 sm:grid-cols-2">
               {result.students.map((student) => (
                 <div key={student.id} className="rounded-lg border p-3">
@@ -381,7 +414,7 @@ export default function GateScanTab() {
                 <Button variant="outline" onClick={reset}>
                   Scan next
                 </Button>
-                {/* <Button onClick={scanAgain}>Scan again</Button> */}
+                <Button onClick={scanAgain}>Scan again</Button>
               </>
             )}
           </div>

@@ -9,7 +9,7 @@ type UserPayload = {
 };
 
 export const userService = {
-  getAll: () => apiClient.get("/users"),
+  getAll: (params?: { page?: number; limit?: number; search?: string; role?: string }) => apiClient.get("/users", { params }),
 
   create: (data: UserPayload) => apiClient.post("/users", data),
 

@@ -5,20 +5,27 @@ import { Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { gatepassService, uploadIdProofs, type MovementType, type Option, type PickupPersonPayload, type StudentCard } from "@/services/gatepass.service";
+import { gatepassService, uploadIdProofs, type CreateMovementRequestPayload, type MovementType, type PickupPersonPayload, type StudentCard } from "@/services/gatepass.service";
 import { useGatepassStore } from "@/store/gatepassStore";
+import { DatePicker, DateTimePicker, parseLocalValue } from "./pickers";
 import { StudentSummary, apiError } from "./shared";
 
 const ID_TYPES = ["Aadhaar card", "Driving licence", "Voter ID", "Passport", "PAN card", "Other"];
 const MAX_PERSONS = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+const TYPE_OPTIONS: { value: MovementType; title: string; hint: string }[] = [
+  { value: "OUTPASS", title: "Outpass", hint: "One student, picked up by family" },
+  { value: "VISITOR", title: "Visitor pass", hint: "Visitors coming for the day" },
+  { value: "EVENT_TRIP", title: "Event trip", hint: "Several students, with a teacher" },
+];
 
 interface PickupDraft {
   key: string;
@@ -42,13 +49,6 @@ const emptyPerson = (): PickupDraft => ({
   file: null,
 });
 
-/** Current time in the format a datetime-local input expects. */
-function nowLocal() {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
-}
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -68,27 +68,23 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
   const [to, setTo] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // outpass
+  // visitor pass
+  const [visitDate, setVisitDate] = useState("");
+  const [visitMode, setVisitMode] = useState<"student" | "staff">("student");
+  const [hostName, setHostName] = useState("");
+
+  // students: always found one at a time, by the exact admission number
   const [admissionNo, setAdmissionNo] = useState("");
-  const [student, setStudent] = useState<StudentCard | null>(null);
+  const [selected, setSelected] = useState<StudentCard[]>([]);
   const [looking, setLooking] = useState(false);
+
+  // pickup persons (outpass) or visitors (visitor pass)
   const [persons, setPersons] = useState<PickupDraft[]>(() => [emptyPerson()]);
 
   // event trip
   const [accompanying, setAccompanying] = useState("");
-  const [options, setOptions] = useState<{ classes: Option[]; sections: Option[] }>({
-    classes: [],
-    sections: [],
-  });
-  const [optionsLoaded, setOptionsLoaded] = useState(false);
-  const [classId, setClassId] = useState("all");
-  const [sectionId, setSectionId] = useState("all");
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<StudentCard[]>([]);
-  const [selected, setSelected] = useState<StudentCard[]>([]);
-  const [searching, setSearching] = useState(false);
 
-  // A parent login can only raise an outpass for its own child.
+  // A parent login can only raise a request for its own child.
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -100,16 +96,16 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
     }
   }, []);
 
-  useEffect(() => {
-    if (!open || type !== "EVENT_TRIP" || optionsLoaded) return;
+  const typeOptions = parentOnly ? TYPE_OPTIONS.filter((o) => o.value !== "EVENT_TRIP") : TYPE_OPTIONS;
 
-    setOptionsLoaded(true);
-
-    gatepassService.movement
-      .options()
-      .then(setOptions)
-      .catch(() => toast.error("Could not load classes and sections"));
-  }, [open, type, optionsLoaded]);
+  // One student (outpass, or a parent's visitor pass) or several (event trip, visitor pass raised by staff).
+  const singleStudent = type === "OUTPASS" || (type === "VISITOR" && parentOnly);
+  const multiStudents = type === "EVENT_TRIP" || (type === "VISITOR" && !parentOnly && visitMode === "student");
+  const needsStudents = singleStudent || multiStudents;
+  const metStaff = type === "VISITOR" && !parentOnly && visitMode === "staff";
+  const wantsPersons = type !== "EVENT_TRIP";
+  const personLabel = type === "VISITOR" ? "Visitor" : "Pickup person";
+  const student = selected[0] ?? null;
 
   const reset = () => {
     setType("OUTPASS");
@@ -117,15 +113,13 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
     setDestination("");
     setFrom("");
     setTo("");
+    setVisitDate("");
+    setVisitMode("student");
+    setHostName("");
     setAdmissionNo("");
-    setStudent(null);
+    setSelected([]);
     setPersons([emptyPerson()]);
     setAccompanying("");
-    setClassId("all");
-    setSectionId("all");
-    setQuery("");
-    setResults([]);
-    setSelected([]);
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -133,8 +127,19 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
     onOpenChange(next);
   };
 
-  // outpass
+  const changeType = (next: MovementType) => {
+    setType(next);
+    setAdmissionNo("");
+    setSelected([]);
+  };
 
+  const changeVisitMode = (next: "student" | "staff") => {
+    setVisitMode(next);
+    setAdmissionNo("");
+    setSelected([]);
+  };
+
+  // Find a student by the exact admission number.
   const lookup = async () => {
     const value = admissionNo.trim();
 
@@ -145,7 +150,6 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
 
     try {
       setLooking(true);
-      setStudent(null);
 
       const found = await gatepassService.movement.students({ admissionNo: value });
 
@@ -154,7 +158,19 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
         return;
       }
 
-      setStudent(found[0]);
+      const card = found[0];
+
+      if (multiStudents) {
+        if (selected.some((s) => s.id === card.id)) {
+          toast.info(`${card.name} is already added`);
+        } else {
+          setSelected((prev) => [...prev, card]);
+        }
+
+        setAdmissionNo("");
+      } else {
+        setSelected([card]);
+      }
     } catch (error) {
       toast.error(apiError(error, "Could not find the student"));
     } finally {
@@ -162,96 +178,89 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
     }
   };
 
+  const removeStudent = (id: string) => setSelected((prev) => prev.filter((s) => s.id !== id));
+
   const updatePerson = (key: string, patch: Partial<PickupDraft>) => setPersons((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)));
 
   const addPerson = () => setPersons((prev) => [...prev, emptyPerson()]);
 
   const removePerson = (key: string) => setPersons((prev) => prev.filter((p) => p.key !== key));
 
-  // event trip
-
-  const searchStudents = async () => {
-    if (!query.trim() && classId === "all" && sectionId === "all") {
-      toast.error("Choose a class or section, or type a name");
-      return;
-    }
-
-    try {
-      setSearching(true);
-
-      const found = await gatepassService.movement.students({
-        q: query.trim() || undefined,
-        classId: classId === "all" ? undefined : classId,
-        sectionId: sectionId === "all" ? undefined : sectionId,
-      });
-
-      setResults(found);
-
-      if (found.length === 0) toast.info("No students found");
-    } catch (error) {
-      toast.error(apiError(error, "Could not search students"));
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const isSelected = (id: string) => selected.some((s) => s.id === id);
-
-  const toggleStudent = (item: StudentCard) => setSelected((prev) => (prev.some((s) => s.id === item.id) ? prev.filter((s) => s.id !== item.id) : [...prev, item]));
-
-  const selectAllShown = () => setSelected((prev) => [...prev, ...results.filter((r) => !prev.some((s) => s.id === r.id))]);
-
   // submit
 
   const submit = async () => {
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-
-    if (!from || !to || Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
-      toast.error("Choose the departure and return date and time");
-      return;
-    }
-
-    if (toDate <= fromDate) {
-      toast.error("The return time must be after the departure time");
-      return;
-    }
-
-    if (toDate <= new Date()) {
-      toast.error("The return time must be in the future");
-      return;
-    }
-
     if (!purpose.trim()) {
-      toast.error(type === "OUTPASS" ? "Enter the reason for the outpass" : "Enter the event or purpose");
+      toast.error(type === "OUTPASS" ? "Enter the reason for the outpass" : type === "VISITOR" ? "Enter the purpose of the visit" : "Enter the event or purpose");
       return;
+    }
+
+    let fromDate: Date | null = null;
+    let toDate: Date | null = null;
+
+    if (type === "VISITOR") {
+      if (!visitDate) {
+        toast.error("Choose the day of the visit");
+        return;
+      }
+    } else {
+      fromDate = parseLocalValue(from);
+      toDate = parseLocalValue(to);
+
+      if (!fromDate || !toDate) {
+        toast.error("Choose the departure and return date and time");
+        return;
+      }
+
+      if (toDate <= fromDate) {
+        toast.error("The return time must be after the departure time");
+        return;
+      }
+
+      if (toDate <= new Date()) {
+        toast.error("The return time must be in the future");
+        return;
+      }
     }
 
     let studentIds: string[] = [];
 
-    if (type === "OUTPASS") {
-      if (!student) {
-        toast.error("Enter the admission number and fetch the student first");
+    if (needsStudents) {
+      if (selected.length === 0) {
+        toast.error(singleStudent ? "Enter the admission number and fetch the student first" : type === "VISITOR" ? "Add the student being visited" : "Add at least one student");
         return;
       }
 
-      if (!student.hostelName) {
-        toast.error("This student is not assigned to a hostel. Please contact the school office.");
-        return;
+      if (type === "OUTPASS" && student) {
+        if (!student.hostelName) {
+          toast.error("This student is not assigned to a hostel. Please contact the school office.");
+          return;
+        }
+
+        if (!student.housemotherName) {
+          toast.error("This student's hostel has no housemother yet. Please contact the school office.");
+          return;
+        }
+
+        if (!destination.trim()) {
+          toast.error("Enter the destination");
+          return;
+        }
       }
 
-      if (!student.housemotherName) {
-        toast.error("This student's hostel has no housemother yet. Please contact the school office.");
-        return;
-      }
+      studentIds = selected.map((s) => s.id);
+    } else if (metStaff && !hostName.trim()) {
+      toast.error("Enter the staff member being met");
+      return;
+    }
 
-      if (!destination.trim()) {
-        toast.error("Enter the destination");
-        return;
-      }
+    if (type === "EVENT_TRIP" && !accompanying.trim()) {
+      toast.error("Enter the name of the maitre / home mother going with the students");
+      return;
+    }
 
+    if (wantsPersons) {
       for (const [index, person] of persons.entries()) {
-        const label = `Pickup person ${index + 1}`;
+        const label = `${personLabel} ${index + 1}`;
 
         if (!person.name.trim() || !person.relation.trim()) {
           toast.error(`${label}: enter the name and relation`);
@@ -278,20 +287,6 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
           return;
         }
       }
-
-      studentIds = [student.id];
-    } else {
-      if (selected.length === 0) {
-        toast.error("Select at least one student");
-        return;
-      }
-
-      if (!accompanying.trim()) {
-        toast.error("Enter the name of the maitre / home mother going with the students");
-        return;
-      }
-
-      studentIds = selected.map((s) => s.id);
     }
 
     try {
@@ -299,7 +294,7 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
 
       let pickupPersons: PickupPersonPayload[] | undefined;
 
-      if (type === "OUTPASS") {
+      if (wantsPersons) {
         const urls = await uploadIdProofs(persons.map((p) => p.file as File));
 
         pickupPersons = persons.map((p, index) => ({
@@ -312,16 +307,28 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
         }));
       }
 
-      const created = await createRequest({
-        type,
-        studentIds,
-        requestedFrom: fromDate.toISOString(),
-        requestedTo: toDate.toISOString(),
-        purpose: purpose.trim(),
-        destination: destination.trim() || undefined,
-        accompanyingPerson: type === "EVENT_TRIP" ? accompanying.trim() : undefined,
-        pickupPersons,
-      });
+      const payload: CreateMovementRequestPayload =
+        type === "VISITOR"
+          ? {
+              type,
+              studentIds,
+              visitDate,
+              purpose: purpose.trim(),
+              hostName: metStaff ? hostName.trim() : undefined,
+              pickupPersons,
+            }
+          : {
+              type,
+              studentIds,
+              requestedFrom: fromDate?.toISOString(),
+              requestedTo: toDate?.toISOString(),
+              purpose: purpose.trim(),
+              destination: destination.trim() || undefined,
+              accompanyingPerson: type === "EVENT_TRIP" ? accompanying.trim() : undefined,
+              pickupPersons,
+            };
+
+      const created = await createRequest(payload);
 
       toast.success(`Request ${created.requestNo} submitted`);
       reset();
@@ -334,270 +341,251 @@ export default function RaiseRequestDialog({ open, onOpenChange, onCreated }: Pr
     }
   };
 
+  const description =
+    type === "OUTPASS"
+      ? "Enter the admission number to fetch the student, then fill in the details."
+      : type === "VISITOR"
+        ? "A visitor pass is valid for the whole day you choose."
+        : "Add the students going on the trip by their admission numbers, then add the event details.";
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-3xl">
+      <DialogContent className="max-h-[88vh] w-[95vw] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>New request</DialogTitle>
-          <DialogDescription className="short:hidden">
-            {type === "OUTPASS" ? "Enter the admission number to fetch the student, then fill in the details." : "Select the students going on the trip and add the event details."}
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <DialogBody>
-          <div className="space-y-6 short:space-y-3">
-            {!parentOnly && (
-              <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-6">
+          <div className={cn("grid gap-3", typeOptions.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+            {typeOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => changeType(option.value)}
+                className={cn("rounded-lg border p-3 text-left text-sm transition", type === option.value ? "border-primary bg-primary/5" : "hover:bg-muted")}
+              >
+                <p className="font-medium">{option.title}</p>
+                <p className="text-muted-foreground">{option.hint}</p>
+              </button>
+            ))}
+          </div>
+
+          {type === "VISITOR" && !parentOnly && (
+            <section className="space-y-3">
+              <Label>Who are the visitors coming to see?</Label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
                 {(
                   [
-                    { value: "OUTPASS", title: "Outpass", hint: "One student, picked up by family" },
-                    { value: "EVENT_TRIP", title: "Event trip", hint: "Several students, with a teacher" },
+                    { value: "student", title: "A student" },
+                    { value: "staff", title: "A staff member" },
                   ] as const
                 ).map((option) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setType(option.value)}
-                    className={cn("rounded-lg border p-3 text-left text-sm transition", type === option.value ? "border-primary bg-primary/5" : "hover:bg-muted")}
+                    onClick={() => changeVisitMode(option.value)}
+                    className={cn("rounded-lg border p-3 text-left text-sm transition", visitMode === option.value ? "border-primary bg-primary/5" : "hover:bg-muted")}
                   >
-                    <p className="font-medium">{option.title}</p>
-                    <p className="text-muted-foreground">{option.hint}</p>
+                    {option.title}
                   </button>
                 ))}
               </div>
-            )}
 
-            {type === "OUTPASS" ? (
-              <section className="space-y-3">
-                <Label htmlFor="admission-no">Admission number</Label>
-
-                <div className="flex gap-2">
-                  <Input
-                    id="admission-no"
-                    value={admissionNo}
-                    placeholder="Enter the admission number"
-                    onChange={(e) => {
-                      setAdmissionNo(e.target.value);
-                      setStudent(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void lookup();
-                      }
-                    }}
-                  />
-                  <Button type="button" onClick={lookup} disabled={looking} className="gap-2">
-                    {looking ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
-                    Fetch student
-                  </Button>
+              {metStaff && (
+                <div className="space-y-2">
+                  <Label htmlFor="host-name">Staff member being met</Label>
+                  <Input id="host-name" value={hostName} placeholder="Full name" onChange={(e) => setHostName(e.target.value)} />
                 </div>
+              )}
+            </section>
+          )}
 
-                {student && (
-                  <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
-                    <StudentSummary student={student} />
+          {needsStudents && (
+            <section className="space-y-3">
+              <Label htmlFor="admission-no">{singleStudent ? "Admission number" : type === "VISITOR" ? "Student being visited (admission number)" : "Add students by admission number"}</Label>
 
-                    {(!student.hostelName || !student.housemotherName) && (
-                      <p className="text-sm text-amber-600">
-                        {!student.hostelName ? "This student is not assigned to a hostel yet." : "This student's hostel has no housemother yet."} A request cannot be raised until the school office fixes this.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </section>
-            ) : (
-              <section className="space-y-3">
-                <Label>Students</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="admission-no"
+                  value={admissionNo}
+                  placeholder="Enter admission number"
+                  onChange={(e) => {
+                    setAdmissionNo(e.target.value);
+                    if (singleStudent) setSelected([]);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void lookup();
+                    }
+                  }}
+                />
 
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    value={query}
-                    placeholder="Name or admission number"
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void searchStudents();
-                      }
-                    }}
-                  />
-
-                  <Select value={classId} onValueChange={setClassId}>
-                    <SelectTrigger className="sm:w-40">
-                      <SelectValue placeholder="Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All classes</SelectItem>
-                      {options.classes.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={sectionId} onValueChange={setSectionId}>
-                    <SelectTrigger className="sm:w-40">
-                      <SelectValue placeholder="Section" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All sections</SelectItem>
-                      {options.sections.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Button type="button" onClick={searchStudents} disabled={searching} className="gap-2">
-                    {searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
-                    Search
-                  </Button>
-                </div>
-
-                {results.length > 0 && (
-                  <div className="rounded-lg border">
-                    <div className="flex items-center justify-between border-b px-3 py-2 text-sm">
-                      <span className="text-muted-foreground">{results.length} students found</span>
-                      <Button type="button" variant="ghost" size="sm" onClick={selectAllShown}>
-                        Select all shown
-                      </Button>
-                    </div>
-
-                    <div className="max-h-56 divide-y overflow-y-auto">
-                      {results.map((item) => (
-                        <label key={item.id} className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted/50">
-                          <input type="checkbox" className="size-4 accent-primary" checked={isSelected(item.id)} onChange={() => toggleStudent(item)} />
-                          <StudentSummary student={item} compact />
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selected.length > 0 && (
-                  <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-                    <p className="text-sm font-medium">Selected ({selected.length})</p>
-
-                    <div className="max-h-40 space-y-2 overflow-y-auto">
-                      {selected.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between gap-2">
-                          <StudentSummary student={item} compact />
-                          <Button type="button" variant="ghost" size="icon" onClick={() => toggleStudent(item)} aria-label={`Remove ${item.name}`}>
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </section>
-            )}
-
-            <section className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="purpose">{type === "OUTPASS" ? "Reason for outpass" : "Event / purpose"}</Label>
-                <Textarea id="purpose" value={purpose} rows={2} placeholder={type === "OUTPASS" ? "Why is the student going out?" : "Competition, event or activity"} onChange={(e) => setPurpose(e.target.value)} />
+                <Button type="button" onClick={lookup} disabled={looking} className="gap-2">
+                  {looking ? <Loader2 className="size-4 animate-spin" /> : multiStudents ? <Plus className="size-4" /> : <Search className="size-4" />}
+                  {multiStudents ? "Add student" : "Fetch student"}
+                </Button>
               </div>
 
+              {singleStudent && student && (
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
+                  <StudentSummary student={student} />
+
+                  {type === "OUTPASS" && (!student.hostelName || !student.housemotherName) && (
+                    <p className="text-sm text-amber-600">
+                      {!student.hostelName ? "This student is not assigned to a hostel yet." : "This student's hostel has no housemother yet."} A request cannot be raised until the school office fixes this.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {multiStudents && selected.length > 0 && (
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                  <p className="text-sm font-medium">Added ({selected.length})</p>
+
+                  <div className="max-h-48 space-y-2 overflow-y-auto">
+                    {selected.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between gap-2">
+                        <StudentSummary student={item} compact />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeStudent(item.id)} aria-label={`Remove ${item.name}`}>
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          <section className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="purpose">{type === "OUTPASS" ? "Reason for outpass" : type === "VISITOR" ? "Purpose of visit" : "Event / purpose"}</Label>
+              <Textarea
+                id="purpose"
+                value={purpose}
+                rows={2}
+                placeholder={type === "OUTPASS" ? "Enter the reason for the outpass" : type === "VISITOR" ? "Enter the purpose of the visit" : "Enter the name of the competition, event or activity"}
+                onChange={(e) => setPurpose(e.target.value)}
+              />
+            </div>
+
+            {type !== "VISITOR" && (
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="destination">Destination{type === "EVENT_TRIP" ? " (optional)" : ""}</Label>
                 <Input id="destination" value={destination} placeholder="Where are they going?" onChange={(e) => setDestination(e.target.value)} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="from">Leaves on</Label>
-                <Input id="from" type="datetime-local" min={nowLocal()} value={from} onChange={(e) => setFrom(e.target.value)} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="to">Returns by</Label>
-                <Input id="to" type="datetime-local" min={from || nowLocal()} value={to} onChange={(e) => setTo(e.target.value)} />
-              </div>
-            </section>
-
-            {type === "EVENT_TRIP" && (
-              <section className="space-y-2">
-                <Label htmlFor="accompanying">Maitre / home mother going with the students</Label>
-                <Input id="accompanying" value={accompanying} placeholder="Full name" onChange={(e) => setAccompanying(e.target.value)} />
-              </section>
             )}
 
-            {type === "OUTPASS" && (
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>People coming to pick up the student</Label>
-                    <p className="text-sm text-muted-foreground">Their ID proof is checked by the guard at the gate.</p>
-                  </div>
-
-                  <Button type="button" variant="outline" size="sm" className="gap-2" onClick={addPerson} disabled={persons.length >= MAX_PERSONS}>
-                    <Plus className="size-4" />
-                    Add person
-                  </Button>
+            {type === "VISITOR" ? (
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Date of visit</Label>
+                <DatePicker value={visitDate} onChange={setVisitDate} minDate={new Date()} placeholder="Pick the visit date" />
+                <p className="text-sm text-muted-foreground">The pass stays valid for the whole day.</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Leaves on</Label>
+                  <DateTimePicker value={from} onChange={setFrom} minDate={new Date()} placeholder="Pick date and time" />
                 </div>
 
-                {persons.map((person, index) => (
-                  <div key={person.key} className="space-y-3 rounded-lg border p-4 short:space-y-2 short:p-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Person {index + 1}</p>
+                <div className="space-y-2">
+                  <Label>Returns by</Label>
+                  <DateTimePicker value={to} onChange={setTo} minDate={parseLocalValue(from) ?? new Date()} placeholder="Pick date and time" />
+                </div>
+              </>
+            )}
+          </section>
 
-                      {persons.length > 1 && (
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removePerson(person.key)} aria-label={`Remove person ${index + 1}`}>
-                          <Trash2 className="size-4" />
-                        </Button>
-                      )}
+          {type === "EVENT_TRIP" && (
+            <section className="space-y-2">
+              <Label htmlFor="accompanying">Maitre / home mother going with the students</Label>
+              <Input id="accompanying" value={accompanying} placeholder="Full name" onChange={(e) => setAccompanying(e.target.value)} />
+            </section>
+          )}
+
+          {wantsPersons && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>{type === "VISITOR" ? "Visitors" : "People coming to pick up the student"}</Label>
+                  <p className="text-sm text-muted-foreground">ID proof is checked by guard at the gate.</p>
+                </div>
+
+                <Button type="button" variant="outline" size="sm" className="gap-2" onClick={addPerson} disabled={persons.length >= MAX_PERSONS}>
+                  <Plus className="size-4" />
+                  Add {type === "VISITOR" ? "visitor" : "person"}
+                </Button>
+              </div>
+
+              {persons.map((person, index) => (
+                <div key={person.key} className="space-y-3 rounded-lg border p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">
+                      {personLabel} {index + 1}
+                    </p>
+
+                    {persons.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removePerson(person.key)} aria-label={`Remove ${personLabel.toLowerCase()} ${index + 1}`}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Name</Label>
+                      <Input value={person.name} placeholder="Full name" onChange={(e) => updatePerson(person.key, { name: e.target.value })} />
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 short:gap-2 short:sm:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label>Name</Label>
-                        <Input value={person.name} placeholder="Full name" onChange={(e) => updatePerson(person.key, { name: e.target.value })} />
-                      </div>
+                    <div className="space-y-2">
+                      <Label>{type === "VISITOR" ? "Relation (to the student or school)" : "Relation to the student"}</Label>
+                      <Input
+                        value={person.relation}
+                        placeholder={type === "VISITOR" ? "Uncle, family friend, vendor..." : "Father, mother, uncle..."}
+                        onChange={(e) => updatePerson(person.key, { relation: e.target.value })}
+                      />
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label>Relation to the student</Label>
-                        <Input value={person.relation} placeholder="Father, mother, uncle..." onChange={(e) => updatePerson(person.key, { relation: e.target.value })} />
-                      </div>
+                    <div className="space-y-2">
+                      <Label>Phone (optional)</Label>
+                      <Input value={person.phone} inputMode="tel" onChange={(e) => updatePerson(person.key, { phone: e.target.value })} />
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label>Phone (optional)</Label>
-                        <Input value={person.phone} inputMode="tel" onChange={(e) => updatePerson(person.key, { phone: e.target.value })} />
-                      </div>
+                    <div className="space-y-2">
+                      <Label>ID proof type</Label>
+                      <Select value={person.idProofType} onValueChange={(value) => updatePerson(person.key, { idProofType: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ID_TYPES.map((item) => (
+                            <SelectItem key={item} value={item}>
+                              {item}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label>ID proof type</Label>
-                        <Select value={person.idProofType} onValueChange={(value) => updatePerson(person.key, { idProofType: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ID_TYPES.map((item) => (
-                              <SelectItem key={item} value={item}>
-                                {item}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>ID number (optional)</Label>
+                      <Input value={person.idProofNumber} onChange={(e) => updatePerson(person.key, { idProofNumber: e.target.value })} />
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label>ID number (optional)</Label>
-                        <Input value={person.idProofNumber} onChange={(e) => updatePerson(person.key, { idProofNumber: e.target.value })} />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>ID proof photo</Label>
-                        <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => updatePerson(person.key, { file: e.target.files?.[0] ?? null })} />
-                      </div>
+                    <div className="space-y-2">
+                      <Label>ID proof photo</Label>
+                      <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => updatePerson(person.key, { file: e.target.files?.[0] ?? null })} />
                     </div>
                   </div>
-                ))}
-              </section>
-            )}
-          </div>
-        </DialogBody>
+                </div>
+              ))}
+            </section>
+          )}
+        </div>
 
         <DialogFooter className="gap-2">
           <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={submitting}>
